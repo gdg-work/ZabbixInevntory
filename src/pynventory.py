@@ -44,7 +44,7 @@ try:
     oClient.close()
 
 except Exception as e:
-    print('*** Caught exception: ' + str(e.__class__) + ': ' + str(e))
+    print('*CRIT* Caught exception: ' + str(e.__class__) + ': ' + str(e))
     traceback.print_exc()
     try:
         oClient.close()
