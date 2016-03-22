@@ -12,33 +12,63 @@ oData = yaml.load ("""
         type: server
         access: ssh
         port: 2200
-        IP: [ 127.0.0.1, 192.168.40.66 ]
+        IP: [ 192.168.34.2, 192.168.135.133, 127.0.0.1, 192.168.40.66 ]
+        # IP: 192.168.135.133
         login: dgolub
         ssh-key: /home/dgolub/.ssh/gdg@home.key
         """)
 
 print (oData)
 
+class MySSHConnection:
+    def __init__(self, lIPList, ):
+        pass
 
-oConn = None
+    def close(self):
+        pass
+
+    def fsRunCmd(self, sCmd: str) -> str:
+        return ""
+
+
+
 oSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-try:
-    oSocket.connect((oData['IP'][0], oData['port']))
-except Exception as e:
-    print('*CRIT* Connect failed: ' + str(e))
-    # traceback.print_exc()
+# connect with different IPs until success
+bConnected=False
+sIP = ''
+lsIPs = []
+if isinstance(oData['IP'],str):
+    lsIPs = [ oData['IP'] ]
+elif isinstance(oData['IP'],list):
+    lsIPs = oData['IP']
+else:
+    print("*DBG* Unknown type of oData['IP']: %s" % type(oData['IP']))
+    raise Exception()
+
+for sIP in lsIPs:
+    try:
+        print("*DBG* Trying IP: %s" % sIP)
+        oSocket.connect((sIP, oData['port']))
+        bConnected=True
+        break
+    except Exception as e:
+        pass
+# check if any connection was successful
+if not bConnected:
+    traceback.print_exc()
     sys.exit(1)
 
-sIp = oData['IP'][0]
-print ("*DBG* IP addr is %s" % sIp)
 try:
     oClient = paramiko.SSHClient()
     oClient.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
     oClient.load_system_host_keys()
     oClient.load_host_keys("/home/dgolub/.ssh/known_hosts")
-    oClient.connect(sIp, oData["port"], username=oData["login"],
+    oClient.connect(hostname=oData['name'], port=oData['port'], username=oData["login"],
             key_filename=oData["ssh-key"],sock=oSocket)
     stdin, stdout, stderr = oClient.exec_command('ls -l')
+    for sLine in stdout:
+        print (sLine.strip())
+    stdin, stdout, stderr = oClient.exec_command('hostname')
     for sLine in stdout:
         print (sLine.strip())
     oClient.close()
@@ -51,3 +81,5 @@ except Exception as e:
     except:
         pass
     sys.exit(1)
+
+# vim: expandtab:tabstop=4:softtabstop=4
