@@ -7,6 +7,9 @@ import yaml
 import sys
 import traceback
 
+# CONSTANTS
+DEFAULT_SSH_PORT=22
+
 oData = yaml.load ("""
         name: gdgbook
         type: server
@@ -27,57 +30,75 @@ oData = yaml.load ("""
 
 print (oData)
 
+
+#
+# --- SSH connection/commands class ---
+#
+
 class MySSHConnection:
     def __init__(self, ltIP_Port_Pairs:list, dssParams: dict):
         self.oSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        bConnected = False
-        iDefaultPort = 22
+        self.bConnected = False
+        self.oClient = paramiko.SSHClient()
         for tIP_Port in ltIP_Port_Pairs:
             try:
-                oSocket.connect(tIP_Port)
-                bConnected=True
+                print("*DBG* Trying to connect to IP %s port %d" % tIP_Port)
+                self.oSocket.connect(tIP_Port)
+                self.bConnected=True
                 break
             except Exception as e:
                 pass
-        if bConnected:
+        if self.bConnected:
             try:
-                self.oClient = paramiko.SSHClient()
                 self.oClient.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
                 self.oClient.load_system_host_keys()
                 self.oClient.load_host_keys(dssParams['KnownHostsFile'])
-                oClient.connect(hostname=sIP, port=iPort, username=dssParams['login'],
-                key_filename=dssParams["ssh-key"],sock=oSocket)
+                self.oClient.connect(hostname=tIP_Port[0], port=tIP_Port[1], username=dssParams['login'],
+                                     key_filename=dssParams["ssh-key"],sock=self.oSocket)
             except Exception as e:
-                pass
+                print("*CRIT* Error connecting: " + str(e) )
+                self.bConnected=False
         return
 
     def close(self):
         try:
-            self.oClient.close()
-            self.oSocket.close()
+            if self.oClient:
+                self.oClient.close()
+            if self.oSocket:
+                self.oSocket.close()
         except Exception:
             pass
         return
 
-    def fsRunCmd(self, sCmd: str) -> str:
-        return ""
+    def fsRunCmd(self, sCmd: str) -> list:
+        lResult = []
+        if self.bConnected:
+            stdin, stdout, stderr = self.oClient.exec_command('ls -l')
+            for l in stdout:
+                lResult.append(l)
+        return "".join(lResult)
 
 def ftSplitIPandPort(sIpPort: str) -> tuple:
     if ':' in sIpPort:
         sIP, sPort = sIpPort.split(":",1)
         if sPort.isnumeric(): iPort = int(sPort)
-        else: iPort=22
+        else: iPort = DEFAULT_SSH_PORT
     else:
         sIP = sIpPort
-        iPort = 22
+        iPort = DEFAULT_SSH_PORT
     return ((sIP, iPort))
 
-oSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# connect with different IPs until success
-bConnected=False
-sIP = ''
-iPort = 22
-lsIPs = []
+#
+# --- SSSU access method class ---
+#
+
+
+
+
+
+#
+# === M A I N ===
+#
 if isinstance(oData['IP'],str):
     lsIPs = [ oData['IP'] ]
 elif isinstance(oData['IP'],list):
@@ -87,42 +108,8 @@ else:
     raise Exception()
 
 ltHostPortPairs = [ ftSplitIPandPort(s) for s in lsIPs ]
-for tIpPort in ltHostPortPairs:
-    try:
-        # cut out the port number
-        print("*DBG* Trying host %s, port %d" % tIpPort)
-        oSocket.connect(tIpPort)
-        bConnected=True
-        break
-    except Exception as e:
-        pass
-# check if any connection was successful
-if not bConnected:
-    traceback.print_exc()
-    sys.exit(1)
+oSSHObject = MySSHConnection(ltHostPortPairs, oData['sshMethod'])
+print (oSSHObject.fsRunCmd('ls -l'))
+oSSHObject.close()
 
-try:
-    oClient = paramiko.SSHClient()
-    oClient.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
-    oClient.load_system_host_keys()
-    oClient.load_host_keys(oData['sshMethod']['KnownHostsFile'])
-    oClient.connect(hostname=sIP, port=iPort, username=oData['sshMethod']["login"],
-            key_filename=oData['sshMethod']["ssh-key"],sock=oSocket)
-    stdin, stdout, stderr = oClient.exec_command('ls -l')
-    for sLine in stdout:
-        print (sLine.strip())
-    stdin, stdout, stderr = oClient.exec_command('hostname')
-    for sLine in stdout:
-        print (sLine.strip())
-    oClient.close()
-
-except Exception as e:
-    print('*CRIT* Caught exception: ' + str(e.__class__) + ': ' + str(e))
-    traceback.print_exc()
-    try:
-        oClient.close()
-    except:
-        pass
-    sys.exit(1)
-
-# vim: expandtab:tabstop=4:softtabstop=4
+# vim: expandtab:tabstop=4:softtabstop=4:shiftwidth=4
