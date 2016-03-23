@@ -1,0 +1,243 @@
+# 
+# Inventory objects tree for Zabbix/Python inventory implementation
+digraph zabinv {
+    node [shape=none, fontname = "DejaVu Sans", fontsize=10.0];
+    rankdir=TB;
+
+    netObject [ label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+       <TR><TD BGCOLOR="#636363" colspan="2">NetObject</TD></TR>
+       <TR><TD>Fields:</TD> <TD>Methods</TD></TR>
+       <TR>
+           <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+               <TR><TD>type</TD></TR>
+               <TR><TD>IP</TD></TR></TABLE>
+               </TD>
+           <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+               <TR><TD>getType</TD></TR>
+               <TR><TD>getIP</TD></TR></TABLE>
+               </TD></TR>
+        </TABLE>>]
+    
+    storageClass [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+       <TR><TD BGCOLOR="#636363" colspan="2">StorageClass</TD></TR>
+       <TR><TD>Fields:</TD> <TD>Methods</TD></TR>
+       <TR>
+           <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+               <TR><TD>Type</TD></TR>
+               <TR><TD>SN/WWN</TD></TR>
+               <TR><TD>model</TD></TR></TABLE>
+               </TD>
+           <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+               <TR><TD>getType *</TD></TR>
+               <TR><TD>getSN (-&gt;SN or WWN)</TD></TR>
+               <TR><TD>getModel</TD></TR></TABLE>
+               </TD></TR>
+        </TABLE>>]
+
+    netObject -> storageClass
+
+    classicArray [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+        <TR><TD BGCOLOR="#636363" colspan="2">ClassicArray</TD></TR>
+        <TR><TD>Fields:</TD> <TD>Methods</TD></TR>
+        <TR>
+            <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+                <TR><TD>Controllers (list)</TD></TR>
+                <TR><TD>Shelves (list)</TD></TR>
+                <TR><TD>Disks (list)</TD></TR></TABLE></TD>
+            <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+                <TR><TD>getControllersAmount</TD></TR>
+                <TR><TD>getControllersSN</TD></TR>
+                <TR><TD>getShelvesAmount</TD></TR>
+                <TR><TD>getShelvesSN</TD></TR>
+                <TR><TD>getDisksAmount</TD></TR>
+                <TR><TD>getDisksSN</TD></TR></TABLE>
+            </TD></TR>
+        </TABLE>>]
+
+    storageClass -> classicArray
+
+    scaleOutStorage [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+       <TR><TD BGCOLOR="#636363" colspan="2">ScaleOutStorageClass</TD></TR>
+       <TR><TD>Fields:</TD> <TD>Methods</TD></TR>
+       <TR>
+           <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+               <TR><TD>Type</TD></TR>
+               <TR><TD>Nodes (list)</TD></TR></TABLE>
+               </TD>
+           <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+               <TR><TD>getType *</TD></TR>
+               <TR><TD>getNodesAmount</TD></TR>
+               <TR><TD>getNodesSerials</TD></TR>
+               <TR><TD>getPortsAmount</TD></TR>
+               <TR><TD>getDisksAmount</TD></TR>
+               <TR><TD>getDisksSN</TD></TR></TABLE>
+               </TD></TR>
+        </TABLE>>]
+
+    storageClass -> scaleOutStorage
+
+    hpEva [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+        <TR ><TD BGCOLOR="#636363" colspan="2">HP_EVA_Class</TD></TR>
+        <TR><TD>Fields:</TD> <TD>Methods</TD></TR>
+        <TR>
+            <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+                <TR><TD>WWN</TD></TR></TABLE></TD>
+            <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+                <TR><TD>getID -&gt; WWN</TD></TR></TABLE>
+            </TD>
+        </TR>
+        </TABLE>>]
+
+
+    classicArray -> hpEva;
+
+    hp3Par [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+        <TR><TD BGCOLOR="#636363" colspan="2">HP_3Par_Class</TD></TR>
+        <TR><TD>Fields:</TD> <TD>Methods</TD></TR>
+        </TABLE>>]
+
+
+    classicArray -> hp3Par;
+
+    ibmDS [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+        <TR><TD BGCOLOR="#636363" colspan="2">IBM_DS_Class</TD></TR>
+        <TR><TD>Fields:</TD> <TD>Methods</TD></TR>
+        </TABLE>>]
+
+    classicArray -> ibmDS;
+
+    ibmFlashSystem [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+        <TR><TD BGCOLOR="#636363" colspan="2">IBM_FlashSystem_Class</TD></TR>
+        <TR><TD>Fields:</TD> <TD>Methods</TD></TR>
+        </TABLE>>]
+
+
+    classicArray -> ibmFlashSystem;
+
+    ibmXIV [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+        <TR><TD BGCOLOR="#636363" colspan="2">IBM_XIV_Class</TD></TR>
+        <TR><TD>Fields:</TD> <TD>Methods</TD></TR>
+        </TABLE>>]
+
+
+    scaleOutStorage -> ibmXIV;
+
+
+    # Disk, Controller, Node
+    
+    diskClass [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+       <TR><TD BGCOLOR="#636363" colspan="2">DASD_Class</TD></TR>
+       <TR><TD>Fields:</TD> <TD>Methods</TD></TR>
+       <TR>
+           <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+               <TR><TD>Type</TD></TR>
+               <TR><TD>Model</TD></TR>
+               <TR><TD>Size</TD></TR>
+               <TR><TD>Position</TD></TR>
+               <TR><TD>SN</TD></TR></TABLE>
+               </TD>
+           <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+               <TR><TD>getType *</TD></TR>
+               <TR><TD>getModel</TD></TR>
+               <TR><TD>getSize</TD></TR>
+               <TR><TD>getPosition</TD></TR>
+               <TR><TD>getSN</TD></TR></TABLE>
+               </TD></TR>
+        </TABLE>>] ;
+
+    controllerClass [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+       <TR><TD BGCOLOR="#636363" colspan="2">ControllerClass</TD></TR>
+       <TR><TD>Fields:</TD> <TD>Methods</TD></TR>
+       <TR>
+           <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+               <TR><TD>Type</TD></TR>
+               <TR><TD>Model ?</TD></TR>
+               <TR><TD>SN</TD></TR>
+               <TR><TD>Ports (list)</TD></TR>
+               <TR><TD>IP ?</TD></TR></TABLE>
+               </TD>
+           <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+               <TR><TD>getType *</TD></TR>
+               <TR><TD>getModel</TD></TR>
+               <TR><TD>getSN</TD></TR>
+               <TR><TD>getPortsAmount</TD></TR>
+               <TR><TD>getPortsIDs</TD></TR>
+               <TR><TD>getIP</TD></TR></TABLE>
+               </TD></TR>
+        </TABLE>>];
+
+    diskShelfClass [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+       <TR><TD BGCOLOR="#636363" colspan="2">DiskShelfClass</TD></TR>
+       <TR><TD>Fields:</TD> <TD>Methods</TD></TR>
+       <TR>
+           <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+               <TR><TD>Type</TD></TR>
+               <TR><TD>Model ?</TD></TR>
+               <TR><TD>SN</TD></TR>
+               <TR><TD>PowerSupplies (list)</TD></TR>
+               <TR><TD>Disks (list)</TD></TR></TABLE>
+               </TD>
+           <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+               <TR><TD>getType *</TD></TR>
+               <TR><TD>getModel</TD></TR>
+               <TR><TD>getSN</TD></TR>
+               <TR><TD>getPwrSupplyAmount</TD></TR>
+               <TR><TD>getDisksAmount</TD></TR>
+               <TR><TD>getDisksVolume</TD></TR>
+               <TR><TD>getDisksSNs</TD></TR> </TABLE>
+               </TD></TR>
+        </TABLE>>];
+
+        classicArray -> diskShelfClass [color=red size=2];
+        classicArray -> controllerClass [color=red size=2];
+        diskShelfClass -> diskClass [color=red size=2];
+        controllerClass -> portClass [color=red size=2];
+
+    nodeClass [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+       <TR><TD BGCOLOR="#636363" colspan="2">NodeClass</TD></TR>
+       <TR><TD>Fields:</TD> <TD>Methods</TD></TR>
+       <TR>
+           <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+               <TR><TD>Type</TD></TR>
+               <TR><TD>Model ?</TD></TR>
+               <TR><TD>SN</TD></TR>
+               <TR><TD>PowerSupplies (list)</TD></TR>
+               <TR><TD>Ports (list)</TD></TR>
+               <TR><TD>Disks (list)</TD></TR></TABLE>
+               </TD>
+           <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+               <TR><TD>getType *</TD></TR>
+               <TR><TD>getModel</TD></TR>
+               <TR><TD>getSN</TD></TR>
+               <TR><TD>getPwrSupplyAmount</TD></TR>
+               <TR><TD>getPortsAmount</TD></TR>
+               <TR><TD>getPortsIDs</TD></TR>
+               <TR><TD>getDisksAmount</TD></TR>
+               <TR><TD>getDisksVolume</TD></TR>
+               <TR><TD>getDisksSNs</TD></TR> </TABLE>
+               </TD></TR>
+        </TABLE>>];
+
+    scaleOutStorage -> nodeClass [color=red size=2];
+    scaleOutStorage -> diskClass [color=red size=2];
+    scaleOutStorage -> portClass [color=red size=2];
+
+    portClass [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+       <TR><TD BGCOLOR="#636363" colspan="2">PortClass</TD></TR>
+       <TR><TD>Fields:</TD> <TD>Methods</TD></TR>
+       <TR>
+           <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+               <TR><TD>Type</TD></TR>
+               <TR><TD>ID</TD></TR>
+               <TR><TD>Speed</TD></TR></TABLE>
+               </TD>
+           <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+               <TR><TD>getType *</TD></TR>
+               <TR><TD>getID</TD></TR>
+               <TR><TD>getSpeed</TD></TR></TABLE>
+               </TD></TR>
+        </TABLE>>];
+
+}
+# 
+# vim: expandtab:tabstop=4:softtabstop=4:shiftwidth=4
