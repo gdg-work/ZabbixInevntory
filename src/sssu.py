@@ -40,6 +40,7 @@ class SSSU_Iface:
         self._Err = _Error
         self.sPrompt = sSystemName + ">"
         self._Dbg("Initializing SSSU connection")
+        self.sSystemName = ''
         if os.path.isdir(sWorkDir):
             os.chdir(sWorkDir)
             try:
@@ -58,16 +59,18 @@ class SSSU_Iface:
                     self.pSSSU.expect("NoSystemSelected")
                     # В списке систем пропускаем первые два элемента, а из остальных строк удаляем
                     # пробелы и берём непустую часть
-                    lSystemNames = [l.strip() for l in self.pSSSU.before.split("\r\n")[3:] 
+                    lSystemNames = [l.strip() for l in self.pSSSU.before.decode('utf-8').split("\r\n")[3:] 
                                     if l.strip() != ""]
                     self._Dbg("Systems available: " + ", ".join(lSystemNames))
                     if sSystemName in lSystemNames:
                         self.pSSSU.send("SELECT SYSTEM %s\n" % sSystemName) # good, continue our work
-                        self.pSSSU.expect(self.sPrompt)
+                        self.pSSSU.expect_exact(self.sPrompt)
+                        # self.pSSSU.expect(r'\r\n[^<].*>\r\n')
                         # здесь ничего не должно случиться, мы уже проверили, что такое имя существует
                         self.pSSSU.send("SET OPTIONS on_error=Continue display_status noretries display_width=500\n")
                         self.pSSSU.expect("Status : 0")
-                        self.pSSSU.expect(self.sPrompt)
+                        self.pSSSU.expect_exact(self.sPrompt)
+                        self.sSystemName = sSystemName
                         self._Dbg("Name of system and options are set")
                     else:
                         self._Err("The array name '%s' is unknown to Command View on the management server %s" %
@@ -80,11 +83,32 @@ class SSSU_Iface:
             except pexpect.TIMEOUT:
                 raise SSSU_Error("__init__: Cannot connect to Command View (timeout)")
             except pexpect.EOF:
-                raise SSSU_Erroa("__init__: Cannot read data from SSSU utility (EOF)")
+                raise SSSU_Error("__init__: Cannot read data from SSSU utility (EOF)")
 
         else:
             raise SSSU_Error("__init__: Invalid or unexistent working directory %s" % sWorkDir)
         return
+
+    def _sGetSysName(self): return self.sSystemName
+
+    def _sRunCommand(self, sCommand, sSeparator=""):
+        """Runs a command on SSSU, returns the command's output as a string. Raises
+        SSSU_Error on error conditions such as timeout or loss of connection"""
+        self._Dbg("_sRunCommand called with command: '%s'" % sCommand)
+        lReturn = []
+        reDots = re.compile(r" \.+: ")
+        try:
+            self.pSSSU.send("\n")
+            self.pSSSU.expect(self.sPrompt)
+            self.pSSSU.send(sCommand + "\n")
+            self.pSSSU.expect(sCommand)
+            self.pSSSU.expect(self.sPrompt)
+            lReturn = [s.strip() for s in self.pSSSU.before.decode('utf-8').split("\r\n")]
+        except pexpect.TIMEOUT:
+            raise SSSU_Error("_sRunCommand(): Connection to SSSU lost (timeout)")
+        except pexpect.EOF:
+            raise SSSU_Error("_sRunCommand(): Connection to SSSU lost (EOF while reading")
+        return sSeparator.join(lReturn)
 
     def _dGetVDInfo(self, sVDisk, lsParameters):
         """Выдаёт информацию о VDisk-е (или другом объекте), которую возвращает команда SSSU "LS
@@ -447,12 +471,6 @@ class SSSU_Iface:
         if self.pSSSU.isalive():
             self.pSSSU.terminate()
             return
-
-    def __del__(self):
-        if self.pSSSU.isalive():
-                self._Close()
-        del self.pSSSU
-        return
 
 if __name__ == "__main__":
     print("This is a library, not executable")
