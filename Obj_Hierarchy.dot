@@ -122,6 +122,23 @@ digraph zabinv {
 
     scaleOutStorage -> ibmXIV;
 
+    # General 'Component' class
+    componentClass [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+        <TR><TD BGCOLOR="#636363" colspan="2">ComponentClass</TD></TR>
+        <TR><TD>Fields:</TD> <TD>Methods</TD></TR>
+        <TR>
+           <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+               <TR><TD>ID</TD></TR>
+               <TR><TD>SN</TD></TR>
+               </TABLE>
+           </TD>
+           <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+               <TR><TD>getID</TD></TR>
+               <TR><TD>getSN</TD></TR>
+               </TABLE>
+           </TD>
+        </TR>
+    </TABLE>>]
 
     # Disk, Controller, Node
     
@@ -133,17 +150,17 @@ digraph zabinv {
                <TR><TD>Type</TD></TR>
                <TR><TD>Model</TD></TR>
                <TR><TD>Size</TD></TR>
-               <TR><TD>Position</TD></TR>
-               <TR><TD>SN</TD></TR></TABLE>
+               <TR><TD>Position</TD></TR></TABLE>
                </TD>
            <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
                <TR><TD>getType *</TD></TR>
                <TR><TD>getModel</TD></TR>
                <TR><TD>getSize</TD></TR>
-               <TR><TD>getPosition</TD></TR>
-               <TR><TD>getSN</TD></TR></TABLE>
+               <TR><TD>getPosition</TD></TR></TABLE>
                </TD></TR>
         </TABLE>>] ;
+
+    componentClass -> diskClass;
 
     controllerClass [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
        <TR><TD BGCOLOR="#636363" colspan="2">ControllerClass</TD></TR>
@@ -152,19 +169,19 @@ digraph zabinv {
            <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
                <TR><TD>Type</TD></TR>
                <TR><TD>Model ?</TD></TR>
-               <TR><TD>SN</TD></TR>
                <TR><TD>Ports (list)</TD></TR>
                <TR><TD>IP ?</TD></TR></TABLE>
                </TD>
            <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
                <TR><TD>getType *</TD></TR>
                <TR><TD>getModel</TD></TR>
-               <TR><TD>getSN</TD></TR>
                <TR><TD>getPortsAmount</TD></TR>
                <TR><TD>getPortsIDs</TD></TR>
                <TR><TD>getIP</TD></TR></TABLE>
                </TD></TR>
         </TABLE>>];
+
+    componentClass -> controllerClass;
 
     diskShelfClass [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
        <TR><TD BGCOLOR="#636363" colspan="2">DiskShelfClass</TD></TR>
@@ -173,20 +190,20 @@ digraph zabinv {
            <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
                <TR><TD>Type</TD></TR>
                <TR><TD>Model ?</TD></TR>
-               <TR><TD>SN</TD></TR>
                <TR><TD>PowerSupplies (list)</TD></TR>
                <TR><TD>Disks (list)</TD></TR></TABLE>
                </TD>
            <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
                <TR><TD>getType *</TD></TR>
                <TR><TD>getModel</TD></TR>
-               <TR><TD>getSN</TD></TR>
                <TR><TD>getPwrSupplyAmount</TD></TR>
                <TR><TD>getDisksAmount</TD></TR>
                <TR><TD>getDisksVolume</TD></TR>
-               <TR><TD>getDisksSNs</TD></TR> </TABLE>
+               <TR><TD>getDisksSN</TD></TR> </TABLE>
                </TD></TR>
         </TABLE>>];
+
+    componentClass -> diskShelfClass;
 
         classicArray -> diskShelfClass [color=red size=2];
         classicArray -> controllerClass [color=red size=2];
@@ -200,7 +217,6 @@ digraph zabinv {
            <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
                <TR><TD>Type</TD></TR>
                <TR><TD>Model ?</TD></TR>
-               <TR><TD>SN</TD></TR>
                <TR><TD>PowerSupplies (list)</TD></TR>
                <TR><TD>Ports (list)</TD></TR>
                <TR><TD>Disks (list)</TD></TR></TABLE>
@@ -208,19 +224,20 @@ digraph zabinv {
            <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
                <TR><TD>getType *</TD></TR>
                <TR><TD>getModel</TD></TR>
-               <TR><TD>getSN</TD></TR>
                <TR><TD>getPwrSupplyAmount</TD></TR>
                <TR><TD>getPortsAmount</TD></TR>
                <TR><TD>getPortsIDs</TD></TR>
                <TR><TD>getDisksAmount</TD></TR>
                <TR><TD>getDisksVolume</TD></TR>
-               <TR><TD>getDisksSNs</TD></TR> </TABLE>
+               <TR><TD>getDisksSN</TD></TR> </TABLE>
                </TD></TR>
         </TABLE>>];
 
+    componentClass -> nodeClass;
+
     scaleOutStorage -> nodeClass [color=red size=2];
-    scaleOutStorage -> diskClass [color=red size=2];
-    scaleOutStorage -> portClass [color=red size=2];
+    nodeClass -> diskClass [color=red size=2];
+    nodeClass -> portClass [color=red size=2];
 
     portClass [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
        <TR><TD BGCOLOR="#636363" colspan="2">PortClass</TD></TR>
@@ -228,15 +245,17 @@ digraph zabinv {
        <TR>
            <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
                <TR><TD>Type</TD></TR>
-               <TR><TD>ID</TD></TR>
-               <TR><TD>Speed</TD></TR></TABLE>
+               <TR><TD>Speed</TD></TR>
+               <TR><TD>State</TD></TR></TABLE>
                </TD>
            <TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
                <TR><TD>getType *</TD></TR>
-               <TR><TD>getID</TD></TR>
-               <TR><TD>getSpeed</TD></TR></TABLE>
+               <TR><TD>getSpeed</TD></TR>
+               <TR><TD>getState</TD></TR></TABLE>
                </TD></TR>
         </TABLE>>];
+
+    componentClass -> portClass;
 
 }
 # 
