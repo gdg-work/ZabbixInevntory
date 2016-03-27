@@ -8,6 +8,9 @@ import time
 import inventoryObjects
 from inventoryObjects import ClassicArrayClass
 
+# for XML parsing
+import bs4    # BeautifulSoup v4
+
 from local import SSSU_PATH
 
 oLog = logging.getLogger(__name__)
@@ -16,6 +19,19 @@ oLog = logging.getLogger(__name__)
 asVDisks = "\\Virtual Disks\\"   # Название "фолдера" с виртуальными дисками в CV/EVA
 aiVDLen = len(asVDisks)          # Используется при сравнениях
 
+#
+# Helper functions
+#
+def __lRecursiveSoupQuery__(oObj, lElements):
+    """helper function: recursive search by list of elements in XML tree"""
+    lRet = []
+    lFirstLvl = oObj.find_all(lElements[0], recursive=False)
+    if len(lElements) == 1:
+        lRet = [e.string for e in lFirstLvl]
+    else:
+        for oNextObj in lFirstLvl:
+            lRet.append(__lRecursiveSoupQuery__(oNextObj, lElements[1:]))
+    return lRet
 
 #
 #  EVA interface via SSSU
@@ -33,6 +49,7 @@ class SSSU_Error(Exception):
 
 
 class SSSU_Iface:
+    # {{{
     def __init__(self, sSSSU_Path, sMgmtIP, sLogin, sPasswd, 
                  sSystemName,  _Debug, _Error):
         """Инициализация класса. Параметры:
@@ -123,6 +140,8 @@ class SSSU_Iface:
             self.pSSSU.terminate()
         return
 
+    # }}} SSSU_IFace
+
 
 class HP_EVA_Class(ClassicArrayClass):
     def __init__(self, sIP, sUser, sPassword, sSysName, sType="HP EVA"):
@@ -146,12 +165,56 @@ class HP_EVA_Class(ClassicArrayClass):
     def __lsFromControllers__(self, sParam):
         """Returns information from EVA's controllers as a *list* object"""
         sResult = self.oEvaConnection._sRunCommand("ls controller full | grep %s" % sParam,"\n")
-        print (sResult)
         lsLines = [ l for l in sResult.split("\n") 
                 if ( l.find(sParam + ' ..') == 0 and l.find('....') > 0) ]
         lsRet =  [ l.split(':')[-1].strip() for l in lsLines ]
         return lsRet
 
+#     def __lsFromDiskShelves__(self, sParam):
+#         """returns information from EVA's disk shelves as a *list* object"""
+#         # sResult = self.oEvaConnection._sRunCommand("ls diskshelf full | grep %s" % sParam,"\n")
+#         sResult = self.oEvaConnection._sRunCommand("ls diskshelf full","\n")
+#         print (sResult)
+#         lsLines = [ l for l in sResult.split("\n") 
+#                 if ( l.find(sParam + ' ..') == 0 and l.find('....') > 0) ]
+#         lsRet =  [ l.split(':')[-1].strip() for l in lsLines ]
+#         return lsRet
+
+    def __lsFromDiskShelves__(self, sParam):
+        """ Tries to find some information in the 'ls diskshelf' element.
+        First, the function searches in <object> element, if the parameter isn't found,
+        it is searched in child elements """
+        sResult = self.oEvaConnection._sRunCommand("ls diskshelf full xml","\n")
+        lRet = []
+        # skip sResult string to first '<'
+        iFirstTagPos = sResult.find('<')
+        sResult = sResult[iFirstTagPos-1:]
+        oSoup = bs4.BeautifulSoup(sResult,'xml')
+        # now I can parse this objects by any method
+        for oDiskShelf in oSoup.find_all('object',recursive=False, limit=32):
+            oElem = oDiskShelf.find(sParam,recursive=False)
+            if oElem:
+                lRet.append( oElem.string )
+            else:
+                lElems = oDiskShelf.find_all(sParam)
+                for oElem in lElems:
+                    lRet.append( oElem.string )
+        return lRet
+
+    def __lsFromDiskShelfRecursive__(self, lParams):
+        """Рекурсивный запрос в сложный объект - дисковую полку.
+        Параметр: _список_ имён элементов по порядку: сначала составляется 
+        список элементов, отвечающих первому имени в списке, затем в каждом 
+        из них ищется второй и т.д, пока список не окажется пуст - из последнего 
+        возвращается строковое значение"""
+        sResult = self.oEvaConnection._sRunCommand("ls diskshelf full xml","\n")
+        iFirstTagPos = sResult.find('<')
+        sResult = sResult[iFirstTagPos-1:]
+        oSoup = bs4.BeautifulSoup(sResult,'xml')
+        lRet = []
+        return (__lRecursiveSoupQuery__(oSoup, ['object'] + lParams))
+
+    # public methods
 
     def getSN(self):  return("")
 
@@ -168,7 +231,6 @@ class HP_EVA_Class(ClassicArrayClass):
         if self.lControllers == []:
             # request information from the array
             sRes = self.oEvaConnection._sRunCommand("ls controller nofull")
-            oLog.debug("result: " + sRes)
             lsLines = [l for l in sRes.split("\n") if l.find('Controller') >= 0]
             return len(lsLines)
         else:
@@ -189,20 +251,42 @@ class HP_EVA_Class(ClassicArrayClass):
         return self.__lsFromControllers__('serialnumber')
 
     def getShelvesAmount(self):
-        return 0
+        # iRet = ( __lsFromDiskShelves__('serialnumber'))
+        if self.lDiskShelves == []:
+            # request info from the array
+            sRes = self.oEvaConnection._sRunCommand("ls diskshelf nofull")
+            lsLines = [l.split('\\')[-1] for l in sRes.split("\n") if l.find('Disk Enclosure') >= 0]
+            iRet = len(lsLines)
+        else:
+            iRet = len(self.lDiskShelves)
+        return iRet
+
+    def getShelvesSN(self):
+        """returns serial numbers of disk shelves attached to EVA"""
+        lRet = ( self.__lsFromDiskShelves__('serialnumber') )
+        return lRet
+
+    def getShelvesPwrSupplyAmount(self):
+        """returns a list of power supplies amount for the disk shelves"""
+        lShelvesPwrSNs = ( self.__lsFromDiskShelfRecursive__(['powersupply', 'name']))
+        print (str(lShelvesPwrSNs))
+        return len(lShelvesPwrSNs[0])
 
     def _Close(self):
         self.oEvaConnection._Close()
 
 
 if __name__ == '__main__':
-    oLog.error("This is a library, not an executable")
+    oLog.error("hpeva_sssu: This is a library, not an executable")
 
     # some testing
     oLog.setLevel(logging.DEBUG)
-    # a = HP_EVA_Class("eva.hostco.ru", "dgolub", "Dtd-Iun2vp", "Primary_EVA6300")
-    a = HP_EVA_Class("eva.hostco.ru", "dgolub", "Dtd-Iun2vp", "[HOST]EVA-4400")
+    a = HP_EVA_Class("eva.hostco.ru", "dgolub", "Dtd-Iun2vp", "Primary_EVA6300")
+    # a = HP_EVA_Class("eva.hostco.ru", "dgolub", "Dtd-Iun2vp", "[HOST]EVA-4400")
     print(a.getModel())
     print(a.getControllerNames())
     print(a.getControllersSN())
+    print(a.getShelvesSN())
+    print(a.getShelvesPwrSupplyAmount())
+    # print(a.__lsFromDiskShelfRecursive__(['iocomm', 'module', 'port', 'name']))
     a._Close()
