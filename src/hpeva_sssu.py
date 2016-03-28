@@ -6,7 +6,7 @@ import re
 import os
 import time
 import inventoryObjects
-from inventoryObjects import ClassicArrayClass, ControllerClass
+from inventoryObjects import ClassicArrayClass, ControllerClass, DiskShelfClass, PortClass, DASD_Class
 from itertools import chain as it_chain
 
 # for XML parsing
@@ -343,6 +343,7 @@ class HP_EVA_Class(ClassicArrayClass):
 
     def getComponent(self, sCompName) -> object:
         """returns an object corresponding to an array component by name"""
+        oLog.debug("getComponent called with name <%s>" % sCompName)
         # select the type of component
         oRetObj = None
         if sCompName.find('Controller') >= 0:   # disk controller
@@ -358,6 +359,17 @@ class HP_EVA_Class(ClassicArrayClass):
                 oLog.error("Incorrect controller object ID")
                 oRetObj = None
         elif sCompName.find('Disk Enclosure') >= 0: # disk enclosure
+            sDEs = self.oEvaConnection._sRunCommand("ls diskshelf nofull")
+            lsLines = [l for l in sDEs.split("\n") if l.find('Disk Enclosure') >= 0 and l.find(sCompName) >= 0]
+            oLog.debug("List of disk enclosure names: %s" % lsLines)
+            # this list must be of length 1
+            if len(lsLines) == 1:
+                sObjName = lsLines[0]
+                sXMLOut = self.oEvaConnection._sRunCommand('ls diskshelf "%s" xml' % sObjName)
+                oRetObj = EVA_DiskShelfClass(sObjName, sXMLOut)
+            else:
+                oLog.error("Incorrect disk enclosure object ID")
+                oRetObj = None
             pass
         return (oRetObj)
 
@@ -395,6 +407,62 @@ class EVA_ControllerClass(ControllerClass):
             return ''
         pass
 
+    def getPortsAmount(self):
+        if self.oSoup:
+            pass
+        else:
+            pass
+        return ''
+
+class EVA_DiskShelfClass(DiskShelfClass):
+    def __init__(self, sID:str, sEvaXMLData):
+        """creates an object. Parameters: 1) string ID, 2) XML data from 'ls diskshelf "<NAME>" xml' """
+        # make a well-formed XML string from sEvaXMLData and a BeautifulSoup object from this string
+        # skip sResult string to first '<'
+        iFirstTagPos = sEvaXMLData.find('<')
+        sEvaXMLData = sEvaXMLData[iFirstTagPos-1:]
+        self.sName = sID
+        self.oSoup = bs4.BeautifulSoup(sEvaXMLData,'xml')
+
+    def getSN(self):
+        if self.oSoup:
+            return self.oSoup.object.serialnumber.string
+        else:
+            return ''
+
+    def getType(self):
+        if self.oSoup:
+            return self.oSoup.object.productid.string
+        else:
+            return ''
+        pass
+
+    def getModel(self):
+        if self.oSoup:
+            return self.oSoup.object.productnum.string
+        else:
+            return ''
+        pass
+
+    def getDiskNames(self):
+        """return a list of disk slot names"""
+        lRet = []
+        if self.oSoup:
+            for sDS in self.oSoup.find_all('diskslot'):
+                lRet.append(self.sName + '\\' + sDS.find("name").string)
+        return lRet
+
+    def getPwrSupplyAmount(self):
+        """Amount of power supplies in this enclosure (typically 2)"""
+        lFromShelf = __lRecursiveSoupQuery__(self.oSoup, ['object', 'powersupply', 'name'])
+        oLog.debug("getPwrSupplyAmount: list of power supplies %s" % str(lFromShelf))
+        return len(__lFlattenListOfLists__(lFromShelf))
+
+
+class EVA_DriveClass(DASD_Class):
+    pass
+
+    
 #
 # some checks when this module isn't imported but is called with python directly 
 #

@@ -18,14 +18,25 @@ def _sGetComponentInfo(oStorageObject, sComponentName, oArgs):
     sRet = "Not Implemented"
     oComponent = oStorageObject.getComponent(sComponentName)
     if oComponent:
-        if oArgs.query == "sn":
-            sRet = oComponent.getSN()
-        elif oArgs.query == "type":
-            sRet = oComponent.getType()
-        elif oArgs.query == "model":
-            sRet = oComponent.getModel()
-        else:
-            sRet = ("Not implemented yet!")
+        try:
+            if oArgs.query == "sn":
+                sRet = oComponent.getSN()
+            elif oArgs.query == "type":
+                sRet = oComponent.getType()
+            elif oArgs.query == "model":
+                sRet = oComponent.getModel()
+            elif oArgs.query == "disk-names":
+                sRet = oComponent.getDiskNames()
+            elif oArgs.query == "port-names":
+                sRet = oComponent.getPortNames()
+            elif oArgs.query == "ps-amount":
+                sRet = oComponent.getPwrSupplyAmount()
+            else:
+                sRet = ("Not implemented yet!")
+        except AttributeError as e:
+            oLog.info(e.args[0])
+            oLog.info("Error when querying '{0}' of object '{1}'".format(oArgs.query, sComponentName))
+            sRet = "N/A"
     else:
         sRet = "Error when querying a component"
     return (sRet)
@@ -70,7 +81,8 @@ def _oGetCLIParser():
     oParser.add_argument('-t', '--type', help="Storage device type", required=True,
             choices=["EVA", "Storwize", "3Par", "XIV"])
     oParser.add_argument('-q', '--query', help="Parameter to request",
-            choices=["sn", "wwn", "type", "model", "ctrls", "ctrl-names", "shelf-names"], default="sn")
+            choices=["sn", "wwn", "type", "model", "ctrls", "ctrl-names", 
+                    "shelf-names", "disk-names", "ps-amount", "port-names"], default="sn")
     oParser.add_argument('-e', '--element', 
             help="Component of an array the query is making to, such as controller or disk shelf",
             type=str, required=False)
