@@ -116,7 +116,6 @@ class SSSU_Iface:
         SSSU_Error on error conditions such as timeout or loss of connection"""
         self._Dbg("_sRunCommand called with command: '%s'" % sCommand)
         lReturn = []
-        reDots = re.compile(r" \.+: ")
         try:
             self.pSSSU.send("\n")
             self.pSSSU.expect_exact(self.sPrompt)
@@ -153,6 +152,7 @@ class HP_EVA_Class(ClassicArrayClass):
     def __sFromSystem__(self, sParam):
         """returns information from 'ls system <name>' output as a *string*"""
         sReturn = ""
+        reDots = re.compile(r" \.+: ")
         sResult = self.oEvaConnection._sRunCommand("ls system %s | grep %s" % (self.sSysName, sParam),"\n")
         # parameter name begins with position 0 and then a space and a row of dots follows
         lsLines = [ l for l in sResult.split("\n") 
@@ -164,6 +164,7 @@ class HP_EVA_Class(ClassicArrayClass):
 
     def __lsFromControllers__(self, sParam):
         """Returns information from EVA's controllers as a *list* object"""
+        reDots = re.compile(r" \.+: ")
         sResult = self.oEvaConnection._sRunCommand("ls controller full | grep %s" % sParam,"\n")
         lsLines = [ l for l in sResult.split("\n") 
                 if ( l.find(sParam + ' ..') == 0 and l.find('....') > 0) ]
@@ -242,6 +243,7 @@ class HP_EVA_Class(ClassicArrayClass):
             # request information from the array
             sRes = self.oEvaConnection._sRunCommand("ls controller nofull")
             lsLines = [l.split('\\')[-1] for l in sRes.split("\n") if l.find('Controller') >= 0]
+            oLog.debug("List of controller names: %s" % lsLines)
             return lsLines
         else:
             return [c.getID() for c in self.lControllers]
@@ -290,3 +292,5 @@ if __name__ == '__main__':
     print(a.getShelvesPwrSupplyAmount())
     # print(a.__lsFromDiskShelfRecursive__(['iocomm', 'module', 'port', 'name']))
     a._Close()
+
+# vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4

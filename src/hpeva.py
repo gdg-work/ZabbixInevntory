@@ -83,3 +83,4 @@ if __name__ == '__main__':
 
     print (sResult)
     sys.exit()
+# vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4

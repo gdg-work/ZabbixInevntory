@@ -24,12 +24,16 @@ dLoggingConfig = yaml.load("""
         encoding: utf8
         level: DEBUG
         filename: /tmp/zabinventory.log
-        maxBytes: 1024*1024
+        # Max log file size: 1 MB, then the file will be rotated
+        maxBytes: 1048576
         backupCount: 1
     root:
         level: INFO
     loggers:
         __main__:
+            level: DEBUG
+            handlers: [ console, logfile ]
+        hpeva_sssu:
             level: DEBUG
             handlers: [ console, logfile ]
     """)
