@@ -14,31 +14,49 @@ from inventoryLogger import dLoggingConfig
 logging.config.dictConfig(dLoggingConfig)
 oLog = logging.getLogger(__name__)
 
+def _sGetComponentInfo(oStorageObject, sComponentName, oArgs):
+    sRet = "Not Implemented"
+    oComponent = oStorageObject.getComponent(sComponentName)
+    if oComponent:
+        if oArgs.query == "sn":
+            sRet = oComponent.getSN()
+        elif oArgs.query == "type":
+            sRet = oComponent.getType()
+        elif oArgs.query == "model":
+            sRet = oComponent.getModel()
+        else:
+            sRet = ("Not implemented yet!")
+    else:
+        sRet = "Error when querying a component"
+    return (sRet)
+
 def _sProcessArgs(oStorageObject, oArgs):
-    """Apply query to a storage device"""
-    if oArgs.query == "sn":
-        return (oStorageObject.getSN())
-    if oArgs.query == "wwn":
-        return (oStorageObject.getWWN())
-    elif oArgs.query == "type":
-        return (oStorageObject.getType())
-    elif oArgs.query == "model":
-        return (oStorageObject.getModel())
-    elif oArgs.query == "ctrls":
-        return (oStorageObject.getControllersAmount())
-    elif oArgs.query == "ctrl-names":
-        lCtrls = oStorageObject.getControllerNames()
-        oLog.debug("_sProcessArgs: list of controllers: %s" % str(lCtrls))
-        lCtrls = [ '{#CTRLNAME}:' + n for n in lCtrls ]
-        oLog.debug("_sProcessArgs: list of controller-name pairs: %s" % str(lCtrls))
-        dRetDict = { "data":lCtrls }
-        return json.dumps(dRetDict)
-    elif oArgs.query == "ctrl-sns":
-        lCtrls = oStorageObject.getControllersSN()
-        oLog.debug("_sProcessArgs: list of controller serials: %s" % str(lCtrls))
-        lCtrls = [ '{#CTRLSN}:' + n for n in lCtrls ]
-        dRetDict = { "data":lCtrls }
-        return json.dumps(dRetDict)
+    """Apply query to a storage device """
+    if oArgs.element:
+        return _sGetComponentInfo(oStorageObject, oArgs.element, oArgs)
+    else:
+        if oArgs.query == "sn":
+            return (oStorageObject.getSN())
+        if oArgs.query == "wwn":
+            return (oStorageObject.getWWN())
+        elif oArgs.query == "type":
+            return (oStorageObject.getType())
+        elif oArgs.query == "model":
+            return (oStorageObject.getModel())
+        elif oArgs.query == "ctrls":
+            return (oStorageObject.getControllersAmount())
+        elif oArgs.query == "ctrl-names":
+            lCtrls = oStorageObject.getControllerNames()
+            oLog.debug("_sProcessArgs: list of controllers: %s" % str(lCtrls))
+            lCtrls = [ '{#ID}:' + n for n in lCtrls ]
+            dRetDict = { "data":lCtrls }
+            return json.dumps(dRetDict)
+        elif oArgs.query == "shelf-names":
+            lShelves = oStorageObject.getDiskShelfNames()
+            oLog.debug("_sProcessArgs: list of disk shelves: %s" % str(lShelves))
+            lShelves = [ '{#ID}:' + n for n in lShelves ]
+            dRetDict = { "data":lShelves }
+            return json.dumps(dRetDict)
 
 def _oEvaConnect(oArgs):
     ip = oArgs.control_ip
@@ -52,7 +70,10 @@ def _oGetCLIParser():
     oParser.add_argument('-t', '--type', help="Storage device type", required=True,
             choices=["EVA", "Storwize", "3Par", "XIV"])
     oParser.add_argument('-q', '--query', help="Parameter to request",
-            choices=["sn", "wwn", "type", "model", "ctrls", "ctrl-names", "ctrl-sns"], default="sn")
+            choices=["sn", "wwn", "type", "model", "ctrls", "ctrl-names", "shelf-names"], default="sn")
+    oParser.add_argument('-e', '--element', 
+            help="Component of an array the query is making to, such as controller or disk shelf",
+            type=str, required=False)
     oParser.add_argument('-c', '--control_ip', help="Array control IP or FQDN", type=str, required=True)
     oParser.add_argument('-u', '--user', help="Array/control host login", type=str, required=True)
     oParser.add_argument('-p', '--password', help="password", type=str, required=False)

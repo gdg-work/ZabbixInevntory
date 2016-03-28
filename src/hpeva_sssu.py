@@ -6,7 +6,8 @@ import re
 import os
 import time
 import inventoryObjects
-from inventoryObjects import ClassicArrayClass
+from inventoryObjects import ClassicArrayClass, ControllerClass
+from itertools import chain as it_chain
 
 # for XML parsing
 import bs4    # BeautifulSoup v4
@@ -16,8 +17,6 @@ from local import SSSU_PATH
 oLog = logging.getLogger(__name__)
 
 # -- Constants --
-asVDisks = "\\Virtual Disks\\"   # Название "фолдера" с виртуальными дисками в CV/EVA
-aiVDLen = len(asVDisks)          # Используется при сравнениях
 
 #
 # Helper functions
@@ -32,6 +31,18 @@ def __lRecursiveSoupQuery__(oObj, lElements):
         for oNextObj in lFirstLvl:
             lRet.append(__lRecursiveSoupQuery__(oNextObj, lElements[1:]))
     return lRet
+
+# def __lFlattenListOfLists__(lComplexList):
+#     return list(it_chain(* lComplexList))
+
+def __lFlattenListOfLists__(x):
+    result = []
+    for el in x:
+        if hasattr(el, "__iter__") and not isinstance(el, str):
+            result.extend(__lFlattenListOfLists__(el))
+        else:
+            result.append(el)
+    return result
 
 #
 #  EVA interface via SSSU
@@ -120,7 +131,7 @@ class SSSU_Iface:
             self.pSSSU.send("\n")
             self.pSSSU.expect_exact(self.sPrompt)
             self.pSSSU.send(sCommand + "\n")
-            self.pSSSU.expect(sCommand)
+            self.pSSSU.expect_exact(sCommand)
             self.pSSSU.expect_exact(self.sPrompt)
             lReturn = [s.strip() for s in self.pSSSU.before.decode('utf-8').split("\r\n")]
         except pexpect.TIMEOUT:
@@ -171,21 +182,27 @@ class HP_EVA_Class(ClassicArrayClass):
         lsRet =  [ l.split(':')[-1].strip() for l in lsLines ]
         return lsRet
 
-#     def __lsFromDiskShelves__(self, sParam):
-#         """returns information from EVA's disk shelves as a *list* object"""
-#         # sResult = self.oEvaConnection._sRunCommand("ls diskshelf full | grep %s" % sParam,"\n")
-#         sResult = self.oEvaConnection._sRunCommand("ls diskshelf full","\n")
-#         print (sResult)
-#         lsLines = [ l for l in sResult.split("\n") 
-#                 if ( l.find(sParam + ' ..') == 0 and l.find('....') > 0) ]
-#         lsRet =  [ l.split(':')[-1].strip() for l in lsLines ]
-#         return lsRet
+    def __lsFromControllersRecursive__(self, lParams):
+        """A recursive query of elements from list lParams, first going  to lParams[0], then
+        lParams[1] etc. until lParams[len(lParams)-1]. The last element(s) returns 
+        as a list of (list of…, list of… etc.) strings"""
+        sResult = self.oEvaConnection._sRunCommand("ls controller full xml","\n")
+        # oLog.debug("__lsFromControllersRecursive__: output of 'ls controller full xml'")
+        # oLog.debug(sResult)
+        # oLog.debug("__lsFromControllersRecursive__: end of output")
+        iFirstTagPos = sResult.find('<')
+        sResult = sResult[iFirstTagPos-1:]
+        oSoup = bs4.BeautifulSoup(sResult,'xml')
+        lRet = []
+        return (__lRecursiveSoupQuery__(oSoup, ['object'] + lParams))
 
-    def __lsFromDiskShelves__(self, sParam):
+
+    def __lsFromDiskShelf__(self, sName, sParam):
         """ Tries to find some information in the 'ls diskshelf' element.
         First, the function searches in <object> element, if the parameter isn't found,
         it is searched in child elements """
-        sResult = self.oEvaConnection._sRunCommand("ls diskshelf full xml","\n")
+        sResult = self.oEvaConnection._sRunCommand(
+                'ls diskshelf "%s" xml' % sName,"\n")
         lRet = []
         # skip sResult string to first '<'
         iFirstTagPos = sResult.find('<')
@@ -202,18 +219,39 @@ class HP_EVA_Class(ClassicArrayClass):
                     lRet.append( oElem.string )
         return lRet
 
+    def __lsFromDiskShelves__(self, sParam):
+        """ Tries to find some information in the 'ls diskshelf' element.
+        First, the function searches in <object> element, if the parameter isn't found,
+        it is searched in child elements """
+        sResult = self.oEvaConnection._sRunCommand("ls diskshelf nofull","\n")
+        lsDE_Names = [l for l in sResult.split("\n") if l.find("Disk Enclosure") >= 0]
+        oLog.debug("Disk enclosures found: %s" % ", ".join(lsDE_Names))
+        lRet = []
+        for sDE_Name in lsDE_Names:
+            lRet.append(self.__lsFromDiskShelf__(sDE_Name, sParam))
+        return lRet
+
     def __lsFromDiskShelfRecursive__(self, lParams):
         """Рекурсивный запрос в сложный объект - дисковую полку.
         Параметр: _список_ имён элементов по порядку: сначала составляется 
         список элементов, отвечающих первому имени в списке, затем в каждом 
         из них ищется второй и т.д, пока список не окажется пуст - из последнего 
         возвращается строковое значение"""
-        sResult = self.oEvaConnection._sRunCommand("ls diskshelf full xml","\n")
-        iFirstTagPos = sResult.find('<')
-        sResult = sResult[iFirstTagPos-1:]
-        oSoup = bs4.BeautifulSoup(sResult,'xml')
+        sResult = self.oEvaConnection._sRunCommand("ls diskshelf nofull","\n")
+        lsDE_Names = [l for l in sResult.split("\n") if l.find("Disk Enclosure") >= 0]
+        oLog.debug("Disk enclosures found: %s" % ", ".join(lsDE_Names))
         lRet = []
-        return (__lRecursiveSoupQuery__(oSoup, ['object'] + lParams))
+        for sDE_Name in lsDE_Names:
+            oLog.debug('Querying disk shelf %s for %s' % (sDE_Name, ','.join(lParams)))
+            sRes = self.oEvaConnection._sRunCommand('ls diskshelf "%s" xml' % sDE_Name,"\n")
+            # skip sResult string to first '<'
+            iFirstTagPos = sRes.find('<')
+            sRes = sRes[iFirstTagPos-1:]
+            oSoup = bs4.BeautifulSoup(sRes,'xml')
+            oLog.debug('Serial # of disk shelf is %s' % oSoup.object.serialnumber.string)
+            lFromShelf = __lRecursiveSoupQuery__(oSoup, ['object'] + lParams)
+            lRet.append(lFromShelf)
+        return (lRet)
 
     # public methods
 
@@ -228,7 +266,7 @@ class HP_EVA_Class(ClassicArrayClass):
     def getModel(self):
         return(self.__sFromSystem__('systemtype'))
 
-    def getControllersAmount(self):
+    def getControllersAmount(self) ->int:
         if self.lControllers == []:
             # request information from the array
             sRes = self.oEvaConnection._sRunCommand("ls controller nofull")
@@ -238,7 +276,7 @@ class HP_EVA_Class(ClassicArrayClass):
             return len(self.lControllers)
         pass
 
-    def getControllerNames(self):
+    def getControllerNames(self) ->list:
         if self.lControllers == []:
             # request information from the array
             sRes = self.oEvaConnection._sRunCommand("ls controller nofull")
@@ -249,10 +287,16 @@ class HP_EVA_Class(ClassicArrayClass):
             return [c.getID() for c in self.lControllers]
         pass
 
-    def getControllersSN(self):
+    def getControllersSN(self) ->list:
         return self.__lsFromControllers__('serialnumber')
 
-    def getShelvesAmount(self):
+    def getDiskShelfNames(self):
+        sOut = self.oEvaConnection._sRunCommand("ls diskshelf nofull")
+        lsLines = [l.split('\\')[-1] for l in sOut.split("\n") if l.find('Disk Enclosure') >= 0]
+        oLog.debug('list of disk shelves names: %s' % ', '.join(lsLines))
+        return lsLines
+
+    def getShelvesAmount(self) ->int:
         # iRet = ( __lsFromDiskShelves__('serialnumber'))
         if self.lDiskShelves == []:
             # request info from the array
@@ -263,34 +307,119 @@ class HP_EVA_Class(ClassicArrayClass):
             iRet = len(self.lDiskShelves)
         return iRet
 
-    def getShelvesSN(self):
+    def getShelvesSN(self) ->list:
         """returns serial numbers of disk shelves attached to EVA"""
         lRet = ( self.__lsFromDiskShelves__('serialnumber') )
-        return lRet
+        return __lFlattenListOfLists__(lRet)
 
-    def getShelvesPwrSupplyAmount(self):
+    def getShelvesPwrSupplyAmount(self) ->list:
         """returns a list of power supplies amount for the disk shelves"""
         lShelvesPwrSNs = ( self.__lsFromDiskShelfRecursive__(['powersupply', 'name']))
-        print (str(lShelvesPwrSNs))
-        return len(lShelvesPwrSNs[0])
+        return [len(__lFlattenListOfLists__(l)) for l in lShelvesPwrSNs]
+
+    def getHostPortsCount(self) ->int:
+        """returns a number of array's host side ports as an integer"""
+        lPorts = self.__lsFromControllersRecursive__(['hostports', 'hostport', 'portname'])
+        return len(__lFlattenListOfLists__(lPorts))
+
+    def getPortIDs(self) ->list:
+        """returns a list of host-side port names"""
+        lPorts = self.__lsFromControllersRecursive__(['hostports', 'hostport', 'portname'])
+        return __lFlattenListOfLists__(lPorts)
+
+    def getHostPortWWNs(self) ->list:
+        """returns a list of port WWNs (host side) as a list of strings"""
+        lPorts = self.__lsFromControllersRecursive__(['hostports', 'hostport', 'wwid'])
+        return __lFlattenListOfLists__(lPorts)
+
+    def getHostPortSpeed(self) ->list:
+        """returns a list of port WWNs (host side) as a list of strings"""
+        lPorts = self.__lsFromControllersRecursive__(['hostports', 'hostport', 'speed'])
+        return __lFlattenListOfLists__(lPorts)
+
+    def getDisksAmount(self) ->int:
+        """returns a total amount of disks as an integer"""
+        return iRet
+
+    def getComponent(self, sCompName) -> object:
+        """returns an object corresponding to an array component by name"""
+        # select the type of component
+        oRetObj = None
+        if sCompName.find('Controller') >= 0:   # disk controller
+            sCtrls = self.oEvaConnection._sRunCommand("ls controller nofull")
+            lsLines = [l for l in sCtrls.split("\n") if l.find('Controller') >= 0 and l.find(sCompName) >= 0]
+            oLog.debug("List of controller names: %s" % lsLines)
+            # this list must be of length 1
+            if len(lsLines) == 1:
+                sObjName = lsLines[0]
+                sXMLOut = self.oEvaConnection._sRunCommand('ls controller "%s" xml' % sObjName)
+                oRetObj = EVA_ControllerClass(sObjName, sXMLOut)
+            else:
+                oLog.error("Incorrect controller object ID")
+                oRetObj = None
+        elif sCompName.find('Disk Enclosure') >= 0: # disk enclosure
+            pass
+        return (oRetObj)
+
 
     def _Close(self):
         self.oEvaConnection._Close()
 
 
+class EVA_ControllerClass(ControllerClass):
+    def __init__(self, sID, sEvaXMLData):
+        """creates an object from XML data returned by 'ls controller "<ID>" xml' """
+        # make a well-formed XML string from sEvaXMLData and a BeautifulSoup object from this string
+        # skip sResult string to first '<'
+        iFirstTagPos = sEvaXMLData.find('<')
+        sEvaXMLData = sEvaXMLData[iFirstTagPos-1:]
+        self.oSoup = bs4.BeautifulSoup(sEvaXMLData,'xml')
+
+    def getSN(self):
+        if self.oSoup:
+            return self.oSoup.object.serialnumber.string
+        else:
+            return ''
+
+    def getType(self):
+        if self.oSoup:
+            return self.oSoup.object.productnumber.string
+        else:
+            return ''
+        pass
+
+    def getModel(self):
+        if self.oSoup:
+            return self.oSoup.object.modelnumber.string
+        else:
+            return ''
+        pass
+
+#
+# some checks when this module isn't imported but is called with python directly 
+#
 if __name__ == '__main__':
     oLog.error("hpeva_sssu: This is a library, not an executable")
-
-    # some testing
+    # set up logging
     oLog.setLevel(logging.DEBUG)
+    oConHdr = logging.StreamHandler()
+    oConHdr.setLevel(logging.DEBUG)
+    oLog.addHandler(oConHdr)
+    # 
+    # some testing
     a = HP_EVA_Class("eva.hostco.ru", "dgolub", "Dtd-Iun2vp", "Primary_EVA6300")
     # a = HP_EVA_Class("eva.hostco.ru", "dgolub", "Dtd-Iun2vp", "[HOST]EVA-4400")
     print(a.getModel())
     print(a.getControllerNames())
     print(a.getControllersSN())
+    print(a.getDiskShelfNames())
     print(a.getShelvesSN())
     print(a.getShelvesPwrSupplyAmount())
-    # print(a.__lsFromDiskShelfRecursive__(['iocomm', 'module', 'port', 'name']))
+    # print(a.getPortIDs())
+    # print(a.getHostPortsCount())
+    # print(a.getHostPortWWNs())
+    # print(a.getHostPortSpeed())
+    print (a.getComponent("Controller 2").getSN())
     a._Close()
 
 # vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4
