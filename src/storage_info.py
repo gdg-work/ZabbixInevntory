@@ -27,6 +27,8 @@ def _sGetComponentInfo(oStorageObject, sComponentName, oArgs):
                 sRet = oComponent.getModel()
             elif oArgs.query == "disk-names":
                 sRet = oComponent.getDiskNames()
+            elif oArgs.query == "ports":
+                sRet = str(len(oComponent.getPortNames()))
             elif oArgs.query == "port-names":
                 sRet = oComponent.getPortNames()
             elif oArgs.query == "ps-amount":
@@ -40,6 +42,14 @@ def _sGetComponentInfo(oStorageObject, sComponentName, oArgs):
     else:
         sRet = "Error when querying a component"
     return (sRet)
+
+
+def _sListOfStringsToJSON(lsStrings):
+    ID = '{#ID}'
+    sRet = ""
+    lRetList = [ {ID:n} for n in lsStrings ]
+    dRetDict = { "data":lRetList }
+    return json.dumps(dRetDict)
 
 def _sProcessArgs(oStorageObject, oArgs):
     """Apply query to a storage device """
@@ -59,21 +69,14 @@ def _sProcessArgs(oStorageObject, oArgs):
         elif oArgs.query == "ctrl-names":
             lCtrls = oStorageObject.getControllerNames()
             oLog.debug("_sProcessArgs: list of controllers: %s" % str(lCtrls))
-            lCtrls = [ {"{#ID}":n} for n in lCtrls ]
-            dRetDict = { "data":lCtrls }
-            return json.dumps(dRetDict)
+            return _sListOfStringsToJSON(lCtrls)
         elif oArgs.query == "shelf-names":
             lShelves = oStorageObject.getDiskShelfNames()
             oLog.debug("_sProcessArgs: list of disk shelves: %s" % str(lShelves))
-            lShelves = [ {'{#ID}':n} for n in lShelves ]
-            dRetDict = { "data":lShelves }
-            return json.dumps(dRetDict)
+            return _sListOfStringsToJSON(lShelves)
         elif oArgs.query == 'disk-names':
             lsDisks = oStorageObject.getDiskNames()
-            lsDisks.sort()
-            lsDisksJson = [ {'{#ID}':n } for n in lsDisks ]
-            dRetDict = { "data":lsDisksJson }
-            return json.dumps(dRetDict)
+            return _sListOfStringsToJSON(lsDisks)
         else:
             oLog.error("Invalid request")
             return ""
@@ -98,6 +101,7 @@ def _oGetCLIParser():
     oParser.add_argument('-c', '--control_ip', help="Array control IP or FQDN", type=str, required=True)
     oParser.add_argument('-u', '--user', help="Array/control host login", type=str, required=True)
     oParser.add_argument('-p', '--password', help="password", type=str, required=False)
+    oParser.add_argument('--dummy', help="Dummy unique key (not used)", type=str, required=False)
     oParser.add_argument('-k', '--key', help="SSH private key to authenticate", type=str, required=False)
     oParser.add_argument('-s', '--system', help="HP EVA name in CV (EVA only)", type=str, required=False)
     return (oParser.parse_args())

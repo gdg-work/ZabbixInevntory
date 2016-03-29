@@ -449,12 +449,13 @@ class EVA_ControllerClass(ControllerClass):
             return ''
         pass
 
-    def getPortsAmount(self):
+    def getPortNames(self):
         if self.oSoup:
-            pass
+            lPorts=self.oSoup.find_all("hostport")
+            lPortNames = [p.portname.string for p in lPorts]
         else:
             pass
-        return ''
+        return lPortNames
 
 class EVA_DiskShelfClass(DiskShelfClass):
     def __init__(self, sID:str, sEvaXMLData):
