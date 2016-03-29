@@ -68,6 +68,14 @@ def _sProcessArgs(oStorageObject, oArgs):
             lShelves = [ '{#ID}:' + n for n in lShelves ]
             dRetDict = { "data":lShelves }
             return json.dumps(dRetDict)
+        elif oArgs.query == 'disk-names':
+            lsDisks = oStorageObject.getDiskNames()
+            lsDisksJson = [ '{#ID}:' + n for n in lsDisks ]
+            dRetDict = { "data":lsDisksJson }
+            return json.dumps(dRetDict)
+        else:
+            oLog.error("Invalid request")
+            return ""
 
 def _oEvaConnect(oArgs):
     ip = oArgs.control_ip

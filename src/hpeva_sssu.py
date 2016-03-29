@@ -341,9 +341,39 @@ class HP_EVA_Class(ClassicArrayClass):
         """returns a total amount of disks as an integer"""
         return iRet
 
+    def getDiskNames(self) -> list:
+        """returns a list of short disk names (like 'Disk 023'). These names are
+        unique on a given array"""
+        lsDiskNames = [ d for d in self.oEvaConnection._sRunCommand("ls disk nofull","||").split("||")
+                           if d.find("\\Disk Groups\\") >= 0 ]
+        lsShortNames = [d.split("\\")[-1] for d in lsDiskNames  ] 
+        oLog.debug("list of disk names: {0}".format(str(lsShortNames)))
+        return lsShortNames
+
+
+    def __fillListOfDisks__(self):
+        """fill the internal list of disks with data"""
+        # First, create an object for all the disks in the array and fill this arry with data
+        oAllDiskShelves = bs4.BeautifulSoup("<enclosures></enclosures>","xml")
+        oAllDisks = bs4.BeautifulSoup("<disklist></disklist>","xml")
+        # next, make a list of disks' names
+        lsDiskNames = [ d for d in self.oEvaConnection._sRunCommand("ls disk nofull","||").split("||")
+                           if d.find("\\Disk Groups\\") >= 0 ]
+        oLog.debug("list of disk names: {0}".format(str(lsDiskNames)))
+        for sDiskName in lsDiskNames:
+            # get information from an array
+            sLines = self.oEvaConnection._sRunCommand('ls disk "{0}" xml'.format(sDiskName)," ")
+            iFirstTagPos = sLines.find('<') - 1
+            oDiskSoup = bs4.BeautifulSoup(sLines[iFirstTagPos:],'xml')           # trim the disk name before XML
+            oLog.debug("Found disk: {name} of type {type}".format(
+                name=oDiskSoup.object.diskname.string, type=oDiskSoup.object.disktype.string))
+        return
+
+
     def getComponent(self, sCompName) -> object:
         """returns an object corresponding to an array component by name"""
         oLog.debug("getComponent called with name <%s>" % sCompName)
+        reDiskNamePattern = re.compile(r'Disk \d{3}')
         # select the type of component
         oRetObj = None
         if sCompName.find('Controller') >= 0:   # disk controller
@@ -370,6 +400,18 @@ class HP_EVA_Class(ClassicArrayClass):
             else:
                 oLog.error("Incorrect disk enclosure object ID")
                 oRetObj = None
+        elif reDiskNamePattern.search(sCompName): # disk drive name
+            sDisks = self.oEvaConnection._sRunCommand("ls disk nofull","\n")
+            lsLines = [l for l in sDisks.split("\n") if l.find('\\Disk Groups\\') >= 0 and l.find(sCompName) >= 0]
+            # there must be only one disk with a given name
+            if len(lsLines) == 1:
+                sObjName=lsLines[0]
+                sXmlOut = self.oEvaConnection._sRunCommand('ls disk "%s" xml' % sObjName)
+                oRetObj = EVA_DiskDriveClass(sObjName, sXmlOut)
+            else:
+                oLog.error("Incorrect disk drive name '{0}'.format(sCompName)")
+            # self.__fillListOfDisks__()
+        else:
             pass
         return (oRetObj)
 
@@ -459,9 +501,28 @@ class EVA_DiskShelfClass(DiskShelfClass):
         return len(__lFlattenListOfLists__(lFromShelf))
 
 
-class EVA_DriveClass(DASD_Class):
-    pass
-
+class EVA_DiskDriveClass(DASD_Class):
+    def __init__(self, sID:str, sXmlData):
+        """Initializes an object. Parameters: 
+        sID: name of disk  (\Disk Groups\Default Disk Group\Disk 021)
+        sXmlData: xml output of 'ls disk "<NAME>" xml' """
+        self.sName = sID
+        self.sShortName = sID.split("\\")[-1]
+        oLog.debug("EVA_DriveClass.__init__: disk name is {0}".format(self.sShortName))
+        # self.oSlotSoup = oDiskShelfSoup.find(name='name', string=self.sSlotName).parent
+        iFirstTagPos = sXmlData.find('<') - 1
+        self.oSoup = bs4.BeautifulSoup(sXmlData[iFirstTagPos:],"xml")
+        # oLog.debug('EVA_DriveClass.__init__: drive soup: \n {0}'.format(self.oSoup.prettify()))
+        # search for unique-id identifier
+        self.sDiskUID = self.oSoup.find(name='uid').string
+        oLog.debug('EVA_DriveClass.__init__: unique ID of disk: \n {0}'.format(self.sDiskUID))
+        
+    def getSN(self):
+        sRet = "N/A"
+        if self.oSoup:
+            sRet = self.oSoup.find(name='serialnumber').string
+        return sRet
+        
     
 #
 # some checks when this module isn't imported but is called with python directly 
@@ -475,14 +536,13 @@ if __name__ == '__main__':
     oLog.addHandler(oConHdr)
     # 
     # some testing
-    a = HP_EVA_Class("eva.hostco.ru", "dgolub", "Dtd-Iun2vp", "Primary_EVA6300")
-    # a = HP_EVA_Class("eva.hostco.ru", "dgolub", "Dtd-Iun2vp", "[HOST]EVA-4400")
     print(a.getModel())
-    print(a.getControllerNames())
-    print(a.getControllersSN())
-    print(a.getDiskShelfNames())
-    print(a.getShelvesSN())
-    print(a.getShelvesPwrSupplyAmount())
+#    print(a.getControllerNames())
+#    print(a.getControllersSN())
+#    print(a.getDiskShelfNames())
+#    print(a.getShelvesSN())
+#    print(a.getShelvesPwrSupplyAmount())
+    a.__fillListOfDisks__()
     # print(a.getPortIDs())
     # print(a.getHostPortsCount())
     # print(a.getHostPortWWNs())
