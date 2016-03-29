@@ -59,18 +59,19 @@ def _sProcessArgs(oStorageObject, oArgs):
         elif oArgs.query == "ctrl-names":
             lCtrls = oStorageObject.getControllerNames()
             oLog.debug("_sProcessArgs: list of controllers: %s" % str(lCtrls))
-            lCtrls = [ '{#ID}:' + n for n in lCtrls ]
+            lCtrls = [ {"{#ID}":n} for n in lCtrls ]
             dRetDict = { "data":lCtrls }
             return json.dumps(dRetDict)
         elif oArgs.query == "shelf-names":
             lShelves = oStorageObject.getDiskShelfNames()
             oLog.debug("_sProcessArgs: list of disk shelves: %s" % str(lShelves))
-            lShelves = [ '{#ID}:' + n for n in lShelves ]
+            lShelves = [ {'{#ID}':n} for n in lShelves ]
             dRetDict = { "data":lShelves }
             return json.dumps(dRetDict)
         elif oArgs.query == 'disk-names':
             lsDisks = oStorageObject.getDiskNames()
-            lsDisksJson = [ '{#ID}:' + n for n in lsDisks ]
+            lsDisks.sort()
+            lsDisksJson = [ {'{#ID}':n } for n in lsDisks ]
             dRetDict = { "data":lsDisksJson }
             return json.dumps(dRetDict)
         else:
