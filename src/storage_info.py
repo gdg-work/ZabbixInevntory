@@ -16,7 +16,7 @@ def _sListOfStringsToJSON(lsStrings):
     lRetList = [ {ID:n} for n in lsStrings ]
     dRetDict = { "data":lRetList }
     return json.dumps(dRetDict)
-    
+
 def _sGetComponentInfo(oStorageObject, sComponentName, oArgs):
     sRet = "Not Implemented"
     oComponent = oStorageObject.getComponent(sComponentName)
@@ -24,16 +24,30 @@ def _sGetComponentInfo(oStorageObject, sComponentName, oArgs):
         try:
             if oArgs.query == "sn":
                 sRet = oComponent.getSN()
+            elif oArgs.query == "name":
+                sRet = oComponent.getName()
             elif oArgs.query == "type":
                 sRet = oComponent.getType()
             elif oArgs.query == "model":
                 sRet = oComponent.getModel()
+            elif oArgs.query == "cpu-cores":
+                sRet = oComponent.getCPUCores()
             elif oArgs.query == "disk-names":
                 sRet = oComponent.getDiskNames()
             elif oArgs.query == "ports":
                 sRet = str(len(oComponent.getPortNames()))
+            elif oArgs.query == "disk-slots":
+                sRet = oComponent.getSlotsAmount()
             elif oArgs.query == "port-names":
                 sRet = _sListOfStringsToJSON(oComponent.getPortNames())
+            elif oArgs.query == "disks":
+                sRet = oComponent.getDisksAmount()
+            elif oArgs.query == "disk-rpm":
+                sRet = oComponent.getRPM()
+            elif oArgs.query == "disk-size":
+                sRet = oComponent.getSize()
+            elif oArgs.query == "disk-pos":
+                sRet = oComponent.getPosition()
             elif oArgs.query == "ps-amount":
                 sRet = oComponent.getPwrSupplyAmount()
             else:
@@ -54,7 +68,9 @@ def _sProcessArgs(oStorageObject, oArgs):
         sRet = _sGetComponentInfo(oStorageObject, oArgs.element, oArgs)
     else:
         try:
-            if oArgs.query == "sn":
+            if oArgs.query == "name":
+                sRet = oStorageObject.getName()
+            elif oArgs.query == "sn":
                 sRet = oStorageObject.getSN()
             elif oArgs.query == "wwn":
                 sRet = oStorageObject.getWWN()
@@ -64,6 +80,10 @@ def _sProcessArgs(oStorageObject, oArgs):
                 sRet = oStorageObject.getModel()
             elif oArgs.query == "ctrls":
                 sRet = oStorageObject.getControllersAmount()
+            elif oArgs.query == "shelves":
+                sRet = oStorageObject.getShelvesAmount()
+            elif oArgs.query == "disks":
+                sRet = oStorageObject.getDisksAmount()
             elif oArgs.query == "ctrl-names":
                 lCtrls = oStorageObject.getControllerNames()
                 oLog.debug("_sProcessArgs: list of controllers: %s" % str(lCtrls))
@@ -72,9 +92,14 @@ def _sProcessArgs(oStorageObject, oArgs):
                 lShelves = oStorageObject.getDiskShelfNames()
                 oLog.debug("_sProcessArgs: list of disk shelves: %s" % str(lShelves))
                 sRet = _sListOfStringsToJSON(lShelves)
+            elif oArgs.query == 'disk-size':
+                lsDisks = oStorageObject.getSize()
+                sRet = _sListOfStringsToJSON(lsDisks)
             elif oArgs.query == 'disk-names':
                 lsDisks = oStorageObject.getDiskNames()
                 sRet = _sListOfStringsToJSON(lsDisks)
+            elif oArgs.query == 'ps-amount':
+                sRet = str(oStorageObject.getControllerShelfPSUAmount())
             else:
                 oLog.error("Invalid request")
         except AttributeError as e:
@@ -92,11 +117,14 @@ def _oEvaConnect(oArgs):
 def _oGetCLIParser():
     oParser = ap.ArgumentParser(description="Storage Array-Zabbix interface program")
     oParser.add_argument('-t', '--type', help="Storage device type", required=True,
-            choices=["EVA", "Storwize", "3Par", "XIV"])
+                         choices=["EVA", "Storwize", "3Par", "XIV"])
     oParser.add_argument('-q', '--query', help="Parameter to request",
-            choices=["sn", "wwn", "type", "model", "ctrls", "ports", "ctrl-names", 
-                    "shelf-names", "disk-names", "ps-amount", "port-names"], default="sn")
-    oParser.add_argument('-e', '--element', 
+            choices=["name", "sn", "wwn", "type", "model", "ctrls", "ports",
+                "disks", "ctrl-names", "shelves", "shelf-names", "disk-names",
+                "disk-pos", "disk-rpm", "disk-size", "cpu-cores", "ps-amount",
+                "disk-slots", "port-names"],
+            default="sn")
+    oParser.add_argument('-e', '--element',
             help="Component of an array the query is making to, such as controller or disk shelf",
             type=str, required=False)
     oParser.add_argument('-c', '--control_ip', help="Array control IP or FQDN", type=str, required=True)

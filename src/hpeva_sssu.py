@@ -11,6 +11,9 @@ from inventoryObjects import ClassicArrayClass, ControllerClass, DiskShelfClass,
 # local constants
 from local import SSSU_PATH
 
+# import time
+# import pickle
+
 oLog = logging.getLogger(__name__)
 
 # -- Constants --
@@ -157,7 +160,13 @@ class HP_EVA_Class(ClassicArrayClass):
         self.dDiskByShelfPos = {}
         self.dDiskByName = {}
         self.dDiskByID = {}
+        self.lDiskShelves = []
+        self.lControllers = []
         self.oEvaConnection = SSSU_Iface(SSSU_PATH, sIP, sUser, sPassword, sSysName, oLog.debug, oLog.error)
+        # сюда просится инициализация:
+        #   - проверка наличия кэш-файлов в каталоге кэша и
+        #   - либо запрос всей информации у CV и создание нового кэша
+        #   - либо загрузка кэша
         pass
 
     def __sFromSystem__(self, sParam):
@@ -254,6 +263,8 @@ class HP_EVA_Class(ClassicArrayClass):
 
     # public methods
 
+    def getName(self):  return(self.sSysName)
+
     def getSN(self):  return("")
 
     def getWWN(self):
@@ -289,6 +300,21 @@ class HP_EVA_Class(ClassicArrayClass):
     def getControllersSN(self) ->list:
         return self.__lsFromControllers__('serialnumber')
 
+    def getControllerShelfPSUAmount(self) -> int:
+        """Power supply amount of controller shelf. Works only for arrays 
+        with a controller shelf (4400?)"""
+        iRet = 0
+        sOut = self.oEvaConnection._sRunCommand("ls controller_enclosure")
+        if sOut.find('\\Hardware\\Controller Enclosure') >= 0:
+            # The enclosure exists
+            sOut = self.oEvaConnection._sRunCommand("ls controller_enclosure full xml", " ")
+            iFirstTagPos=sOut.find('<') - 1
+            oSoup = bs4.BeautifulSoup(sOut[iFirstTagPos:],"xml")
+            iRet = len(oSoup.object.powersources.find_all(name='source'))
+        else:
+            iRet = 0
+        return iRet
+        
     def getDiskShelfNames(self):
         sOut = self.oEvaConnection._sRunCommand("ls diskshelf nofull")
         lsLines = [l.split('\\')[-1] for l in sOut.split("\n") if l.find('Disk Enclosure') >= 0]
@@ -434,7 +460,7 @@ class HP_EVA_Class(ClassicArrayClass):
                 oRetObj = EVA_DiskDriveClass(sObjName, sXmlOut)
             else:
                 oLog.error("Incorrect disk drive name '{0}'.format(sCompName)")
-            self.__fillListOfDisks__()
+            # self.__fillListOfDisks__()
         else:
             pass
         return (oRetObj)
@@ -449,9 +475,12 @@ class EVA_ControllerClass(ControllerClass):
         """creates an object from XML data returned by 'ls controller "<ID>" xml' """
         # make a well-formed XML string from sEvaXMLData and a BeautifulSoup object from this string
         # skip sResult string to first '<'
+        self.sName = sID
         iFirstTagPos = sEvaXMLData.find('<')
         sEvaXMLData = sEvaXMLData[iFirstTagPos-1:]
         self.oSoup = bs4.BeautifulSoup(sEvaXMLData,'xml')
+
+    def getName(self): return self.sName
 
     def getSN(self):
         if self.oSoup:
@@ -465,6 +494,8 @@ class EVA_ControllerClass(ControllerClass):
         else:
             return ''
         pass
+
+    def getCPUCores(self): return "N/A"
 
     def getModel(self):
         if self.oSoup:
@@ -491,6 +522,8 @@ class EVA_DiskShelfClass(DiskShelfClass):
         self.sName = sID
         self.oSoup = bs4.BeautifulSoup(sEvaXMLData,'xml')
 
+    def getName(self): return self.sName
+
     def getSN(self):
         if self.oSoup:
             return self.oSoup.object.serialnumber.string
@@ -510,6 +543,21 @@ class EVA_DiskShelfClass(DiskShelfClass):
         else:
             return ''
         pass
+
+    def getDisksAmount(self):
+        """return a number of occupied disk slots"""
+        iRet = 0
+        if self.oSoup:
+            for sDS in self.oSoup.find_all('diskslot'):
+                if sDS.state.string.find('installed') == 0 and sDS.diskstatus.string == "normal":
+                    iRet += 1
+        return iRet
+
+    def getSlotsAmount(self):
+        iRet = 0
+        if self.oSoup:
+            iRet = len(self.oSoup.find_all('diskslot'))
+        return iRet
 
     def getDiskNames(self):
         """return a list of disk slot names"""
@@ -551,9 +599,30 @@ class EVA_DiskDriveClass(DASD_Class):
     def getSize(self):
         iRet = 0
         if self.oSoup:
-            iRet = int(self.oSoup.formattedcapacity.string) // 2**20
+            iRet = int(self.oSoup.formattedcapacity.string) * 512 // 2**30
         return iRet
 
+    def getModel(self):
+        sRet = "N/A"
+        if self.oSoup:
+            sRet = self.oSoup.modelnumber.string
+        return sRet
+
+    def getType(self):
+        sRet = "N/A"
+        if self.oSoup:
+            sRet = self.oSoup.disktype.string
+        return sRet
+
+    def getPosition(self):
+        sRet = "N/A"
+        if self.oSoup:
+            sRet = "Shelf {0} Slot {1}".format(
+                    self.oSoup.shelfnumber.string,
+                    self.oSoup.diskbaynumber.string)
+        return sRet
+
+    def getRPM(self): return "N/A"
     
 #
 # some checks when this module isn't imported but is called with python directly 
