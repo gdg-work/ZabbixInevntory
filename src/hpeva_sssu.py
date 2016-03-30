@@ -1,17 +1,14 @@
 #!/usr/bin/env python
 
 import logging
-import pexpect
 import re
-import os
-import time
-import inventoryObjects
-from inventoryObjects import ClassicArrayClass, ControllerClass, DiskShelfClass, PortClass, DASD_Class
-from itertools import chain as it_chain
-
+import pexpect
 # for XML parsing
 import bs4    # BeautifulSoup v4
 
+# Storage classes
+from inventoryObjects import ClassicArrayClass, ControllerClass, DiskShelfClass, PortClass, DASD_Class
+# local constants
 from local import SSSU_PATH
 
 oLog = logging.getLogger(__name__)
@@ -46,7 +43,7 @@ def __lFlattenListOfLists__(x):
 
 #
 #  EVA interface via SSSU
-# 
+#
 class SSSU_Error(Exception):
     """Error when running SSSU"""
     def __init__(self,sStr):
@@ -157,28 +154,31 @@ class HP_EVA_Class(ClassicArrayClass):
     def __init__(self, sIP, sUser, sPassword, sSysName, sType="HP EVA"):
         super().__init__(sIP, sType)
         self.sSysName = sSysName
+        self.dDiskByShelfPos = {}
+        self.dDiskByName = {}
+        self.dDiskByID = {}
         self.oEvaConnection = SSSU_Iface(SSSU_PATH, sIP, sUser, sPassword, sSysName, oLog.debug, oLog.error)
         pass
 
     def __sFromSystem__(self, sParam):
         """returns information from 'ls system <name>' output as a *string*"""
         sReturn = ""
-        reDots = re.compile(r" \.+: ")
+        reDots = re.compile(r"{0} \.+: ".format(sParam))
         sResult = self.oEvaConnection._sRunCommand("ls system %s | grep %s" % (self.sSysName, sParam),"\n")
         # parameter name begins with position 0 and then a space and a row of dots follows
-        lsLines = [ l for l in sResult.split("\n") 
-                if ( l.find(sParam + ' ..') == 0 and l.find('....') > 0) ]
+        lsLines = [ l for l in sResult.split("\n") if reDots.search(l) ]
+                # if ( l.find(sParam + ' ..') == 0 and l.find('....') > 0) ]
         sReturn = lsLines[0].split(':')[1].strip()
         if len(lsLines) != 1:
-            oLog.warning("__sFromSystem__: Strange -- more than one (%d) instance of parameter '%s'" % (len(lLines), sParam))
+            oLog.warning("__sFromSystem__: Strange -- more than one (%d) instance of parameter '%s'" % (len(lsLines), sParam))
         return (sReturn)
 
     def __lsFromControllers__(self, sParam):
         """Returns information from EVA's controllers as a *list* object"""
         reDots = re.compile(r" \.+: ")
         sResult = self.oEvaConnection._sRunCommand("ls controller full | grep %s" % sParam,"\n")
-        lsLines = [ l for l in sResult.split("\n") 
-                if ( l.find(sParam + ' ..') == 0 and l.find('....') > 0) ]
+        lsLines = [ l for l in sResult.split("\n") if reDots.search(l) ]
+                # if ( l.find(sParam + ' ..') == 0 and l.find('....') > 0) ]
         lsRet =  [ l.split(':')[-1].strip() for l in lsLines ]
         return lsRet
 
@@ -193,7 +193,6 @@ class HP_EVA_Class(ClassicArrayClass):
         iFirstTagPos = sResult.find('<')
         sResult = sResult[iFirstTagPos-1:]
         oSoup = bs4.BeautifulSoup(sResult,'xml')
-        lRet = []
         return (__lRecursiveSoupQuery__(oSoup, ['object'] + lParams))
 
 
@@ -339,6 +338,7 @@ class HP_EVA_Class(ClassicArrayClass):
 
     def getDisksAmount(self) ->int:
         """returns a total amount of disks as an integer"""
+        iRet = len(self.getDiskNames())
         return iRet
 
     def getDiskNames(self) -> list:
@@ -354,8 +354,7 @@ class HP_EVA_Class(ClassicArrayClass):
     def __fillListOfDisks__(self):
         """fill the internal list of disks with data"""
         # First, create an object for all the disks in the array and fill this arry with data
-        oAllDiskShelves = bs4.BeautifulSoup("<enclosures></enclosures>","xml")
-        oAllDisks = bs4.BeautifulSoup("<disklist></disklist>","xml")
+
         # next, make a list of disks' names
         lsDiskNames = [ d for d in self.oEvaConnection._sRunCommand("ls disk nofull","||").split("||")
                            if d.find("\\Disk Groups\\") >= 0 ]
@@ -365,15 +364,40 @@ class HP_EVA_Class(ClassicArrayClass):
             sLines = self.oEvaConnection._sRunCommand('ls disk "{0}" xml'.format(sDiskName)," ")
             iFirstTagPos = sLines.find('<') - 1
             oDiskSoup = bs4.BeautifulSoup(sLines[iFirstTagPos:],'xml')           # trim the disk name before XML
-            oLog.debug("Found disk: {name} of type {type}".format(
-                name=oDiskSoup.object.diskname.string, type=oDiskSoup.object.disktype.string))
+            # add the disk to dictionaries
+            sDiskID = oDiskSoup.object.objecthexuid.string
+            self.dDiskByID[sDiskID] = oDiskSoup
+            self.dDiskByName[sDiskName] = sDiskID
+        oLog.debug("Disks list: {0}".format(str(self.dDiskByID.keys())))
+        # Now check the output of 'ls diskshelf xml' for all disk shelves 
+        # and fill the other dictionary (shelf position -> disk ID) 
+        lsShelves = [ s for s in self.oEvaConnection._sRunCommand(
+            'ls diskshelf nofull'.format(sDiskName),"||"
+            ).split("||") if s.find('Disk Enclosure') >= 0 ]
+        oLog.debug("Number of disk shelves found: {0:d}".format(len(lsShelves)))
+        for sShelf in lsShelves:
+            sShelfInfo = self.oEvaConnection._sRunCommand('ls diskshelf "{0}" xml'.format(sShelf)," ")
+            iFirstTagPos = sShelfInfo.find('<') - 1
+            oShelfSoup = bs4.BeautifulSoup(sShelfInfo[iFirstTagPos:],'xml')
+            for oDiskBay in oShelfSoup.find_all('diskslot'):
+                sPosition = "{0}\{1}".format(sShelf, oDiskBay.find('name').string)
+                sId = oDiskBay.diskwwn.string
+                if sId in self.dDiskByID:
+                    self.dDiskByShelfPos[sPosition] = sId
+                else:
+                    oLog.info(
+                    "There is a slot {0} with strange disk ID {1} that is not cataloged!".format(
+                        sPosition, sId   
+                    ))
+            oLog.debug("Dictionary of shelf pos:disk ID is {0}".format(str(self.dDiskByShelfPos)))
+
         return
 
 
     def getComponent(self, sCompName) -> object:
         """returns an object corresponding to an array component by name"""
         oLog.debug("getComponent called with name <%s>" % sCompName)
-        reDiskNamePattern = re.compile(r'Disk \d{3}')
+        reDiskNamePattern = re.compile(r'Disk \d{2,3}')
         # select the type of component
         oRetObj = None
         if sCompName.find('Controller') >= 0:   # disk controller
@@ -410,7 +434,7 @@ class HP_EVA_Class(ClassicArrayClass):
                 oRetObj = EVA_DiskDriveClass(sObjName, sXmlOut)
             else:
                 oLog.error("Incorrect disk drive name '{0}'.format(sCompName)")
-            # self.__fillListOfDisks__()
+            self.__fillListOfDisks__()
         else:
             pass
         return (oRetObj)
@@ -523,7 +547,13 @@ class EVA_DiskDriveClass(DASD_Class):
         if self.oSoup:
             sRet = self.oSoup.find(name='serialnumber').string
         return sRet
-        
+
+    def getSize(self):
+        iRet = 0
+        if self.oSoup:
+            iRet = int(self.oSoup.formattedcapacity.string) // 2**20
+        return iRet
+
     
 #
 # some checks when this module isn't imported but is called with python directly 
@@ -537,18 +567,18 @@ if __name__ == '__main__':
     oLog.addHandler(oConHdr)
     # 
     # some testing
-    print(a.getModel())
+    # print(a.getModel())
 #    print(a.getControllerNames())
 #    print(a.getControllersSN())
 #    print(a.getDiskShelfNames())
 #    print(a.getShelvesSN())
 #    print(a.getShelvesPwrSupplyAmount())
-    a.__fillListOfDisks__()
+    # a.__fillListOfDisks__()
     # print(a.getPortIDs())
     # print(a.getHostPortsCount())
     # print(a.getHostPortWWNs())
     # print(a.getHostPortSpeed())
-    print (a.getComponent("Controller 2").getSN())
-    a._Close()
+    # print (a.getComponent("Controller 2").getSN())
+    # a._Close()
 
 # vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4

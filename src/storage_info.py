@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
-
-# main module of the program
+""" main module of the storage system Zabbix inventory program """
 
 import argparse as ap
-import inventoryObjects
 import logging
 import json
 # array-dependent modules
 import hpeva_sssu as eva
-from sys import exit
 from inventoryLogger import dLoggingConfig
 
 logging.config.dictConfig(dLoggingConfig)
 oLog = logging.getLogger(__name__)
 
+def _sListOfStringsToJSON(lsStrings):
+    ID = '{#ID}'
+    lRetList = [ {ID:n} for n in lsStrings ]
+    dRetDict = { "data":lRetList }
+    return json.dumps(dRetDict)
+    
 def _sGetComponentInfo(oStorageObject, sComponentName, oArgs):
     sRet = "Not Implemented"
     oComponent = oStorageObject.getComponent(sComponentName)
@@ -30,7 +33,7 @@ def _sGetComponentInfo(oStorageObject, sComponentName, oArgs):
             elif oArgs.query == "ports":
                 sRet = str(len(oComponent.getPortNames()))
             elif oArgs.query == "port-names":
-                sRet = oComponent.getPortNames()
+                sRet = _sListOfStringsToJSON(oComponent.getPortNames())
             elif oArgs.query == "ps-amount":
                 sRet = oComponent.getPwrSupplyAmount()
             else:
@@ -43,43 +46,41 @@ def _sGetComponentInfo(oStorageObject, sComponentName, oArgs):
         sRet = "Error when querying a component"
     return (sRet)
 
-
-def _sListOfStringsToJSON(lsStrings):
-    ID = '{#ID}'
-    sRet = ""
-    lRetList = [ {ID:n} for n in lsStrings ]
-    dRetDict = { "data":lRetList }
-    return json.dumps(dRetDict)
-
 def _sProcessArgs(oStorageObject, oArgs):
     """Apply query to a storage device """
+    sRet = "N/A"
+    oLog.debug("Request: {0}".format(oArgs.query))
     if oArgs.element:
-        return _sGetComponentInfo(oStorageObject, oArgs.element, oArgs)
+        sRet = _sGetComponentInfo(oStorageObject, oArgs.element, oArgs)
     else:
-        if oArgs.query == "sn":
-            return (oStorageObject.getSN())
-        if oArgs.query == "wwn":
-            return (oStorageObject.getWWN())
-        elif oArgs.query == "type":
-            return (oStorageObject.getType())
-        elif oArgs.query == "model":
-            return (oStorageObject.getModel())
-        elif oArgs.query == "ctrls":
-            return (oStorageObject.getControllersAmount())
-        elif oArgs.query == "ctrl-names":
-            lCtrls = oStorageObject.getControllerNames()
-            oLog.debug("_sProcessArgs: list of controllers: %s" % str(lCtrls))
-            return _sListOfStringsToJSON(lCtrls)
-        elif oArgs.query == "shelf-names":
-            lShelves = oStorageObject.getDiskShelfNames()
-            oLog.debug("_sProcessArgs: list of disk shelves: %s" % str(lShelves))
-            return _sListOfStringsToJSON(lShelves)
-        elif oArgs.query == 'disk-names':
-            lsDisks = oStorageObject.getDiskNames()
-            return _sListOfStringsToJSON(lsDisks)
-        else:
-            oLog.error("Invalid request")
-            return ""
+        try:
+            if oArgs.query == "sn":
+                sRet = oStorageObject.getSN()
+            elif oArgs.query == "wwn":
+                sRet = oStorageObject.getWWN()
+            elif oArgs.query == "type":
+                sRet = oStorageObject.getType()
+            elif oArgs.query == "model":
+                sRet = oStorageObject.getModel()
+            elif oArgs.query == "ctrls":
+                sRet = oStorageObject.getControllersAmount()
+            elif oArgs.query == "ctrl-names":
+                lCtrls = oStorageObject.getControllerNames()
+                oLog.debug("_sProcessArgs: list of controllers: %s" % str(lCtrls))
+                sRet = _sListOfStringsToJSON(lCtrls)
+            elif oArgs.query == "shelf-names":
+                lShelves = oStorageObject.getDiskShelfNames()
+                oLog.debug("_sProcessArgs: list of disk shelves: %s" % str(lShelves))
+                sRet = _sListOfStringsToJSON(lShelves)
+            elif oArgs.query == 'disk-names':
+                lsDisks = oStorageObject.getDiskNames()
+                sRet = _sListOfStringsToJSON(lsDisks)
+            else:
+                oLog.error("Invalid request")
+        except AttributeError as e:
+            oLog.error(e.args[0])
+            oLog.info("Error when querying {0} of storage device".format(oArgs.query))
+    return sRet
 
 def _oEvaConnect(oArgs):
     ip = oArgs.control_ip
@@ -93,7 +94,7 @@ def _oGetCLIParser():
     oParser.add_argument('-t', '--type', help="Storage device type", required=True,
             choices=["EVA", "Storwize", "3Par", "XIV"])
     oParser.add_argument('-q', '--query', help="Parameter to request",
-            choices=["sn", "wwn", "type", "model", "ctrls", "ctrl-names", 
+            choices=["sn", "wwn", "type", "model", "ctrls", "ports", "ctrl-names", 
                     "shelf-names", "disk-names", "ps-amount", "port-names"], default="sn")
     oParser.add_argument('-e', '--element', 
             help="Component of an array the query is making to, such as controller or disk shelf",
