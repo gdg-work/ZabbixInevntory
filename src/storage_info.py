@@ -11,11 +11,13 @@ from inventoryLogger import dLoggingConfig
 logging.config.dictConfig(dLoggingConfig)
 oLog = logging.getLogger(__name__)
 
+
 def _sListOfStringsToJSON(lsStrings):
     ID = '{#ID}'
-    lRetList = [ {ID:n} for n in lsStrings ]
-    dRetDict = { "data":lRetList }
+    lRetList = [{ID: n} for n in lsStrings]
+    dRetDict = {"data": lRetList}
     return json.dumps(dRetDict)
+
 
 def _sGetComponentInfo(oStorageObject, sComponentName, oArgs):
     sRet = "Not Implemented"
@@ -54,11 +56,13 @@ def _sGetComponentInfo(oStorageObject, sComponentName, oArgs):
                 sRet = ("Not implemented yet!")
         except AttributeError as e:
             oLog.info(e.args[0])
-            oLog.info("Error when querying '{0}' of object '{1}'".format(oArgs.query, sComponentName))
+            oLog.info("Error when querying '{0}' of object '{1}'".format(
+                oArgs.query, sComponentName))
             sRet = "N/A"
     else:
         sRet = "Error when querying a component"
     return (sRet)
+
 
 def _sProcessArgs(oStorageObject, oArgs):
     """Apply query to a storage device """
@@ -107,14 +111,18 @@ def _sProcessArgs(oStorageObject, oArgs):
             oLog.info("Error when querying {0} of storage device".format(oArgs.query))
     return sRet
 
+
 def _oEvaConnect(oArgs):
+    """Connect to HP EVA"""
     ip = oArgs.control_ip
     user = oArgs.user
     password = oArgs.password
     sysname = oArgs.system
     return eva.HP_EVA_Class(ip, user, password, sysname)
 
+
 def _oGetCLIParser():
+    """parse CLI arguments, returns argparse.ArgumentParser object"""
     oParser = ap.ArgumentParser(description="Storage Array-Zabbix interface program")
     oParser.add_argument('-t', '--type', help="Storage device type", required=True,
                          choices=["EVA", "Storwize", "3Par", "XIV"])

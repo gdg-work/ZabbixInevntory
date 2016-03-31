@@ -5,18 +5,21 @@ import re
 import pexpect
 # for XML parsing
 import bs4    # BeautifulSoup v4
+import redis  # In-memory NoSQL DB for caching
+import pickle # serializing/deserializing of objects to stings and files
 
 # Storage classes
 from inventoryObjects import ClassicArrayClass, ControllerClass, DiskShelfClass, PortClass, DASD_Class
 # local constants
 from local import SSSU_PATH
 
-# import time
-# import pickle
-
+import sys
+sys.setrecursionlimit(5000)
 oLog = logging.getLogger(__name__)
 
 # -- Constants --
+CACHE_TIME=300
+REDIS_ENCODING='utf-8'
 
 #
 # Helper functions
@@ -152,6 +155,8 @@ class SSSU_Iface:
 
     # }}} SSSU_IFace
 
+# XXX temporary
+oRedis = redis.StrictRedis(unix_socket_path='/tmp/redis.sock')
 
 class HP_EVA_Class(ClassicArrayClass):
     def __init__(self, sIP, sUser, sPassword, sSysName, sType="HP EVA"):
@@ -167,16 +172,21 @@ class HP_EVA_Class(ClassicArrayClass):
         #   - проверка наличия кэш-файлов в каталоге кэша и
         #   - либо запрос всей информации у CV и создание нового кэша
         #   - либо загрузка кэша
-        pass
+        self.sRedisKeyPrefix="pyzabbix::hpeva_sssu::" + self.sSysName + "::"
+        self.oRedisConnection = oRedis
 
     def __sFromSystem__(self, sParam):
         """returns information from 'ls system <name>' output as a *string*"""
+        REDIS_KEY=self.sRedisKeyPrefix + "__sFromSystem__::lssystem"
         sReturn = ""
         reDots = re.compile(r"{0} \.+: ".format(sParam))
-        sResult = self.oEvaConnection._sRunCommand("ls system %s | grep %s" % (self.sSysName, sParam),"\n")
+        # try to get cached version
+        sResult = self.oRedisConnection.get(REDIS_KEY)
+        if not sResult:  # Redis return nothing, make a request again
+            sResult = self.oEvaConnection._sRunCommand("ls system {}".format(self.sSysName),"\n")
+            self.oRedisConnection.set(REDIS_KEY, sResult, CACHE_TIME)
         # parameter name begins with position 0 and then a space and a row of dots follows
         lsLines = [ l for l in sResult.split("\n") if reDots.search(l) ]
-                # if ( l.find(sParam + ' ..') == 0 and l.find('....') > 0) ]
         sReturn = lsLines[0].split(':')[1].strip()
         if len(lsLines) != 1:
             oLog.warning("__sFromSystem__: Strange -- more than one (%d) instance of parameter '%s'" % (len(lsLines), sParam))
@@ -184,10 +194,13 @@ class HP_EVA_Class(ClassicArrayClass):
 
     def __lsFromControllers__(self, sParam):
         """Returns information from EVA's controllers as a *list* object"""
+        REDIS_KEY=self.sRedisKeyPrefix + "__lsFromControllers__::lscontroller"
         reDots = re.compile(r" \.+: ")
-        sResult = self.oEvaConnection._sRunCommand("ls controller full | grep %s" % sParam,"\n")
+        sResult = self.oRedisConnection.get(REDIS_KEY)
+        if not sResult:  # Redis return nothing, make a request again
+            sResult = self.oEvaConnection._sRunCommand("ls controller full","\n")
+            self.oRedisConnection.set(REDIS_KEY, sResult, CACHE_TIME)
         lsLines = [ l for l in sResult.split("\n") if reDots.search(l) ]
-                # if ( l.find(sParam + ' ..') == 0 and l.find('....') > 0) ]
         lsRet =  [ l.split(':')[-1].strip() for l in lsLines ]
         return lsRet
 
@@ -195,13 +208,16 @@ class HP_EVA_Class(ClassicArrayClass):
         """A recursive query of elements from list lParams, first going  to lParams[0], then
         lParams[1] etc. until lParams[len(lParams)-1]. The last element(s) returns 
         as a list of (list of…, list of… etc.) strings"""
-        sResult = self.oEvaConnection._sRunCommand("ls controller full xml","\n")
-        # oLog.debug("__lsFromControllersRecursive__: output of 'ls controller full xml'")
-        # oLog.debug(sResult)
-        # oLog.debug("__lsFromControllersRecursive__: end of output")
-        iFirstTagPos = sResult.find('<')
-        sResult = sResult[iFirstTagPos-1:]
-        oSoup = bs4.BeautifulSoup(sResult,'xml')
+        REDIS_KEY=self.sRedisKeyPrefix + "pyzabbix::hpeva_sssu::__lsFromControllersRecursive__::lscontroller_xml::soup"
+
+        oSoup = pickle.loads(self.oRedisConnection.get(REDIS_KEY))
+        if not sResult:
+            sResult = self.oEvaConnection._sRunCommand("ls controller full xml","\n")
+            self.oRedisConnection.set(REDIS_KEY, sResult)
+            iFirstTagPos = sResult.find('<')
+            sResult = sResult[iFirstTagPos-1:]
+            oSoup = bs4.BeautifulSoup(sResult,'xml')
+            self.oRedisConnection.set(REDIS_KEY, pickle.dumps(oSoup), CACHE_TIME)
         return (__lRecursiveSoupQuery__(oSoup, ['object'] + lParams))
 
 
@@ -209,13 +225,17 @@ class HP_EVA_Class(ClassicArrayClass):
         """ Tries to find some information in the 'ls diskshelf' element.
         First, the function searches in <object> element, if the parameter isn't found,
         it is searched in child elements """
-        sResult = self.oEvaConnection._sRunCommand(
-                'ls diskshelf "%s" xml' % sName,"\n")
-        lRet = []
-        # skip sResult string to first '<'
-        iFirstTagPos = sResult.find('<')
-        sResult = sResult[iFirstTagPos-1:]
-        oSoup = bs4.BeautifulSoup(sResult,'xml')
+        REDIS_KEY="{0}__lsFromDiskShelf__::lsdiskshelf_xml::{1}::soup".format(self.sRedisKeyPrefix,sName)
+        oSoup = pickle.loads(self.oRedisConnection.get(REDIS_KEY))
+        if not oSoup:
+            sResult = self.oEvaConnection._sRunCommand(
+                    'ls diskshelf "%s" xml' % sName,"\n")
+            lRet = []
+            # skip sResult string to first '<'
+            iFirstTagPos = sResult.find('<')
+            sResult = sResult[iFirstTagPos-1:]
+            oSoup = bs4.BeautifulSoup(sResult,'xml')
+            self.oRedisConnection.set(REDIS_KEY, pickle.dumps(oSoup), CACHE_TIME)
         # now I can parse this objects by any method
         for oDiskShelf in oSoup.find_all('object',recursive=False, limit=32):
             oElem = oDiskShelf.find(sParam,recursive=False)
@@ -231,7 +251,13 @@ class HP_EVA_Class(ClassicArrayClass):
         """ Tries to find some information in the 'ls diskshelf' element.
         First, the function searches in <object> element, if the parameter isn't found,
         it is searched in child elements """
-        sResult = self.oEvaConnection._sRunCommand("ls diskshelf nofull","\n")
+        REDIS_KEY=self.sRedisKeyPrefix + "__lsFromDiskShelves__::lsdiskshelf_nofull"
+        sResult = self.oRedisConnection.get(REDIS_KEY)
+        if oResult:
+            pass
+        else:
+            sResult = self.oEvaConnection._sRunCommand("ls diskshelf nofull","\n")
+            self.oRedisConnection.set(REDIS_KEY, sResult, CACHE_TIME)
         lsDE_Names = [l for l in sResult.split("\n") if l.find("Disk Enclosure") >= 0]
         oLog.debug("Disk enclosures found: %s" % ", ".join(lsDE_Names))
         lRet = []
@@ -245,17 +271,25 @@ class HP_EVA_Class(ClassicArrayClass):
         список элементов, отвечающих первому имени в списке, затем в каждом 
         из них ищется второй и т.д, пока список не окажется пуст - из последнего 
         возвращается строковое значение"""
-        sResult = self.oEvaConnection._sRunCommand("ls diskshelf nofull","\n")
+        REDIS_KEY=self.sRedisKeyPrefix + "__lsFromDiskShelfRecursive__::lsdiskshelf::{0}"
+        sResult = self.oRedisConnection.get(REDIS_KEY.format("nofull"))
+        if not sResult:
+            sResult = self.oEvaConnection._sRunCommand("ls diskshelf nofull","\n")
+            self.oRedisConnection.set(REDIS_KEY.format("nofull"), sResult, CACHE_TIME)
         lsDE_Names = [l for l in sResult.split("\n") if l.find("Disk Enclosure") >= 0]
         oLog.debug("Disk enclosures found: %s" % ", ".join(lsDE_Names))
         lRet = []
         for sDE_Name in lsDE_Names:
-            oLog.debug('Querying disk shelf %s for %s' % (sDE_Name, ','.join(lParams)))
-            sRes = self.oEvaConnection._sRunCommand('ls diskshelf "%s" xml' % sDE_Name,"\n")
-            # skip sResult string to first '<'
-            iFirstTagPos = sRes.find('<')
-            sRes = sRes[iFirstTagPos-1:]
-            oSoup = bs4.BeautifulSoup(sRes,'xml')
+            sShelfRedisKey = REDIS_KEY.format(sDE_Name)
+            oSoup = pickle.loads(self.oRedisConnection.get(sShelfRedisKey))
+            if not oSoup:
+                oLog.debug('Querying disk shelf %s for %s' % (sDE_Name, ','.join(lParams)))
+                sRes = self.oEvaConnection._sRunCommand('ls diskshelf "%s" xml' % sDE_Name,"\n")
+                # skip sResult string to first '<'
+                iFirstTagPos = sRes.find('<')
+                sRes = sRes[iFirstTagPos-1:]
+                oSoup = bs4.BeautifulSoup(sRes,'xml')
+                self.oRedisConnection.set(sShelfRedisKey, pickle.dumps(oSoup), CACHE_TIME)
             oLog.debug('Serial # of disk shelf is %s' % oSoup.object.serialnumber.string)
             lFromShelf = __lRecursiveSoupQuery__(oSoup, ['object'] + lParams)
             lRet.append(lFromShelf)
@@ -277,25 +311,28 @@ class HP_EVA_Class(ClassicArrayClass):
         return(self.__sFromSystem__('systemtype'))
 
     def getControllersAmount(self) ->int:
-        if self.lControllers == []:
+        REDIS_KEY=self.sRedisKeyPrefix + "lscontroller_nofull"
+        sRes = self.oRedisConnection.get(REDIS_KEY)
+        if not sRes:
             # request information from the array
             sRes = self.oEvaConnection._sRunCommand("ls controller nofull")
-            lsLines = [l for l in sRes.split("\n") if l.find('Controller') >= 0]
-            return len(lsLines)
-        else:
-            return len(self.lControllers)
-        pass
+            self.oRedisConnection.set(REDIS_KEY, sRes, CACHE_TIME)
+        lsLines = [l for l in sRes.split("\n") if l.find('Controller') >= 0]
+        iRet = len(lsLines)
+        return iRet
 
     def getControllerNames(self) ->list:
-        if self.lControllers == []:
-            # request information from the array
+        # redis key is the same as in previous function (getControllerAmount)
+        REDIS_KEY=self.sRedisKeyPrefix + "lscontroller_nofull"
+        try:
+            sRes = self.oRedisConnection.get(REDIS_KEY).decode(REDIS_ENCODING)
+        except AttributeError:
+            # no information in cache, request information from the array
             sRes = self.oEvaConnection._sRunCommand("ls controller nofull")
-            lsLines = [l.split('\\')[-1] for l in sRes.split("\n") if l.find('Controller') >= 0]
-            oLog.debug("List of controller names: %s" % lsLines)
-            return lsLines
-        else:
-            return [c.getID() for c in self.lControllers]
-        pass
+            self.oRedisConnection.set(REDIS_KEY, sRes.encode(REDIS_ENCODING), CACHE_TIME)
+        lsLines = [l.split('\\')[-1] for l in sRes.split("\n") if l.find('Controller') >= 0]
+        oLog.debug("List of controller names: %s" % lsLines)
+        return lsLines
 
     def getControllersSN(self) ->list:
         return self.__lsFromControllers__('serialnumber')
@@ -303,6 +340,7 @@ class HP_EVA_Class(ClassicArrayClass):
     def getControllerShelfPSUAmount(self) -> int:
         """Power supply amount of controller shelf. Works only for arrays 
         with a controller shelf (4400?)"""
+        # XXX use cache
         iRet = 0
         sOut = self.oEvaConnection._sRunCommand("ls controller_enclosure")
         if sOut.find('\\Hardware\\Controller Enclosure') >= 0:
@@ -316,21 +354,26 @@ class HP_EVA_Class(ClassicArrayClass):
         return iRet
         
     def getDiskShelfNames(self):
-        sOut = self.oEvaConnection._sRunCommand("ls diskshelf nofull")
+        REDIS_KEY=self.sRedisKeyPrefix + "lsdiskshelf_nofull"
+        sOut = self.oRedisConnection.get(REDIS_KEY)  # bytes sting
+        if sOut:
+            sOut = sOut.decode(REDIS_ENCODING)
+        else:
+            sOut = self.oEvaConnection._sRunCommand("ls diskshelf nofull")
+            self.oRedisConnection.set(REDIS_KEY, sOut.encode(REDIS_ENCODING), CACHE_TIME)
         lsLines = [l.split('\\')[-1] for l in sOut.split("\n") if l.find('Disk Enclosure') >= 0]
         oLog.debug('list of disk shelves names: %s' % ', '.join(lsLines))
         return lsLines
 
     def getShelvesAmount(self) ->int:
-        # iRet = ( __lsFromDiskShelves__('serialnumber'))
-        if self.lDiskShelves == []:
+        REDIS_KEY=self.sRedisKeyPrefix + "lsdiskshelf_nofull"
+        sRes = self.oRedisConnection.get(REDIS_KEY).decode(REDIS_ENCODING)
+        if not sRes:
             # request info from the array
             sRes = self.oEvaConnection._sRunCommand("ls diskshelf nofull")
-            lsLines = [l.split('\\')[-1] for l in sRes.split("\n") if l.find('Disk Enclosure') >= 0]
-            iRet = len(lsLines)
-        else:
-            iRet = len(self.lDiskShelves)
-        return iRet
+            self.oRedisConnection.set(REDIS_KEY, sRes.encode(REDIS_ENCODING), CACHE_TIME)
+        lsLines = [l.split('\\')[-1] for l in sRes.split("\n") if l.find('Disk Enclosure') >= 0]
+        return len(lsLines)
 
     def getShelvesSN(self) ->list:
         """returns serial numbers of disk shelves attached to EVA"""
@@ -367,56 +410,80 @@ class HP_EVA_Class(ClassicArrayClass):
         iRet = len(self.getDiskNames())
         return iRet
 
-    def getDiskNames(self) -> list:
+    def getDiskNames(self,bShort=True) -> list:
         """returns a list of short disk names (like 'Disk 023'). These names are
         unique on a given array"""
-        lsDiskNames = [ d for d in self.oEvaConnection._sRunCommand("ls disk nofull","||").split("||")
-                           if d.find("\\Disk Groups\\") >= 0 ]
-        lsShortNames = [d.split("\\")[-1] for d in lsDiskNames  ] 
+        REDIS_KEY = self.sRedisKeyPrefix + "ls_disk_nofull"
+        sFromRedis = self.oRedisConnection.get(REDIS_KEY)
+        if sFromRedis:
+            lsDiskNames = pickle.loads(sFromRedis)
+        else:
+            lsDiskNames = [ d for d in self.oEvaConnection._sRunCommand("ls disk nofull","||").split("||")
+                               if d.find("\\Disk Groups\\") >= 0 ]
+            self.oRedisConnection.set(REDIS_KEY, pickle.dumps(lsDiskNames), CACHE_TIME)
+        if bShort:
+            lsShortNames = [d.split("\\")[-1] for d in lsDiskNames  ] 
+        else:
+            lsShortNames = lsDiskNames
         oLog.debug("list of disk names: {0}".format(str(lsShortNames)))
         return lsShortNames
 
 
     def __fillListOfDisks__(self):
         """fill the internal list of disks with data"""
-        # First, create an object for all the disks in the array and fill this arry with data
-
-        # next, make a list of disks' names
-        lsDiskNames = [ d for d in self.oEvaConnection._sRunCommand("ls disk nofull","||").split("||")
-                           if d.find("\\Disk Groups\\") >= 0 ]
-        oLog.debug("list of disk names: {0}".format(str(lsDiskNames)))
-        for sDiskName in lsDiskNames:
-            # get information from an array
-            sLines = self.oEvaConnection._sRunCommand('ls disk "{0}" xml'.format(sDiskName)," ")
-            iFirstTagPos = sLines.find('<') - 1
-            oDiskSoup = bs4.BeautifulSoup(sLines[iFirstTagPos:],'xml')           # trim the disk name before XML
-            # add the disk to dictionaries
-            sDiskID = oDiskSoup.object.objecthexuid.string
-            self.dDiskByID[sDiskID] = oDiskSoup
-            self.dDiskByName[sDiskName] = sDiskID
-        oLog.debug("Disks list: {0}".format(str(self.dDiskByID.keys())))
-        # Now check the output of 'ls diskshelf xml' for all disk shelves 
-        # and fill the other dictionary (shelf position -> disk ID) 
-        lsShelves = [ s for s in self.oEvaConnection._sRunCommand(
-            'ls diskshelf nofull'.format(sDiskName),"||"
-            ).split("||") if s.find('Disk Enclosure') >= 0 ]
-        oLog.debug("Number of disk shelves found: {0:d}".format(len(lsShelves)))
-        for sShelf in lsShelves:
-            sShelfInfo = self.oEvaConnection._sRunCommand('ls diskshelf "{0}" xml'.format(sShelf)," ")
-            iFirstTagPos = sShelfInfo.find('<') - 1
-            oShelfSoup = bs4.BeautifulSoup(sShelfInfo[iFirstTagPos:],'xml')
-            for oDiskBay in oShelfSoup.find_all('diskslot'):
-                sPosition = "{0}\{1}".format(sShelf, oDiskBay.find('name').string)
-                sId = oDiskBay.diskwwn.string
-                if sId in self.dDiskByID:
-                    self.dDiskByShelfPos[sPosition] = sId
-                else:
-                    oLog.info(
-                    "There is a slot {0} with strange disk ID {1} that is not cataloged!".format(
-                        sPosition, sId   
-                    ))
-            oLog.debug("Dictionary of shelf pos:disk ID is {0}".format(str(self.dDiskByShelfPos)))
-
+        # Create objects for all the disks in the array and fill this array with data
+        REDIS_KEY_FORMAT = self.sRedisKeyPrefix + "__fillListOfDisks__::{0}"
+        try:
+            self.dDiskByID = pickle.loads(
+                    self.oRedisConnection.get(REDIS_KEY_FORMAT.format("dDiskByID")))
+            self.dDiskByName = pickle.loads(
+                    self.oRedisConnection.get(REDIS_KEY_FORMAT.format("dDiskID_ByName")))
+            self.dDiskByShelfPos = pickle.loads(
+                    self.oRedisConnection.get(REDIS_KEY_FORMAT.format("dDiskByShelfPos")))
+            oLog.debug("__fillListOfDisks__: list of disk IDs: " + str(self.dDiskByID.keys()))
+            oLog.debug("__fillListOfDisks__: list of disk names: " + str(self.dDiskByName.keys()))
+            oLog.debug("__fillListOfDisks__: list of disk positions: " + str(self.dDiskByShelfPos.keys()))
+        except TypeError:
+            # TypeError: a bytes-like object is required, not 'NoneType'
+            # if all 3 of these dictionaries present, use it as is. Else retrieve data from an array
+            # if not (sFromRedis_DBI and sFromRedis_ID_BN and sFromRedis_ID_BP):
+            #  make a list of disks' names
+            for sDiskName in self.getDiskNames(bShort=False):
+                # get information from an array
+                sLines = self.oEvaConnection._sRunCommand('ls disk "{0}" xml'.format(sDiskName)," ")
+                iFirstTagPos = sLines.find('<') - 1
+                oDiskSoup = bs4.BeautifulSoup(sLines[iFirstTagPos:],'xml')           # trim the disk name before XML
+                # add the disk to dictionaries
+                sDiskID = oDiskSoup.object.objecthexuid.string
+                self.dDiskByID[sDiskID] = oDiskSoup
+                self.dDiskByName[sDiskName] = sDiskID
+            oLog.debug("Disks list: {0}".format(str(self.dDiskByID.keys())))
+            # Now check the output of 'ls diskshelf xml' for all disk shelves 
+            # and fill the other dictionary (shelf position -> disk ID) 
+            lsShelves = self.getDiskShelfNames()
+            oLog.debug("Number of disk shelves found: {0:d}".format(len(lsShelves)))
+            for sShelf in lsShelves:
+                sShelfInfo = self.oEvaConnection._sRunCommand('ls diskshelf "{0}" xml'.format(sShelf)," ")
+                iFirstTagPos = sShelfInfo.find('<') - 1
+                oShelfSoup = bs4.BeautifulSoup(sShelfInfo[iFirstTagPos:],'xml')
+                for oDiskBay in oShelfSoup.find_all('diskslot'):
+                    sPosition = "{0}\{1}".format(sShelf, oDiskBay.find('name').string)
+                    sId = oDiskBay.diskwwn.string
+                    if sId in self.dDiskByID:
+                        self.dDiskByShelfPos[sPosition] = sId
+                    else:
+                        oLog.info(
+                        "There is a slot {0} with strange disk ID {1} that is not cataloged!".format(
+                            sPosition, sId   
+                        ))
+                oLog.debug("Dictionary of shelf pos:disk ID is {0}".format(str(self.dDiskByShelfPos)))
+            # fill in Redis's DB with our dictionaries
+            self.oRedisConnection.set(REDIS_KEY_FORMAT.format("dDiskByID"), 
+                    pickle.dumps(self.dDiskByID), CACHE_TIME)
+            self.oRedisConnection.set(REDIS_KEY_FORMAT.format("dDiskID_ByName"), 
+                    pickle.dumps(self.dDiskByName), CACHE_TIME)
+            self.oRedisConnection.set(REDIS_KEY_FORMAT.format("dDiskByShelfPos"), 
+                    pickle.dumps(self.dDiskByShelfPos), CACHE_TIME)
         return
 
 
@@ -427,9 +494,8 @@ class HP_EVA_Class(ClassicArrayClass):
         # select the type of component
         oRetObj = None
         if sCompName.find('Controller') >= 0:   # disk controller
-            sCtrls = self.oEvaConnection._sRunCommand("ls controller nofull")
-            lsLines = [l for l in sCtrls.split("\n") if l.find('Controller') >= 0 and l.find(sCompName) >= 0]
-            oLog.debug("List of controller names: %s" % lsLines)
+            lsCtrls = self.getControllerNames()
+            lsLines = [l for l in lsCtrls if l.find(sCompName) >= 0]
             # this list must be of length 1
             if len(lsLines) == 1:
                 sObjName = lsLines[0]
@@ -439,8 +505,7 @@ class HP_EVA_Class(ClassicArrayClass):
                 oLog.error("Incorrect controller object ID")
                 oRetObj = None
         elif sCompName.find('Disk Enclosure') >= 0: # disk enclosure
-            sDEs = self.oEvaConnection._sRunCommand("ls diskshelf nofull")
-            lsLines = [l for l in sDEs.split("\n") if l.find('Disk Enclosure') >= 0 and l.find(sCompName) >= 0]
+            lsLines = [l for l in self.getDiskShelfNames() if l.find(sCompName) >= 0]
             oLog.debug("List of disk enclosure names: %s" % lsLines)
             # this list must be of length 1
             if len(lsLines) == 1:
@@ -451,16 +516,22 @@ class HP_EVA_Class(ClassicArrayClass):
                 oLog.error("Incorrect disk enclosure object ID")
                 oRetObj = None
         elif reDiskNamePattern.search(sCompName): # disk drive name
-            sDisks = self.oEvaConnection._sRunCommand("ls disk nofull","\n")
-            lsLines = [l for l in sDisks.split("\n") if l.find('\\Disk Groups\\') >= 0 and l.find(sCompName) >= 0]
+            if len(self.dDiskByName) == 0:
+                self.__fillListOfDisks__()
+            lsDiskNames = self.getDiskNames(bShort = False)
+            lsLines = [l for l in self.dDiskByName.keys() if l.find(sCompName) >= 0]
             # there must be only one disk with a given name
             if len(lsLines) == 1:
                 sObjName=lsLines[0]
-                sXmlOut = self.oEvaConnection._sRunCommand('ls disk "%s" xml' % sObjName)
-                oRetObj = EVA_DiskDriveClass(sObjName, sXmlOut)
+                sObjID=self.dDiskByName[sObjName]
+                oLog.debug("Disk ID: " + sObjID)
+                oLog.debug("Disk object name: {0}, disk ID: {1}, disk position: {2}".format(
+                    sObjName, sObjID, (sObjID in self.dDiskByID)))
+                oLog.debug("{0} is not in {1}".format(sObjID, self.dDiskByID.keys()) )
+                oObjSoup=self.dDiskByID[sObjID]
+                oRetObj = EVA_DiskDriveClass(sObjName, oObjSoup)
             else:
-                oLog.error("Incorrect disk drive name '{0}'.format(sCompName)")
-            # self.__fillListOfDisks__()
+                oLog.error("Incorrect disk drive name '{0}'".format(sCompName))
         else:
             pass
         return (oRetObj)
@@ -575,16 +646,14 @@ class EVA_DiskShelfClass(DiskShelfClass):
 
 
 class EVA_DiskDriveClass(DASD_Class):
-    def __init__(self, sID:str, sXmlData):
+    def __init__(self, sID:str, oDiskSoup):
         """Initializes an object. Parameters: 
         sID: name of disk  (\Disk Groups\Default Disk Group\Disk 021)
         sXmlData: xml output of 'ls disk "<NAME>" xml' """
         self.sName = sID
         self.sShortName = sID.split("\\")[-1]
         oLog.debug("EVA_DriveClass.__init__: disk name is {0}".format(self.sShortName))
-        # self.oSlotSoup = oDiskShelfSoup.find(name='name', string=self.sSlotName).parent
-        iFirstTagPos = sXmlData.find('<') - 1
-        self.oSoup = bs4.BeautifulSoup(sXmlData[iFirstTagPos:],"xml")
+        self.oSoup = oDiskSoup
         # oLog.debug('EVA_DriveClass.__init__: drive soup: \n {0}'.format(self.oSoup.prettify()))
         # search for unique-id identifier
         self.sDiskUID = self.oSoup.find(name='uid').string
