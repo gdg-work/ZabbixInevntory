@@ -4,6 +4,8 @@
 import argparse as ap
 import logging
 import json
+from redis import StrictRedis,RedisError
+from pathlib import Path
 # array-dependent modules
 import hpeva_sssu as eva
 from inventoryLogger import dLoggingConfig
@@ -12,52 +14,76 @@ logging.config.dictConfig(dLoggingConfig)
 oLog = logging.getLogger(__name__)
 
 
-def _sListOfStringsToJSON(lsStrings):
+COMPONENT_OPS = set([  # Valid operations of array's components
+    "sn",
+    "name",
+    "type",
+    "model",
+    "cpu-cores",
+    "disk-names",
+    "ports",
+    "disk-slots",
+    "port-names",
+    "disks",
+    "disk-rpm",
+    "disk-size",
+    "disk-pos",
+    "ps-amount",
+])
+
+STORAGE_OPS = set([   # Valid operations of storage arrays
+    "sn",
+    "wwn",
+    "type",
+    "model",
+    "ctrls",
+    "shelves",
+    "disks",
+    "ctrl-names",
+    "shelf-names",
+    "disk-names",
+    "ps-amount",
+    ])
+
+def _sListOfStringsToJSON(lsStrings: list):
     ID = '{#ID}'
     lRetList = [{ID: n} for n in lsStrings]
     dRetDict = {"data": lRetList}
     return json.dumps(dRetDict)
 
+def _oConnect2Redis(sConnInfo: str):
+    """connect to Redis DB. 
+    Parameters: sConnInfo: a string, one of 2 variants: 'host:port' or '/path/to/socket'
+    returns: object of type redis:StrictRedis"""
+    bSocketConnect = False
+    if sConnInfo[0] == '/' and Path(sConnInfo).is_socket():
+        bSocketConnect = True
+    elif sConnInfo.find(':') >0 and sConnInfo.split(':',maxsplit=1)[1].isnumeric():
+        sHost,sPort = sConnInfo.split(':',maxsplit=1)
+        iPort = int(sPort)
+    else:
+        oLog.error("_oConnect2Redis: Invalid Redis connection parameters")
+        sRedisConn=""
+        raise RedisError
 
-def _sGetComponentInfo(oStorageObject, sComponentName, oArgs):
+    if bSocketConnect:
+        oRedis = StrictRedis(unix_socket_path=sConnInfo)
+        oRedis.ping()
+    else:
+        oRedis = StrictRedis(host=sHost, port=iPort)
+        oRedis.ping()
+    return oRedis
+
+
+
+def _sGetComponentInfo(oStorageObject, sComponentName: str, sQuery:str):
+    """Вызов метода компонента по имени через определённый в компоненте словарь"""
     sRet = "Not Implemented"
     oComponent = oStorageObject.getComponent(sComponentName)
     if oComponent:
-        try:
-            if oArgs.query == "sn":
-                sRet = oComponent.getSN()
-            elif oArgs.query == "name":
-                sRet = oComponent.getName()
-            elif oArgs.query == "type":
-                sRet = oComponent.getType()
-            elif oArgs.query == "model":
-                sRet = oComponent.getModel()
-            elif oArgs.query == "cpu-cores":
-                sRet = oComponent.getCPUCores()
-            elif oArgs.query == "disk-names":
-                sRet = oComponent.getDiskNames()
-            elif oArgs.query == "ports":
-                sRet = str(len(oComponent.getPortNames()))
-            elif oArgs.query == "disk-slots":
-                sRet = oComponent.getSlotsAmount()
-            elif oArgs.query == "port-names":
-                sRet = _sListOfStringsToJSON(oComponent.getPortNames())
-            elif oArgs.query == "disks":
-                sRet = oComponent.getDisksAmount()
-            elif oArgs.query == "disk-rpm":
-                sRet = oComponent.getRPM()
-            elif oArgs.query == "disk-size":
-                sRet = oComponent.getSize()
-            elif oArgs.query == "disk-pos":
-                sRet = oComponent.getPosition()
-            elif oArgs.query == "ps-amount":
-                sRet = oComponent.getPwrSupplyAmount()
-            else:
-                sRet = ("Not implemented yet!")
-        except AttributeError as e:
-            oLog.info(e.args[0])
-            oLog.info("Error when querying '{0}' of object '{1}'".format(
-                oArgs.query, sComponentName))
+        if sQuery in oComponent.dQueries:
+            sRet = oComponent.dQueries[sQuery]()
+        else:
             sRet = "N/A"
     else:
         sRet = "Error when querying a component"
@@ -69,46 +95,22 @@ def _sProcessArgs(oStorageObject, oArgs):
     sRet = "N/A"
     oLog.debug("Request: {0}".format(oArgs.query))
     if oArgs.element:
-        sRet = _sGetComponentInfo(oStorageObject, oArgs.element, oArgs)
+        sRet = _sGetComponentInfo(oStorageObject, oArgs.element, oArgs.query)
     else:
         try:
-            if oArgs.query == "name":
-                sRet = oStorageObject.getName()
-            elif oArgs.query == "sn":
-                sRet = oStorageObject.getSN()
-            elif oArgs.query == "wwn":
-                sRet = oStorageObject.getWWN()
-            elif oArgs.query == "type":
-                sRet = oStorageObject.getType()
-            elif oArgs.query == "model":
-                sRet = oStorageObject.getModel()
-            elif oArgs.query == "ctrls":
-                sRet = oStorageObject.getControllersAmount()
-            elif oArgs.query == "shelves":
-                sRet = oStorageObject.getShelvesAmount()
-            elif oArgs.query == "disks":
-                sRet = oStorageObject.getDisksAmount()
-            elif oArgs.query == "ctrl-names":
-                lCtrls = oStorageObject.getControllerNames()
-                oLog.debug("_sProcessArgs: list of controllers: %s" % str(lCtrls))
-                sRet = _sListOfStringsToJSON(lCtrls)
-            elif oArgs.query == "shelf-names":
-                lShelves = oStorageObject.getDiskShelfNames()
-                oLog.debug("_sProcessArgs: list of disk shelves: %s" % str(lShelves))
-                sRet = _sListOfStringsToJSON(lShelves)
-            elif oArgs.query == 'disk-size':
-                lsDisks = oStorageObject.getSize()
-                sRet = _sListOfStringsToJSON(lsDisks)
-            elif oArgs.query == 'disk-names':
-                lsDisks = oStorageObject.getDiskNames()
-                sRet = _sListOfStringsToJSON(lsDisks)
-            elif oArgs.query == 'ps-amount':
-                sRet = str(oStorageObject.getControllerShelfPSUAmount())
+            oRet = oStorageObject.dQueries[oArgs.query]()
+            if isinstance(oRet, str):
+                sRet = oRet
+            elif isinstance(oRet, int):
+                sRet = str(oRet)
+            elif isinstance(oRet, list):
+                sRet = _sListOfStringsToJSON(oRet)
             else:
-                oLog.error("Invalid request")
+                oLog.warning("Incorrect return type from storageObject method {}".format(oArgs.query))
         except AttributeError as e:
             oLog.error(e.args[0])
-            oLog.info("Error when querying {0} of storage device".format(oArgs.query))
+            oLog.info("Method {0} of storage device {1} isn't implemented".format(oArgs.query, oArgs.type))
+            sRet = "N/A"
     return sRet
 
 
@@ -118,20 +120,19 @@ def _oEvaConnect(oArgs):
     user = oArgs.user
     password = oArgs.password
     sysname = oArgs.system
-    return eva.HP_EVA_Class(ip, user, password, sysname)
+    oRedis = _oConnect2Redis(oArgs.redis)
+    return eva.HP_EVA_Class(ip, user, password, sysname, oRedisConn = oRedis)
 
 
 def _oGetCLIParser():
     """parse CLI arguments, returns argparse.ArgumentParser object"""
+    lAllowedOps = list(COMPONENT_OPS.union(STORAGE_OPS))
     oParser = ap.ArgumentParser(description="Storage Array-Zabbix interface program")
     oParser.add_argument('-t', '--type', help="Storage device type", required=True,
                          choices=["EVA", "Storwize", "3Par", "XIV"])
-    oParser.add_argument('-q', '--query', help="Parameter to request",
-            choices=["name", "sn", "wwn", "type", "model", "ctrls", "ports",
-                "disks", "ctrl-names", "shelves", "shelf-names", "disk-names",
-                "disk-pos", "disk-rpm", "disk-size", "cpu-cores", "ps-amount",
-                "disk-slots", "port-names"],
-            default="sn")
+    oParser.add_argument('-q', '--query', 
+            help="Parameter to request. Not all combination of component and request are valid",
+            choices=lAllowedOps, default="sn")
     oParser.add_argument('-e', '--element',
             help="Component of an array the query is making to, such as controller or disk shelf",
             type=str, required=False)
@@ -141,6 +142,9 @@ def _oGetCLIParser():
     oParser.add_argument('--dummy', help="Dummy unique key (not used)", type=str, required=False)
     oParser.add_argument('-k', '--key', help="SSH private key to authenticate", type=str, required=False)
     oParser.add_argument('-s', '--system', help="HP EVA name in CV (EVA only)", type=str, required=False)
+    oParser.add_argument('-r', '--redis', help="Redis database host:port or socket, default=localhost:6379", 
+        default='localhost:6379', type=str, required=False)
+    oParser.add_argument('--redis-ttl', help="TTL of Redis-cached data", type=int, default=900, required=False)
     return (oParser.parse_args())
 
 if __name__ == '__main__':
@@ -157,4 +161,4 @@ if __name__ == '__main__':
     print (sResult)
     exit(0)
 
-# vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4
+# vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4 : autoindent
