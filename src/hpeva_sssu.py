@@ -511,7 +511,7 @@ class HP_EVA_Class(ClassicArrayClass):
             if len(lsLines) == 1:
                 sObjName = lsLines[0]
                 sXMLOut = self.oEvaConnection._sRunCommand('ls controller "%s" xml' % sObjName)
-                oRetObj = EVA_ControllerClass(sObjName, sXMLOut)
+                oRetObj = EVA_ControllerClass(sObjName, sXMLOut,self)
             else:
                 oLog.error("Incorrect controller object ID")
                 oRetObj = None
@@ -522,7 +522,7 @@ class HP_EVA_Class(ClassicArrayClass):
             if len(lsLines) == 1:
                 sObjName = lsLines[0]
                 sXMLOut = self.oEvaConnection._sRunCommand('ls diskshelf "%s" xml' % sObjName)
-                oRetObj = EVA_DiskShelfClass(sObjName, sXMLOut)
+                oRetObj = EVA_DiskShelfClass(sObjName, sXMLOut,self)
             else:
                 oLog.error("Incorrect disk enclosure object ID")
                 oRetObj = None
@@ -540,7 +540,7 @@ class HP_EVA_Class(ClassicArrayClass):
                     sObjName, sObjID, (sObjID in self.dDiskByID)))
                 oLog.debug("{0} is not in {1}".format(sObjID, self.dDiskByID.keys()) )
                 oObjSoup=self.dDiskByID[sObjID]
-                oRetObj = EVA_DiskDriveClass(sObjName, oObjSoup)
+                oRetObj = EVA_DiskDriveClass(sObjName, oObjSoup, self)
             else:
                 oLog.error("Incorrect disk drive name '{0}'".format(sCompName))
         else:
@@ -553,14 +553,16 @@ class HP_EVA_Class(ClassicArrayClass):
 
 
 class EVA_ControllerClass(ControllerClass):
-    def __init__(self, sID, sEvaXMLData):
-        """creates an object from XML data returned by 'ls controller "<ID>" xml' """
+    def __init__(self, sID, sEvaXMLData, oArrayObj):
+        """creates an object from XML data returned by 'ls controller "<ID>" xml' 
+        Parameters: ID, output of 'ls controller <name> xml, parent array"""
         # make a well-formed XML string from sEvaXMLData and a BeautifulSoup object from this string
         # skip sResult string to first '<'
         self.sName = sID
         iFirstTagPos = sEvaXMLData.find('<')
         sEvaXMLData = sEvaXMLData[iFirstTagPos-1:]
         self.oSoup = bs4.BeautifulSoup(sEvaXMLData,'xml')
+        self.oParentArray = oArrayObj
         self.dQueries = {
                 "name":       self.getName,
                 "sn":         self.getSN,
@@ -603,14 +605,17 @@ class EVA_ControllerClass(ControllerClass):
         return lPortNames
 
 class EVA_DiskShelfClass(DiskShelfClass):
-    def __init__(self, sID:str, sEvaXMLData):
-        """creates an object. Parameters: 1) string ID, 2) XML data from 'ls diskshelf "<NAME>" xml' """
+    def __init__(self, sID:str, sEvaXMLData, oArrayObj):
+        """creates an object. Parameters: 1) string ID, 
+        2) XML data from 'ls diskshelf "<NAME>" xml', 
+        3) parent object (disk array) """
         # make a well-formed XML string from sEvaXMLData and a BeautifulSoup object from this string
         # skip sResult string to first '<'
         iFirstTagPos = sEvaXMLData.find('<')
         sEvaXMLData = sEvaXMLData[iFirstTagPos-1:]
         self.sName = sID
         self.oSoup = bs4.BeautifulSoup(sEvaXMLData,'xml')
+        self.oParentArray = oArrayObj
         self.dQueries = {   # permitted queries
                 "name":   self.getName,
                 "sn":     self.getSN,
@@ -619,7 +624,7 @@ class EVA_DiskShelfClass(DiskShelfClass):
                 "disks":  self.getDisksAmount,
                 "disk-slots":  self.getSlotsAmount,
                 "disk-names": self.getDiskNames,
-                "ps-amount":  oComponent.getPwrSupplyAmount
+                "ps-amount":  self.getPwrSupplyAmount
                 }
 
     def getName(self): return self.sName
@@ -659,7 +664,7 @@ class EVA_DiskShelfClass(DiskShelfClass):
             iRet = len(self.oSoup.find_all('diskslot'))
         return iRet
 
-    def getDiskNames(self):
+    def getDiskNames1(self):
         """return a list of disk slot names"""
         lRet = []
         if self.oSoup:
@@ -667,19 +672,38 @@ class EVA_DiskShelfClass(DiskShelfClass):
                 lRet.append(self.sName + '\\' + sDS.find("name").string)
         return lRet
 
+    def getDiskNames(self):
+        """return a list of DISK names (not slot names)"""
+        # fill dictionary of disks if it is empty
+        if not self.oParentArray.dDiskByShelfPos:
+            self.oParentArray.__fillListOfDisks__()
+        lRet = []
+        if self.oSoup:
+            # XXX по идее, полка не должна знать внутренние методы массива
+            for sDS in self.oSoup.find_all('diskslot'):
+                sDiskPos = self.sName + '\\' + sDS.find("name").string
+                sDiskID = self.oParentArray.dDiskByShelfPos[sDiskPos]
+                sDiskName = self.oParentArray.dDiskByID[sDiskID].find('objectname').string
+                lRet.append(sDiskName)
+        return lRet
+
     def getPwrSupplyAmount(self):
         """Amount of power supplies in this enclosure (typically 2)"""
-        lFromShelf = __lRecursiveSoupQuery__(self.oSoup, ['object', 'powersupply', 'name'])
-        oLog.debug("getPwrSupplyAmount: list of power supplies %s" % str(lFromShelf))
-        return len(__lFlattenListOfLists__(lFromShelf))
+        lPwrSupplies = self.oSoup.find_all('powersupply')
+        iRet = 0
+        for oPS in lPwrSupplies:
+            iRet += 1
+        oLog.debug("getPwrSupplyAmount: list of power supplies {:d}".format(iRet))
+        return iRet
 
 
 class EVA_DiskDriveClass(DASD_Class):
 
-    def __init__(self, sID:str, oDiskSoup):
+    def __init__(self, sID:str, oDiskSoup, oArrayObj):
         """Initializes an object. Parameters: 
-        sID: name of disk  (\Disk Groups\Default Disk Group\Disk 021)
-        sXmlData: xml output of 'ls disk "<NAME>" xml' """
+        1) sID: name of disk  (\Disk Groups\Default Disk Group\Disk 021)
+        2) sXmlData: xml output of 'ls disk "<NAME>" xml' 
+        3) Parent object"""
         self.sName = sID
         self.sShortName = sID.split("\\")[-1]
         oLog.debug("EVA_DriveClass.__init__: disk name is {0}".format(self.sShortName))

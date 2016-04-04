@@ -4,7 +4,7 @@
 import argparse as ap
 import logging
 import json
-from redis import StrictRedis,RedisError
+from redis import StrictRedis, RedisError
 from pathlib import Path
 # array-dependent modules
 import hpeva_sssu as eva
@@ -15,34 +15,34 @@ oLog = logging.getLogger(__name__)
 
 
 COMPONENT_OPS = set([  # Valid operations of array's components
-    "sn",
-    "name",
-    "type",
-    "model",
-    "cpu-cores",
-    "disk-names",
-    "ports",
-    "disk-slots",
-    "port-names",
-    "disks",
-    "disk-rpm",
-    "disk-size",
-    "disk-pos",
-    "ps-amount",
+    "sn",            # serial number
+    "name",          # name or other identifier
+    "type",          # type, such as HSV300
+    "model",         # vendor model, f.e. AG638A
+    "cpu-cores",     # number of controller's CPU cores
+    "disk-names",    # names of included disks (for disk shelves)
+    "ports",         # number of ports
+    "disk-slots",    # number of disk slots
+    "port-names",    # names (list) of ports (for controllers)
+    "disks",         # number of disks
+    "disk-rpm",      # RPM speed (for disks)
+    "disk-size",     # size (for disks)
+    "disk-pos",      # Position (Shelf/slot) for disks
+    "ps-amount",     # number of power supplies (for controllers & shelves)
 ])
 
 STORAGE_OPS = set([   # Valid operations of storage arrays
-    "sn",
-    "wwn",
-    "type",
-    "model",
-    "ctrls",
-    "shelves",
-    "disks",
-    "ctrl-names",
-    "shelf-names",
-    "disk-names",
-    "ps-amount",
+    "sn",            # Serial number
+    "wwn",           # WWN
+    "type",          # type of array 
+    "model",         # vendor model
+    "ctrls",         # number of controllers
+    "shelves",       # number of disk enclosures
+    "disks",         # number of disks
+    "ctrl-names",    # list of controllers' names
+    "shelf-names",   # list of disk enclosures' names
+    "disk-names",    # list of disks' names (ID's)
+    "ps-amount",     # number of power supplies in controller enclosure
     ])
 
 def _sListOfStringsToJSON(lsStrings: list):
@@ -51,6 +51,7 @@ def _sListOfStringsToJSON(lsStrings: list):
     dRetDict = {"data": lRetList}
     return json.dumps(dRetDict)
 
+
 def _oConnect2Redis(sConnInfo: str):
     """connect to Redis DB. 
     Parameters: sConnInfo: a string, one of 2 variants: 'host:port' or '/path/to/socket'
@@ -58,12 +59,12 @@ def _oConnect2Redis(sConnInfo: str):
     bSocketConnect = False
     if sConnInfo[0] == '/' and Path(sConnInfo).is_socket():
         bSocketConnect = True
-    elif sConnInfo.find(':') >0 and sConnInfo.split(':',maxsplit=1)[1].isnumeric():
-        sHost,sPort = sConnInfo.split(':',maxsplit=1)
+    elif sConnInfo.find(':') >0 and sConnInfo.split(':', maxsplit=1)[1].isnumeric():
+        sHost, sPort = sConnInfo.split(':', maxsplit=1)
         iPort = int(sPort)
     else:
         oLog.error("_oConnect2Redis: Invalid Redis connection parameters")
-        sRedisConn=""
+        oRedis = None
         raise RedisError
 
     if bSocketConnect:
@@ -75,8 +76,7 @@ def _oConnect2Redis(sConnInfo: str):
     return oRedis
 
 
-
-def _sGetComponentInfo(oStorageObject, sComponentName: str, sQuery:str):
+def _sGetComponentInfo(oStorageObject, sComponentName: str, sQuery: str):
     """Вызов метода компонента по имени через определённый в компоненте словарь"""
     sRet = "Not Implemented"
     oComponent = oStorageObject.getComponent(sComponentName)
@@ -121,7 +121,7 @@ def _oEvaConnect(oArgs):
     password = oArgs.password
     sysname = oArgs.system
     oRedis = _oConnect2Redis(oArgs.redis)
-    return eva.HP_EVA_Class(ip, user, password, sysname, oRedisConn = oRedis)
+    return eva.HP_EVA_Class(ip, user, password, sysname, oRedisConn=oRedis)
 
 
 def _oGetCLIParser():
@@ -158,7 +158,7 @@ if __name__ == '__main__':
 
     sResult = _sProcessArgs(oArrayConn, oArgs)
     oArrayConn._Close()
-    print (sResult)
+    print(sResult)
     exit(0)
 
 # vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4 : autoindent
