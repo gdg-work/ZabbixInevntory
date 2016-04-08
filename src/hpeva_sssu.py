@@ -383,8 +383,9 @@ class HP_EVA_Class(ClassicArrayClass):
 
     def getShelvesAmount(self) ->int:
         REDIS_KEY=self.sRedisKeyPrefix + "lsdiskshelf_nofull"
-        sRes = self.oRedisConnection.get(REDIS_KEY).decode(REDIS_ENCODING)
-        if not sRes:
+        try:
+            sRes = self.oRedisConnection.get(REDIS_KEY).decode(REDIS_ENCODING)
+        except AttributeError:
             # request info from the array
             sRes = self.oEvaConnection._sRunCommand("ls diskshelf nofull")
             self.oRedisConnection.set(REDIS_KEY, sRes.encode(REDIS_ENCODING), CACHE_TIME)
