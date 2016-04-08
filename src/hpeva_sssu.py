@@ -388,7 +388,7 @@ class HP_EVA_Class(ClassicArrayClass):
             # request info from the array
             sRes = self.oEvaConnection._sRunCommand("ls diskshelf nofull")
             self.oRedisConnection.set(REDIS_KEY, sRes.encode(REDIS_ENCODING), CACHE_TIME)
-        lsLines = [l.split('\\')[-1] for l in sRes.split("\n") if l.find('Disk Enclosure') >= 0]
+        lsLines = [l.split('\\')[-1] for l in sRes.split("\n") if l.find('\\Disk Enclosure') >= 0]
         return len(lsLines)
 
     def getShelvesSN(self) ->list:
@@ -528,7 +528,9 @@ class HP_EVA_Class(ClassicArrayClass):
                 oLog.error("Incorrect controller object ID")
                 oRetObj = None
         elif sCompName.find('Disk Enclosure') >= 0: # disk enclosure
-            lsLines = [l for l in self.getDiskShelfNames() if l.find(sCompName) >= 0]
+            # lsLines = [l for l in self.getDiskShelfNames() if l.find('\\' + sCompName + '\\') >= 0]
+            lsLines = [l for l in self.getDiskShelfNames() if l == sCompName ]
+
             oLog.debug("List of disk enclosure names: %s" % lsLines)
             # this list must be of length 1
             if len(lsLines) == 1:
