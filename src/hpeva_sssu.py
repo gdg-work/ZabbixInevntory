@@ -356,15 +356,28 @@ class HP_EVA_Class(ClassicArrayClass):
     def getControllerShelfPSUAmount(self) -> int:
         """Power supply amount of controller shelf. Works only for arrays 
         with a controller shelf (4400?)"""
-        # XXX use cache
-        iRet = 0
-        sOut = self.oEvaConnection._sRunCommand("ls controller_enclosure")
-        if sOut.find('\\Hardware\\Controller Enclosure') >= 0:
-            # The enclosure exists
-            sOut = self.oEvaConnection._sRunCommand("ls controller_enclosure full xml", " ")
-            iFirstTagPos=sOut.find('<') - 1
-            oSoup = bs4.BeautifulSoup(sOut[iFirstTagPos:],"xml")
-            iRet = len(oSoup.object.powersources.find_all(name='source'))
+        REDIS_KEY=self.sRedisKeyPrefix + "ls_controller_enclusure"
+        iRet = -1
+        try:
+            sOut = self.oRedisConnection.get(REDIS_KEY).decode(REDIS_ENCODING)
+        except AttributeError:
+            sOut = self.oEvaConnection._sRunCommand("ls controller_enclosure")
+            if sOut.find('\\Hardware\\Controller Enclosure') >= 0:
+                sOut = self.oEvaConnection._sRunCommand("ls controller_enclosure full xml", " ")
+                iFirstTagPos=sOut.find('<') - 1
+                sOut = sOut[iFirstTagPos:]
+                self.oRedisConnection.set(REDIS_KEY, sOut.encode(REDIS_ENCODING), CACHE_TIME)
+            else:
+                sOut=''
+        # The enclosure exists
+        if sOut:
+            oSoup = bs4.BeautifulSoup(sOut,"xml")
+            try:
+                iRet = len(oSoup.object.powersources.find_all(name='source'))
+            except AttributeError:
+                # there are no 'powersources' attribute
+                oLog.warning('getControllerShelfPSUAmount: Controller enclosure without power sources!')
+                iRet = 0
         else:
             iRet = 0
         return iRet
@@ -438,6 +451,9 @@ class HP_EVA_Class(ClassicArrayClass):
             lsDiskNames = [ d for d in self.oEvaConnection._sRunCommand("ls disk nofull","||").split("||")
                                if d.find("\\Disk Groups\\") >= 0 ]
             self.oRedisConnection.set(REDIS_KEY, pickle.dumps(lsDiskNames), CACHE_TIME)
+        #
+        # Make a list of all drives and drive parameters and feed them to Zabbix via TCP
+        # sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd
         if bShort:
             lsShortNames = [d.split("\\")[-1] for d in lsDiskNames  ] 
         else:
@@ -510,6 +526,22 @@ class HP_EVA_Class(ClassicArrayClass):
                     pickle.dumps(self.dDiskByShelfPos), CACHE_TIME)
         return
 
+    def _ldGetDisksAsDicts(self):
+        """ Return disk data as a list of Python dictionaries with fields:
+        name, type, model, SN, position, RPM, size
+        """
+        ldRet = []
+        if len(self.dDiskByID) == 0 or len(self.dDiskByName) == 0:
+            self.__FillListOfDisks2__()
+        try:
+            for sDiskName, sDiskID in self.dDiskByName.items():
+                oDiskSoup = self.dDiskByID[sDiskID]
+                oDrive = EVA_DiskDriveClass(sDiskName, oDiskSoup, self)
+                ldRet.append(oDrive.getDataAsDict())
+        except Exception as e:
+            oLog.warning("Exception when filling a disk parameters list")
+        return ldRet
+
 
     def getComponent(self, sCompName) -> object:
         """returns an object corresponding to an array component by name"""
@@ -564,6 +596,7 @@ class HP_EVA_Class(ClassicArrayClass):
 
     def _Close(self):
         self.oEvaConnection._Close()
+
 
 
 class EVA_ControllerClass(ControllerClass):
@@ -775,6 +808,16 @@ class EVA_DiskDriveClass(DASD_Class):
         return sRet
 
     def getRPM(self): return "N/A"
+
+    def getDataAsDict(self):
+        # name, type, model, SN, position, RPM, size
+        return {'name': sID.split("\\")[-1],
+                'type': self.getType(),
+                'model': self.getModel(),
+                'SN': self.getSN(),
+                'position': self.getPosition(),
+                'RPM': self.getRPM(),
+                'size': self.getSize()}
     
 #
 # some checks when this module isn't imported but is called with python directly 

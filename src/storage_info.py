@@ -8,6 +8,7 @@ from redis import StrictRedis, RedisError
 from pathlib import Path
 # array-dependent modules
 import hpeva_sssu as eva
+from zabbixInterface import DisksToZabbix, ZabInterfaceException
 from inventoryLogger import dLoggingConfig
 
 logging.config.dictConfig(dLoggingConfig)
@@ -96,6 +97,16 @@ def _sProcessArgs(oStorageObject, oArgs):
     oLog.debug("Request: {0}".format(oArgs.query))
     if oArgs.element:
         sRet = _sGetComponentInfo(oStorageObject, oArgs.element, oArgs.query)
+    elif oArgs.query == 'disk-names':
+        # XXX special case, we need to return disk names and then fill the disks info
+        oRet = oStorageObject.dQueries[oArgs.query]()
+        sRet = _sListOfStringsToJSON(oRet)
+        # now make a call to array for returning disks information and send this info to an array
+        ldDisksInfo = oStorageObject._ldGetDisksAsDicts()
+        oArZabCon = DisksToZabbix(oArgs.system, oArgs.zabbixip, oArgs.zabbixport, 
+                                  oArgs.zabbixuser, oArgs.zabbixpassword)
+        oArZabCon.__fillApplications__()
+        oArZabCon.sendDiskInfoToZabbix(oArgs.system, ldDisksInfo)
     else:
         try:
             oRet = oStorageObject.dQueries[oArgs.query]()
@@ -145,6 +156,11 @@ def _oGetCLIParser():
     oParser.add_argument('-r', '--redis', help="Redis database host:port or socket, default=localhost:6379", 
         default='localhost:6379', type=str, required=False)
     oParser.add_argument('--redis-ttl', help="TTL of Redis-cached data", type=int, default=900, required=False)
+    oParser.add_argument('-z', '--zabbixip', help="IP of Zabbix server", type=str, default='127.0.0.1', required=False)
+    oParser.add_argument('-S', '--zabbixport', help="Port for sending data to Zabbix server", 
+                         type=int, default=10051, required=False)
+    oParser.add_argument('-U', '--zabbixuser', help="Zabbix server user name", default='Admin', required=False)
+    oParser.add_argument('-P', '--zabbixpassword', help="Zabbix server password", default='zabbix', required=False)
     return (oParser.parse_args())
 
 if __name__ == '__main__':
