@@ -25,6 +25,7 @@ class DisksToZabbix:
         sArrayName is a name of array (HOST.HOST) IN ZABBIX
         *Zab* are parameters for Zabbix connection.
         """
+        oLog.debug("Entered DisksToZabbix.__init__")
         self.sZabbixURL = 'http://' + sZabbixIP + "/zabbix"
         self.sZabbixIP = sZabbixIP
         self.iZabbixPort = iZabbixPort
@@ -44,6 +45,7 @@ class DisksToZabbix:
             if len(lsHosts) > 0:
                 # Just use the first host
                 self.sHostID = str(lsHosts[0]['hostid'])
+                oLog.debug("host ID of array: {}".format(self.sHostID))
             else:
                 oLog.error("Invalid or non-existent host in Zabbix")
                 raise ZabInterfaceException("This host isn't known to Zabbix")
@@ -112,27 +114,28 @@ class DisksToZabbix:
     def sendDiskInfoToZabbix(self, sArrayName, ldDisksInfo):
         """send data to Zabbix via API"""
         loMetrics = []
+        oLog.debug('sendDiskInfoToZabbix: data to send: {}'.format(str(ldDisksInfo)))
         for dDiskInfo in ldDisksInfo:
             sAppName = 'Drive ' + dDiskInfo['name']
+            oLog.debug('App {} found!'.format(sAppName))
             for sName, oValue in dDiskInfo.items():
                 try:
                     loMetrics.append(self.dOperations[sName](sAppName, oValue))
                 except KeyError:
                     # unknown names passed
+                    oLog.info('Skipped unknown disk information item named {} with value {}'.format(sName, str(oValue)))
                     pass
-
         if loMetrics:
             self.oZSend.send(loMetrics)
-        pass
+        return
 
 if __name__ == "__main__":
     # set up logging
-    oLog.setLevel(logging.DEBUG)
-    oConHdr = logging.StreamHandler()
-    oConHdr.setLevel(logging.DEBUG)
-    oLog.addHandler(oConHdr)
+    # oLog.setLevel(logging.DEBUG)
+    # oConHdr = logging.StreamHandler()
+    # oConHdr.setLevel(logging.DEBUG)
+    # oLog.addHandler(oConHdr)
     # testing
-    oArZabCon = DisksToZabbix('HOST-EVA-4400', '10.1.96.163', 10051, 'Admin', 'zabbix')
-    oArZabCon.__fillApplications__()
-    oArZabCon.sendDiskInfoToZabbix('HOST-EVA-4400', [{'name': 'Disk 001', 'RPM': '950', 'model': 'Test Info', 'type': 'Test Type'}])
     pass
+
+# vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4

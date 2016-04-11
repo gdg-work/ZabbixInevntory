@@ -103,10 +103,15 @@ def _sProcessArgs(oStorageObject, oArgs):
         sRet = _sListOfStringsToJSON(oRet)
         # now make a call to array for returning disks information and send this info to an array
         ldDisksInfo = oStorageObject._ldGetDisksAsDicts()
+        oLog.debug
+        oLog.debug('Sending disks info to Zabbix by API')
         oArZabCon = DisksToZabbix(oArgs.system, oArgs.zabbixip, oArgs.zabbixport, 
                                   oArgs.zabbixuser, oArgs.zabbixpassword)
+        oLog.debug('Zabbix connection {} initiated'.format(str(oArZabCon)))
         oArZabCon.__fillApplications__()
+        oLog.debug('Applications info: {} filled'.format(str(oArZabCon.dApplicationNamesToIds)))
         oArZabCon.sendDiskInfoToZabbix(oArgs.system, ldDisksInfo)
+        oLog.debug('Data sent to Zabbix')
     else:
         try:
             oRet = oStorageObject.dQueries[oArgs.query]()

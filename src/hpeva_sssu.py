@@ -540,6 +540,7 @@ class HP_EVA_Class(ClassicArrayClass):
                 ldRet.append(oDrive.getDataAsDict())
         except Exception as e:
             oLog.warning("Exception when filling a disk parameters list")
+            oLog.debug("Exception: " + str(e))
         return ldRet
 
 
@@ -807,11 +808,11 @@ class EVA_DiskDriveClass(DASD_Class):
                     self.oSoup.diskbaynumber.string)
         return sRet
 
-    def getRPM(self): return "N/A"
+    def getRPM(self): return 0
 
     def getDataAsDict(self):
         # name, type, model, SN, position, RPM, size
-        return {'name': sID.split("\\")[-1],
+        return {'name': self.sName.split("\\")[-1],
                 'type': self.getType(),
                 'model': self.getModel(),
                 'SN': self.getSN(),
