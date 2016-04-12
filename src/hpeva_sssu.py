@@ -115,8 +115,10 @@ class SSSU_Iface:
                 self._Err("Cannot connect to Command View with credentials used")
                 raise SSSU_Error("Cannot log in Command View. Are the credentials valid?")
         except pexpect.TIMEOUT:
+            self._Close()
             raise SSSU_Error("__init__: Cannot connect to Command View (timeout)")
         except pexpect.EOF:
+            self._Close()
             raise SSSU_Error("__init__: Cannot read data from SSSU utility (EOF)")
         return
 
@@ -135,8 +137,10 @@ class SSSU_Iface:
             self.pSSSU.expect_exact(self.sPrompt)
             lReturn = [s.strip() for s in self.pSSSU.before.decode('utf-8').split("\r\n")]
         except pexpect.TIMEOUT:
+            self._Close()
             raise SSSU_Error("_sRunCommand(): Connection to SSSU lost (timeout)")
         except pexpect.EOF:
+            self._Close()
             raise SSSU_Error("_sRunCommand(): Connection to SSSU lost (EOF while reading")
         return sSeparator.join(lReturn)
 
