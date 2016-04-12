@@ -56,8 +56,8 @@ class SSSU_Error(Exception):
         return repr(self.sErrMsg)
 
 # CONSTANTS
-MAXREAD = 10000 # lines at a time
-SEARCHBUF = 2000 # bytes backward from the current position
+MAXREAD = 100*1024 # bytes read at a time
+SEARCHBUF = 2048 # bytes backward from the current position
 
 class SSSU_Iface:
     # {{{
