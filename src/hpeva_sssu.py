@@ -56,8 +56,9 @@ class SSSU_Error(Exception):
         return repr(self.sErrMsg)
 
 # CONSTANTS
-MAXREAD = 100*1024 # bytes read at a time
-SEARCHBUF = 2048 # bytes backward from the current position
+MAXREAD = 100*1024   # bytes read at a time
+SEARCHBUF = 2048     # bytes backward from the current position
+TIMEOUT = 60         # seconds
 
 class SSSU_Iface:
     # {{{
@@ -79,7 +80,7 @@ class SSSU_Iface:
         self._Dbg("Initializing SSSU connection")
         self.sSystemName = ''
         try:
-            self.pSSSU = pexpect.spawn(self.SSSU,maxread=MAXREAD,searchwindowsize=SEARCHBUF)
+            self.pSSSU = pexpect.spawn(self.SSSU, maxread=MAXREAD, searchwindowsize=SEARCHBUF, timeout=TIMEOUT)
             self.pSSSU.expect("Manager:")
             self.pSSSU.send(sMgmtIP + "\n")
             self.pSSSU.expect("Username:")
