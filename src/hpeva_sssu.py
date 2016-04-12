@@ -55,6 +55,9 @@ class SSSU_Error(Exception):
         """Converts an error to string for printing"""
         return repr(self.sErrMsg)
 
+# CONSTANTS
+MAXREAD = 10000 # lines at a time
+SEARCHBUF = 2000 # bytes backward from the current position
 
 class SSSU_Iface:
     # {{{
@@ -76,7 +79,7 @@ class SSSU_Iface:
         self._Dbg("Initializing SSSU connection")
         self.sSystemName = ''
         try:
-            self.pSSSU = pexpect.spawn(self.SSSU)
+            self.pSSSU = pexpect.spawn(self.SSSU,maxread=MAXREAD,searchwindowsize=SEARCHBUF)
             self.pSSSU.expect("Manager:")
             self.pSSSU.send(sMgmtIP + "\n")
             self.pSSSU.expect("Username:")
@@ -675,9 +678,17 @@ class EVA_DiskShelfClass(DiskShelfClass):
                 "model":  self.getModel,
                 "disks":  self.getDisksAmount,
                 "disk-slots":  self.getSlotsAmount,
-                "disk-names": self.getDiskNames,
                 "ps-amount":  self.getPwrSupplyAmount
                 }
+
+        #   "disk-names": self.getDiskNames, # <--- isn't needed now
+
+    def getDataAsDict(self):
+        # name, type, model, SN, position, RPM, size
+        dRet = {}
+        for name, fun in self.dQueries.items():
+            dRet[name] = fun()
+        return dRet
 
     def getName(self): return self.sName
 
