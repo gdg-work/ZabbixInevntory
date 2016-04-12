@@ -126,6 +126,8 @@ class DisksToZabbix:
                     oLog.info('Skipped unknown disk information item named {} with value {}'.format(sName, str(oValue)))
                     pass
         if loMetrics:
+            # skip empty objects from loMetrics
+            loMetrics = [o for o in loMetrics if o is not None]
             self.oZSend.send(loMetrics)
         return
 
