@@ -124,6 +124,14 @@ def _sProcessArgs(oStorageObject, oArgs):
                                      oArgs.zabbixuser, oArgs.zabbixpassword)
         oZabFeed.__fillApplications__()
         oZabFeed._SendEnclInfoToZabbix(oArgs.system, ldShelvesInfo)
+    elif oArgs.query == 'ctrl-names':
+        sRet = _sListOfStringsToJSON(oStorageObject.dQueries[oArgs.query]())
+        ldCtrlsInfo = oStorageObject._ldGetControllersInfoAsDict()
+        oLog.debug('Sending controllers info to Zabbix by API')
+        oZabFeed = zi.CtrlsToZabbix(oArgs.system, oArgs.zabbixip, oArgs.zabbixport,
+                                    oArgs.zabbixuser, oArgs.zabbixpassword)
+        oZabFeed.__fillApplications__()
+        oZabFeed._SendCtrlsToZabbix(oArgs.system, ldCtrlsInfo)
     else:
         try:
             oRet = oStorageObject.dQueries[oArgs.query]()

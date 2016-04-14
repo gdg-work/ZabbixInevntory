@@ -552,6 +552,27 @@ class HP_EVA_Class(ClassicArrayClass):
         oLog.debug('Found disk shelves: {}'.format(self.dDiskShelves.keys()))
         return
 
+    def __FillControllers__(self):
+        """Requests and caches disk enclosure data"""
+        REDIS_KEY = self.sRedisKeyPrefix + "ls_controller_full_xml"
+        sFromRedis = self.oRedisConnection.get(REDIS_KEY)
+        if sFromRedis:
+            # data present in the cache
+            oSoup = bs4.BeautifulSoup(sFromRedis, 'xml')
+        else:
+            sXMLOut = self.oEvaConnection._sRunCommand('ls controller full xml')
+            sXMLOut = '<EVAControllers> ' + sXMLOut + ' </EVAControllers>'
+            oSoup = bs4.BeautifulSoup(sXMLOut, "xml")
+            self.oRedisConnection.set(REDIS_KEY, oSoup.encode(REDIS_ENCODING))
+        for oCtrl in oSoup.find_all(name='object'):
+            sCtrlName = oCtrl.find('controllername').string
+            self.dControllers[sCtrlName] = EVA_ControllerClass(sCtrlName, oCtrl, self)
+        oLog.debug('Found Controllers: {}'.format(self.dControllers.keys()))
+        return
+
+    #
+    # Methods for receiving components' information as a list of name:value dictionaries
+    #
     def _ldGetDisksAsDicts(self):
         """ Return disk data as a list of Python dictionaries with fields:
         name, type, model, SN, position, RPM, size
@@ -584,6 +605,18 @@ class HP_EVA_Class(ClassicArrayClass):
             oLog.debug("Exception: " + str(e))
         return ldRet
 
+    def _ldGetControllersInfoAsDict(self):
+        ldRet = []
+        if self.dControllers == {}:
+            self.__FillControllers__()
+        try:
+            for sName, oCtrl in self.dControllers.items():
+                ldRet.append(oCtrl._dGetDataAsDict())
+        except Exception as e:
+            oLog.warning("Exception when filling array controllers' parameters list")
+            oLog.debug("Exception: " + str(e))
+        return ldRet
+
     def getComponent(self, sCompName) -> object:
         """returns an object corresponding to an array component by name"""
         oLog.debug("getComponent called with name <%s>" % sCompName)
@@ -591,6 +624,15 @@ class HP_EVA_Class(ClassicArrayClass):
         # select the type of component
         oRetObj = None
         if sCompName.find('Controller') >= 0:   # disk controller
+            if self.dControllers == {}:
+                self.__FillControllers__()
+            # now in dictionary 'self.dControllers' are name:soup pairs
+            if sCompName in self.dControllers:
+                oRetObj = self.dControllers(sCompName)
+            else:
+                oLog.info('Incorrect array controller name')
+                oRetObj = None
+
             lsCtrls = self.getControllerNames()
             lsLines = [l for l in lsCtrls if l.find(sCompName) >= 0]
             # this list must be of length 1
@@ -634,17 +676,14 @@ class HP_EVA_Class(ClassicArrayClass):
         self.oEvaConnection._Close()
 
 
-
 class EVA_ControllerClass(ControllerClass):
-    def __init__(self, sID, sEvaXMLData, oArrayObj):
+    def __init__(self, sID, oSoup, oArrayObj):
         """creates an object from XML data returned by 'ls controller "<ID>" xml' 
         Parameters: ID, output of 'ls controller <name> xml, parent array"""
         # make a well-formed XML string from sEvaXMLData and a BeautifulSoup object from this string
         # skip sResult string to first '<'
         self.sName = sID
-        iFirstTagPos = sEvaXMLData.find('<')
-        sEvaXMLData = sEvaXMLData[iFirstTagPos-1:]
-        self.oSoup = bs4.BeautifulSoup(sEvaXMLData,'xml')
+        self.oSoup = oSoup
         self.oParentArray = oArrayObj
         self.dQueries = {
                 "name":       self.getName,
@@ -652,16 +691,24 @@ class EVA_ControllerClass(ControllerClass):
                 "type":       self.getType,
                 "model":      self.getModel,
                 "cpu-cores":  self.getCPUCores,
-                "port-names": self.getPortNames
+                "port-names": self.getPortNames,
+                "port-count": self.getPortCount
                 }
+
+    def _dGetDataAsDict(self):
+        # name, type, model, SN, position, RPM, size
+        dRet = {}
+        for name, fun in self.dQueries.items():
+            dRet[name] = fun()
+        return dRet
 
     def getName(self): return self.sName
 
     def getSN(self):
-        sRet = 'N/A'
+        sRet = 'S/N not known'
         if self.oSoup:
             try:
-                sRet = self.oSoup.object.serialnumber.string
+                sRet = self.oSoup.serialnumber.string
             except AttributeError:
                 oLog.info("EVA_ControllerClass.getSN: Can't receive serial number")
         else:
@@ -672,29 +719,40 @@ class EVA_ControllerClass(ControllerClass):
         sRet = 'N/A'
         if self.oSoup:
             try:
-                sRet = self.oSoup.object.productnumber.string
+                sRet = self.oSoup.productnumber.string
             except AttributeError:      # no element in XML tree
                 oLog.info('EVA_ControllerClass.getType: no productnumber in XML')
         else:
-            sRet = "N/A"
+            pass
         return sRet
 
     def getCPUCores(self): return "N/A"
 
     def getModel(self):
+        sRet = "Model isn't known"
         if self.oSoup:
-            return self.oSoup.object.modelnumber.string
-        else:
-            return ''
-        pass
+            try:
+                sRet = self.oSoup.modelnumber.string
+            except AttributeError:
+                pass
+        return sRet
 
     def getPortNames(self):
+        lPortNames=[]
         if self.oSoup:
             lPorts=self.oSoup.find_all("hostport")
             lPortNames = [p.portname.string for p in lPorts]
         else:
             pass
         return lPortNames
+
+    def getPortCount(self):
+        iRet = 0
+        if self.oSoup:
+            iRet= len(self.oSoup.find_all("hostport"))
+        else:
+            pass
+        return iRet
 
 class EVA_DiskShelfClass(DiskShelfClass):
     def __init__(self, sID:str, oSoup, oArrayObj):

@@ -10,6 +10,7 @@ oLog = getLogger(__name__)
 # Constants
 RE_DISK = re.compile('^Drive Disk \d{2,3}$')
 RE_ENCLOSURE = re.compile('^DiskShelf Disk Enclosure \d{1,2}$')
+RE_CONTROLLER = re.compile('^Controller Controller .{1,2}$')
 
 
 # THE simplest function, can take any number of arguments
@@ -30,7 +31,7 @@ class GeneralZabbix:
         sArrayName is a name of array (HOST.HOST) IN ZABBIX
         *Zab* are parameters for Zabbix connection.
         """
-        oLog.debug("Entered DisksToZabbix.__init__")
+        oLog.debug("Entered GeneralZabbix.__init__")
         self.sZabbixURL = 'http://' + sZabbixIP + "/zabbix"
         self.sZabbixIP = sZabbixIP
         self.iZabbixPort = iZabbixPort
@@ -65,7 +66,10 @@ class GeneralZabbix:
             # now filter the apps list for disks
             for dApp in ldApplications['result']:
                 self.dApplicationNamesToIds[dApp['name']] = dApp['applicationid']
-            oLog.debug("Application IDs from array: \n{}".format(",\n".join([str(n) for n in self.dApplicationNamesToIds.keys()])))
+            # oLog.debug("==== Applications from array: ====")
+            # for app, id in self.dApplicationNamesToIds.items():
+            #     oLog.debug("Name: {0}\tID: {1}".format(app, id))
+            # oLog.debug("---- Applications from array: ----")
         return
 
     def _oPrepareZabMetric(self, sAppName, sParameter, iValue):
@@ -79,7 +83,7 @@ class GeneralZabbix:
                          'sort': 'name'}
             dResult = self.oZapi.do_request('item.get', dItem2Get)
             try:
-                oLog.debug("_oPrepareZabMetric -- result of item.get(): {}".format(dResult['result']))
+                # oLog.debug("_oPrepareZabMetric -- result of item.get(): {}".format(dResult['result']))
                 sKey = dResult['result'][0]['key_']
                 # now we have key, so we can prepare data to Zabbix
                 oRet = ZabbixMetric(host=self.sArrayName, key=sKey, value=iValue)
@@ -218,6 +222,65 @@ class EnclosureToZabbix(GeneralZabbix):
                 except KeyError:
                     # unknown names passed
                     oLog.info('Skipped unknown DE information item named {} with value {}'.format(sName, str(oValue)))
+                    pass
+        self._SendMetrics(loMetrics)
+        return
+
+
+class CtrlsToZabbix(GeneralZabbix):
+    """Disk controllers to Zabbix interface"""
+    def __init__(self, sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
+        super().__init__(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
+        self.dOperations = {"name":       _NullFunction,
+                            "sn":         self._oPrepareCtrlSN,
+                            "type":       self._oPrepareCtrlType,
+                            "model":      self._oPrepareCtrlModel,
+                            "cpu-cores":  self._oPrepareCPUCores,
+                            "port-names": self._oPreparePortNames,
+                            "port-count": self._oPrepareHostPortNum}
+        return
+
+    def __fillApplications__(self):
+        # receive the list of applications
+        super().__fillApplications__()
+        dBuf = {}
+        for sName, sID in self.dApplicationNamesToIds.items():
+            if RE_CONTROLLER.match(sName):
+                dBuf[sName] = sID
+        self.dApplicationNamesToIds = dBuf
+        return
+
+    def _oPrepareCtrlSN(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Serial Number', sValue)
+
+    def _oPrepareCtrlType(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Type', sValue)
+
+    def _oPrepareCtrlModel(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Model', sValue)
+
+    def _oPrepareCPUCores(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'CPU Cores', sValue)
+
+    def _oPreparePortNames(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Port names', sValue)
+
+    def _oPrepareHostPortNum(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Number of Host Ports', sValue)
+
+    def _SendCtrlsToZabbix(self, sArrayName, ldCtrlsInfo):
+        """send data to Zabbix via API"""
+        loMetrics = []
+        oLog.debug('sendCtrlsToZabbix: data to send: {}'.format(str(ldCtrlsInfo)))
+        for dCtrl in ldCtrlsInfo:
+            oLog.debug('_SendCtrlsInfoToZabbix -- controllers info dict is {}'.format(dCtrl))
+            sAppName = 'Controller ' + dCtrl['name']
+            for sName, oValue in dCtrl.items():
+                try:
+                    loMetrics.append(self.dOperations[sName](sAppName, oValue))
+                except KeyError:
+                    # unknown names passed
+                    oLog.info('Skipped unknown controller information item named {} with value {}'.format(sName, str(oValue)))
                     pass
         self._SendMetrics(loMetrics)
         return
