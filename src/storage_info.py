@@ -8,7 +8,8 @@ from redis import StrictRedis, RedisError
 from pathlib import Path
 # array-dependent modules
 import hpeva_sssu as eva
-from zabbixInterface import DisksToZabbix, ZabInterfaceException
+import zabbixInterface as zi
+# import DisksToZabbix, ZabInterfaceException, 
 from inventoryLogger import dLoggingConfig
 
 logging.config.dictConfig(dLoggingConfig)
@@ -82,10 +83,13 @@ def _sGetComponentInfo(oStorageObject, sComponentName: str, sQuery: str):
     sRet = "Not Implemented"
     oComponent = oStorageObject.getComponent(sComponentName)
     if oComponent:
-        if sQuery in oComponent.dQueries:
-            sRet = oComponent.dQueries[sQuery]()
-        else:
-            sRet = "N/A"
+        try:
+            if sQuery in oComponent.dQueries:
+                sRet = oComponent.dQueries[sQuery]()
+            else:
+                sRet = "N/A"
+        except KeyError:
+                sRet = "N/A"
     else:
         sRet = "Error when querying a component"
     return (sRet)
@@ -103,15 +107,23 @@ def _sProcessArgs(oStorageObject, oArgs):
         sRet = _sListOfStringsToJSON(oRet)
         # now make a call to array for returning disks information and send this info to an array
         ldDisksInfo = oStorageObject._ldGetDisksAsDicts()
-        oLog.debug
         oLog.debug('Sending disks info to Zabbix by API')
-        oArZabCon = DisksToZabbix(oArgs.system, oArgs.zabbixip, oArgs.zabbixport, 
-                                  oArgs.zabbixuser, oArgs.zabbixpassword)
-        oLog.debug('Zabbix connection {} initiated'.format(str(oArZabCon)))
+        oArZabCon = zi.DisksToZabbix(oArgs.system, oArgs.zabbixip, oArgs.zabbixport, 
+                                     oArgs.zabbixuser, oArgs.zabbixpassword)
         oArZabCon.__fillApplications__()
         oLog.debug('Applications info: {} filled'.format(str(oArZabCon.dApplicationNamesToIds)))
         oArZabCon.sendDiskInfoToZabbix(oArgs.system, ldDisksInfo)
         oLog.debug('Data sent to Zabbix')
+    elif oArgs.query == 'shelf-names':
+        oRet = oStorageObject.dQueries[oArgs.query]()
+        sRet =  _sListOfStringsToJSON(oRet)
+        # feed values for all the shelves via API to Zabbix
+        ldShelvesInfo = oStorageObject._ldGetShelvesAsDicts()
+        oLog.debug('Sending shelves info to Zabbix by API')
+        oZabFeed = zi.EnclosureToZabbix(oArgs.system, oArgs.zabbixip, oArgs.zabbixport, 
+                                     oArgs.zabbixuser, oArgs.zabbixpassword)
+        oZabFeed.__fillApplications__()
+        oZabFeed._SendEnclInfoToZabbix(oArgs.system, ldShelvesInfo)
     else:
         try:
             oRet = oStorageObject.dQueries[oArgs.query]()

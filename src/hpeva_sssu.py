@@ -169,8 +169,8 @@ class HP_EVA_Class(ClassicArrayClass):
         self.dDiskByShelfPos = {}
         self.dDiskByName = {}
         self.dDiskByID = {}
-        self.lDiskShelves = []
-        self.lControllers = []
+        self.dDiskShelves = {}
+        self.dControllers = {}
         self.oEvaConnection = SSSU_Iface(SSSU_PATH, sIP, sUser, sPassword, sSysName, oLog.debug, oLog.error)
         # сюда просится инициализация:
         #   - проверка наличия кэш-файлов в каталоге кэша и
@@ -534,6 +534,24 @@ class HP_EVA_Class(ClassicArrayClass):
                     pickle.dumps(self.dDiskByShelfPos), CACHE_TIME)
         return
 
+    def __FillDiskEnclosures__(self):
+        """Requests and caches disk enclosure data"""
+        REDIS_KEY = self.sRedisKeyPrefix + "ls_diskshelf_full_xml"
+        sFromRedis = self.oRedisConnection.get(REDIS_KEY)
+        if sFromRedis:
+            # data present in the cache
+            oSoup = bs4.BeautifulSoup(sFromRedis, 'xml')
+        else:
+            sXMLOut = self.oEvaConnection._sRunCommand('ls diskshelf full xml')
+            sXMLOut = '<diskShelves> ' + sXMLOut + ' </diskShelves>'
+            oSoup = bs4.BeautifulSoup(sXMLOut, "xml")
+            self.oRedisConnection.set(REDIS_KEY, oSoup.encode(REDIS_ENCODING))
+        for oShelf in oSoup.find_all(name='object'):
+            sShelfName = oShelf.find('diskshelfname').string
+            self.dDiskShelves[sShelfName] = EVA_DiskShelfClass(sShelfName, oShelf, self)
+        oLog.debug('Found disk shelves: {}'.format(self.dDiskShelves.keys()))
+        return
+
     def _ldGetDisksAsDicts(self):
         """ Return disk data as a list of Python dictionaries with fields:
         name, type, model, SN, position, RPM, size
@@ -545,12 +563,26 @@ class HP_EVA_Class(ClassicArrayClass):
             for sDiskName, sDiskID in self.dDiskByName.items():
                 oDiskSoup = self.dDiskByID[sDiskID]
                 oDrive = EVA_DiskDriveClass(sDiskName, oDiskSoup, self)
-                ldRet.append(oDrive.getDataAsDict())
+                ldRet.append(oDrive._dGetDataAsDict())
         except Exception as e:
             oLog.warning("Exception when filling a disk parameters list")
             oLog.debug("Exception: " + str(e))
         return ldRet
 
+    def _ldGetShelvesAsDicts(self):
+        """ Return DEs' data as a list of Python dictionaries with fields:
+        name, sn, type, model etc.
+        """
+        ldRet = []
+        if self.dDiskShelves == {}:
+            self.__FillDiskEnclosures__()
+        try:
+            for sName, oShelfObj in self.dDiskShelves.items():
+                ldRet.append(oShelfObj._dGetDataAsDict())
+        except Exception as e:
+            oLog.warning("Exception when filling disk enclosures' parameters list")
+            oLog.debug("Exception: " + str(e))
+        return ldRet
 
     def getComponent(self, sCompName) -> object:
         """returns an object corresponding to an array component by name"""
@@ -571,16 +603,12 @@ class HP_EVA_Class(ClassicArrayClass):
                 oRetObj = None
         elif sCompName.find('Disk Enclosure') >= 0: # disk enclosure
             # lsLines = [l for l in self.getDiskShelfNames() if l.find('\\' + sCompName + '\\') >= 0]
-            lsLines = [l for l in self.getDiskShelfNames() if l == sCompName ]
-
-            oLog.debug("List of disk enclosure names: %s" % lsLines)
-            # this list must be of length 1
-            if len(lsLines) == 1:
-                sObjName = lsLines[0]
-                sXMLOut = self.oEvaConnection._sRunCommand('ls diskshelf "%s" xml' % sObjName)
-                oRetObj = EVA_DiskShelfClass(sObjName, sXMLOut,self)
+            if self.dDiskShelves == {}:
+                self.__FillDiskEnclosures__()
+            if sCompName in self.dDiskShelves:
+                oRetObj = self.dDiskShelves[sCompName]
             else:
-                oLog.error("Incorrect disk enclosure object ID")
+                oLog.info("Incorrect disk shelf name")
                 oRetObj = None
         elif reDiskNamePattern.search(sCompName): # disk drive name
             if len(self.dDiskByName) == 0:
@@ -601,7 +629,6 @@ class HP_EVA_Class(ClassicArrayClass):
         else:
             pass
         return (oRetObj)
-
 
     def _Close(self):
         self.oEvaConnection._Close()
@@ -631,17 +658,26 @@ class EVA_ControllerClass(ControllerClass):
     def getName(self): return self.sName
 
     def getSN(self):
+        sRet = 'N/A'
         if self.oSoup:
-            return self.oSoup.object.serialnumber.string
+            try:
+                sRet = self.oSoup.object.serialnumber.string
+            except AttributeError:
+                oLog.info("EVA_ControllerClass.getSN: Can't receive serial number")
         else:
-            return ''
+            oLog.debug("getSN: empty BS4 element")
+        return sRet
 
     def getType(self):
+        sRet = 'N/A'
         if self.oSoup:
-            return self.oSoup.object.productnumber.string
+            try:
+                sRet = self.oSoup.object.productnumber.string
+            except AttributeError:      # no element in XML tree
+                oLog.info('EVA_ControllerClass.getType: no productnumber in XML')
         else:
-            return ''
-        pass
+            sRet = "N/A"
+        return sRet
 
     def getCPUCores(self): return "N/A"
 
@@ -661,18 +697,13 @@ class EVA_ControllerClass(ControllerClass):
         return lPortNames
 
 class EVA_DiskShelfClass(DiskShelfClass):
-    def __init__(self, sID:str, sEvaXMLData, oArrayObj):
+    def __init__(self, sID:str, oSoup, oArrayObj):
         """creates an object. Parameters: 1) string ID, 
-        2) XML data from 'ls diskshelf "<NAME>" xml', 
+        2) XML data as BeautifulSoup4 object, 
         3) parent object (disk array) """
-        # make a well-formed XML string from sEvaXMLData and a BeautifulSoup object from this string
-        # skip sResult string to first '<'
-        iFirstTagPos = sEvaXMLData.find('<')
-        sEvaXMLData = sEvaXMLData[iFirstTagPos-1:]
-        self.sName = sID
-
-        self.oSoup = bs4.BeautifulSoup(sEvaXMLData,'xml')
+        self.oSoup = oSoup
         self.sName = str(self.oSoup.find('objectname').string)
+        self.sShortName = self.sName.split('\\')[-1]
         if self.sName.find(sID) < 0:
             raise EVA_Exception("Invalid name of shelf in EVA_DiskShelfClass.init")
         self.oParentArray = oArrayObj
@@ -688,34 +719,41 @@ class EVA_DiskShelfClass(DiskShelfClass):
 
         #   "disk-names": self.getDiskNames, # <--- isn't needed now
 
-    def getDataAsDict(self):
+    def _dGetDataAsDict(self):
         # name, type, model, SN, position, RPM, size
         dRet = {}
         for name, fun in self.dQueries.items():
             dRet[name] = fun()
         return dRet
 
-    def getName(self): return self.sName
+    def getName(self): return self.sShortName
 
     def getSN(self):
+        sRet='S/N not known'
         if self.oSoup:
-            return self.oSoup.object.serialnumber.string
-        else:
-            return ''
+            try:
+                sRet = self.oSoup.serialnumber.string
+            except AttributeError:
+                pass
+        return sRet
 
     def getType(self):
+        sRet = "Can't determine type"
         if self.oSoup:
-            return self.oSoup.object.productid.string
-        else:
-            return ''
-        pass
+            try:
+                sRet = self.oSoup.productid.string
+            except AttributeError:
+                pass
+        return sRet
 
     def getModel(self):
+        sRet = 'P/N not known'
         if self.oSoup:
-            return self.oSoup.object.productnum.string
-        else:
-            return ''
-        pass
+            try:
+                sRet = self.oSoup.productnum.string
+            except AttributeError:
+                pass
+        return sRet
 
     def getDisksAmount(self):
         """return a number of occupied disk slots"""
@@ -793,42 +831,57 @@ class EVA_DiskDriveClass(DASD_Class):
                     }
         
     def getSN(self):
-        sRet = "N/A"
+        sRet = "S/N not set"
         if self.oSoup:
-            sRet = self.oSoup.find(name='serialnumber').string
+            try:
+                sRet = self.oSoup.find(name='serialnumber').string
+            except AttributeError:
+                pass
         return sRet
 
     def getSize(self):
         iRet = 0
         if self.oSoup:
-            iRet = int(self.oSoup.formattedcapacity.string) * 512 // 2**30
+            try:
+                iRet = int(self.oSoup.formattedcapacity.string) * 512 // 2**30
+            except AttributeError:
+                pass
         return iRet
 
     def getModel(self):
-        sRet = "N/A"
+        sRet = "Can't determine model"
         if self.oSoup:
-            sRet = self.oSoup.modelnumber.string
+            try:
+                sRet = self.oSoup.modelnumber.string
+            except AttributeError:
+                pass
         return sRet
 
     def getType(self):
-        sRet = "N/A"
+        sRet = "Type not known"
         if self.oSoup:
-            sRet = self.oSoup.disktype.string
+            try:
+                sRet = self.oSoup.disktype.string
+            except AttributeError:
+                pass
         return sRet
 
     def getPosition(self):
-        sRet = "N/A"
+        sRet = "Position not known"
         if self.oSoup:
-            sRet = "Shelf {0} Slot {1}".format(
-                    self.oSoup.shelfnumber.string,
-                    self.oSoup.diskbaynumber.string)
+            try:
+                sRet = "Shelf {0} Slot {1}".format(
+                        self.oSoup.shelfnumber.string,
+                        self.oSoup.diskbaynumber.string)
+            except AttributeError:
+                pass
         return sRet
 
     def getRPM(self): return 0
 
-    def getDataAsDict(self):
+    def _dGetDataAsDict(self):
         # name, type, model, SN, position, RPM, size
-        return {'name': self.sName.split("\\")[-1],
+        return {'name': self.sShortName,
                 'type': self.getType(),
                 'model': self.getModel(),
                 'SN': self.getSN(),

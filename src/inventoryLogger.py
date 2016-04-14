@@ -36,8 +36,10 @@ dLoggingConfig = yaml.load("""
         hpeva_sssu:
             level: DEBUG
             handlers: [ console, logfile ]
+        zabbixInterface:
+            level: DEBUG
+            handlers: [ console, logfile ]
     """)
-
 
 
 if __name__ == "__main__":
