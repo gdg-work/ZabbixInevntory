@@ -4,6 +4,7 @@
 import argparse as ap
 import logging
 import json
+import re
 from redis import StrictRedis, RedisError
 from pathlib import Path
 # array-dependent modules
@@ -14,6 +15,15 @@ from inventoryLogger import dLoggingConfig
 
 logging.config.dictConfig(dLoggingConfig)
 oLog = logging.getLogger(__name__)
+
+# Constants
+RE_DISK = re.compile('^Drive Disk \d{2,3}$')
+RE_ENCLOSURE = re.compile('^DiskShelf Disk Enclosure \d{1,2}$')
+RE_CONTROLLER = re.compile('^Controller Controller .{1,2}$')
+
+# for profiling
+from time import time
+START_TIME=time()
 
 
 COMPONENT_OPS = set([  # Valid operations of array's components
@@ -102,27 +112,29 @@ def _sProcessArgs(oStorageObject, oArgs):
     if oArgs.element:
         sRet = _sGetComponentInfo(oStorageObject, oArgs.element, oArgs.query)
     elif oArgs.query == 'disk-names':
+        oLog.info('Elapsed 1: {:g}'.format(time() - START_TIME))
         # XXX special case, we need to return disk names and then fill the disks info
-        oRet = oStorageObject.dQueries[oArgs.query]()
-        sRet = _sListOfStringsToJSON(oRet)
+        sRet = _sListOfStringsToJSON(oStorageObject.dQueries[oArgs.query]())
+        oLog.info('Elapsed 2: {:g}'.format(time() - START_TIME))
         # now make a call to array for returning disks information and send this info to an array
         ldDisksInfo = oStorageObject._ldGetDisksAsDicts()
+        oLog.info('Elapsed 3: {:g}'.format(time() - START_TIME))
         oLog.debug('Sending disks info to Zabbix by API')
         oArZabCon = zi.DisksToZabbix(oArgs.system, oArgs.zabbixip, oArgs.zabbixport, 
                                      oArgs.zabbixuser, oArgs.zabbixpassword)
-        oArZabCon.__fillApplications__()
+        oArZabCon.__fillApplications__(RE_DISK)
+        oLog.info('Elapsed 4: {:g}'.format(time() - START_TIME))
         oLog.debug('Applications info: {} filled'.format(str(oArZabCon.dApplicationNamesToIds)))
         oArZabCon.sendDiskInfoToZabbix(oArgs.system, ldDisksInfo)
-        oLog.debug('Data sent to Zabbix')
+        oLog.info('Elapsed 5: {:g}'.format(time() - START_TIME))
     elif oArgs.query == 'shelf-names':
-        oRet = oStorageObject.dQueries[oArgs.query]()
-        sRet =  _sListOfStringsToJSON(oRet)
+        sRet =  _sListOfStringsToJSON(oStorageObject.dQueries[oArgs.query]())
         # feed values for all the shelves via API to Zabbix
         ldShelvesInfo = oStorageObject._ldGetShelvesAsDicts()
         oLog.debug('Sending shelves info to Zabbix by API')
         oZabFeed = zi.EnclosureToZabbix(oArgs.system, oArgs.zabbixip, oArgs.zabbixport, 
                                      oArgs.zabbixuser, oArgs.zabbixpassword)
-        oZabFeed.__fillApplications__()
+        oZabFeed.__fillApplications__(RE_ENCLOSURE)
         oZabFeed._SendEnclInfoToZabbix(oArgs.system, ldShelvesInfo)
     elif oArgs.query == 'ctrl-names':
         sRet = _sListOfStringsToJSON(oStorageObject.dQueries[oArgs.query]())
@@ -130,7 +142,7 @@ def _sProcessArgs(oStorageObject, oArgs):
         oLog.debug('Sending controllers info to Zabbix by API')
         oZabFeed = zi.CtrlsToZabbix(oArgs.system, oArgs.zabbixip, oArgs.zabbixport,
                                     oArgs.zabbixuser, oArgs.zabbixpassword)
-        oZabFeed.__fillApplications__()
+        oZabFeed.__fillApplications__(RE_CONTROLLER)
         oZabFeed._SendCtrlsToZabbix(oArgs.system, ldCtrlsInfo)
     else:
         try:
@@ -193,12 +205,12 @@ if __name__ == '__main__':
     oArgs = _oGetCLIParser()
     if oArgs.type == "EVA":
         oArrayConn = _oEvaConnect(oArgs)
+        sResult = _sProcessArgs(oArrayConn, oArgs)
+        oArrayConn._Close()
     else:
         oLog.error("Not implemented yet!")
         exit(3)
 
-    sResult = _sProcessArgs(oArrayConn, oArgs)
-    oArrayConn._Close()
     print(sResult)
     exit(0)
 

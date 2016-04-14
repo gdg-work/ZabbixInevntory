@@ -55,7 +55,7 @@ class GeneralZabbix:
             raise ZabInterfaceException
         return
 
-    def __fillApplications__(self):
+    def __fillApplications__(self, reFilter: re):
         # receive the list of applications
         ldApplications = self.oZapi.do_request('application.get', {'hostids': self.sHostID})
         if len(ldApplications['result']) == 0:
@@ -70,6 +70,12 @@ class GeneralZabbix:
             # for app, id in self.dApplicationNamesToIds.items():
             #     oLog.debug("Name: {0}\tID: {1}".format(app, id))
             # oLog.debug("---- Applications from array: ----")
+            # === === === === === === ===
+            dBuf = {}
+            for sName, sID in self.dApplicationNamesToIds.items():
+                if reFilter.match(sName):
+                    dBuf[sName] = sID
+            self.dApplicationNamesToIds = dBuf
         return
 
     def _oPrepareZabMetric(self, sAppName, sParameter, iValue):
@@ -123,15 +129,15 @@ class DisksToZabbix(GeneralZabbix):
                             'size': self._oPrepareDiskSize}
         return
 
-    def __fillApplications__(self):
-        # receive the list of applications
-        super().__fillApplications__()
-        dBuf = {}
-        for sName, sID in self.dApplicationNamesToIds.items():
-            if RE_DISK.match(sName):
-                dBuf[sName] = sID
-        self.dApplicationNamesToIds = dBuf
-        return
+    # def __fillApplications__(self):
+    #     # receive the list of applications
+    #     super().__fillApplications__()
+    #     dBuf = {}
+    #     for sName, sID in self.dApplicationNamesToIds.items():
+    #         if RE_DISK.match(sName):
+    #             dBuf[sName] = sID
+    #     self.dApplicationNamesToIds = dBuf
+    #     return
 
     def _oPrepareDiskRPM(self, sAppName, iValue):
         return self._oPrepareZabMetric(sAppName, 'RPM', iValue)
@@ -181,15 +187,15 @@ class EnclosureToZabbix(GeneralZabbix):
                             "ps-amount":    self._oPrepareEnclPSAmount}
         return
 
-    def __fillApplications__(self):
-        # receive the list of applications
-        super().__fillApplications__()
-        dBuf = {}
-        for sName, sID in self.dApplicationNamesToIds.items():
-            if RE_ENCLOSURE.match(sName):
-                dBuf[sName] = sID
-        self.dApplicationNamesToIds = dBuf
-        return
+    # def __fillApplications__(self):
+    #     # receive the list of applications
+    #     super().__fillApplications__()
+    #     dBuf = {}
+    #     for sName, sID in self.dApplicationNamesToIds.items():
+    #         if RE_ENCLOSURE.match(sName):
+    #             dBuf[sName] = sID
+    #     self.dApplicationNamesToIds = dBuf
+    #     return
 
     def _oPrepareEnclSN(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Serial Number', sValue)
@@ -240,15 +246,15 @@ class CtrlsToZabbix(GeneralZabbix):
                             "port-count": self._oPrepareHostPortNum}
         return
 
-    def __fillApplications__(self):
-        # receive the list of applications
-        super().__fillApplications__()
-        dBuf = {}
-        for sName, sID in self.dApplicationNamesToIds.items():
-            if RE_CONTROLLER.match(sName):
-                dBuf[sName] = sID
-        self.dApplicationNamesToIds = dBuf
-        return
+    # def __fillApplications__(self):
+    #     # receive the list of applications
+    #     super().__fillApplications__()
+    #     dBuf = {}
+    #     for sName, sID in self.dApplicationNamesToIds.items():
+    #         if RE_CONTROLLER.match(sName):
+    #             dBuf[sName] = sID
+    #     self.dApplicationNamesToIds = dBuf
+    #     return
 
     def _oPrepareCtrlSN(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Serial Number', sValue)

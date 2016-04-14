@@ -679,9 +679,8 @@ class HP_EVA_Class(ClassicArrayClass):
 class EVA_ControllerClass(ControllerClass):
     def __init__(self, sID, oSoup, oArrayObj):
         """creates an object from XML data returned by 'ls controller "<ID>" xml' 
-        Parameters: ID, output of 'ls controller <name> xml, parent array"""
-        # make a well-formed XML string from sEvaXMLData and a BeautifulSoup object from this string
-        # skip sResult string to first '<'
+        Parameters: ID, BeautifulSoup of 'object' element of 'ls controller full xml', 
+        parent array"""
         self.sName = sID
         self.oSoup = oSoup
         self.oParentArray = oArrayObj
