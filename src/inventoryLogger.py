@@ -39,6 +39,12 @@ dLoggingConfig = yaml.load("""
         zabbixInterface:
             level: DEBUG
             handlers: [ console, logfile ]
+        Discovery:
+            level: DEBUG
+            handlers: [ console, logfile ]
+        FeedData:
+            level: DEBUG
+            handlers: [ console, logfile ]
     """)
 
 
@@ -48,9 +54,7 @@ if __name__ == "__main__":
     logging.config.dictConfig(dLoggingConfig)
 
     oLog = logging.getLogger(__name__)
-    print ("1")
     oLog.error('Error Msg')
-    print ("2")
     oLog.info('Information 1')
     oLog.info('Information 2')
     oLog.debug('Debug info 1')
