@@ -31,19 +31,22 @@ dLoggingConfig = yaml.load("""
         level: INFO
     loggers:
         __main__:
+            level: INFO
+            handlers: [ console, logfile ]
+        hp3Par:
             level: DEBUG
             handlers: [ console, logfile ]
         hpeva_sssu:
-            level: DEBUG
+            level: INFO
             handlers: [ console, logfile ]
         zabbixInterface:
-            level: DEBUG
+            level: INFO
             handlers: [ console, logfile ]
         Discovery:
-            level: DEBUG
+            level: INFO
             handlers: [ console, logfile ]
         FeedData:
-            level: DEBUG
+            level: INFO
             handlers: [ console, logfile ]
     """)
 

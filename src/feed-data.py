@@ -27,9 +27,9 @@ D_KEYS = {'ctrl-names':  'LIST_OF_CONTROLLER_NAMES',
           'shelf-names': 'LIST OF DISK ENCLOSURE NAMES',
           'disk-names':  'LIST OF DISK NAMES'}
 RANDOM_ID_CHARS = string.ascii_uppercase + string.ascii_lowercase + string.digits
-RE_DISK = re.compile('^Drive Disk \d{2,3}$')
-RE_ENCLOSURE = re.compile('^DiskShelf Disk Enclosure \d{1,2}$')
-RE_CONTROLLER = re.compile('^Controller Controller .{1,2}$')
+RE_DISK = re.compile('^Drive\s+')
+RE_ENCLOSURE = re.compile('^DiskShelf\s+')
+RE_CONTROLLER = re.compile('^Controller\s+')
 
 
 def _sRandomString(size=8, chars=RANDOM_ID_CHARS):
@@ -90,7 +90,8 @@ def _dGetZabbixConnectionInfo(oRedis):
 
 
 def _dGetArrayInfo(oRedis):
-    """Try to get arrays connection information from Redis database
+    """
+    Try to get arrays connection information from Redis database
     Parameter: Redis connection
     Returns: a dictionary of dictionaries (one for each array).
     Dictionary key: array name
@@ -125,7 +126,7 @@ def _o3ParConnect(dArrayInfo, oRedis):
     ip = dArrayInfo['ip']
     user = dArrayInfo['access']['user']
     password = dArrayInfo['access']['pass']
-    oAuth = hp3Par.AuthData(user, password, bUseKey=False)
+    oAuth = hp3Par.AuthData(user, bUseKey=False, sPasswd=password)
     sysname = dArrayInfo['access']['system']
     return hp3Par.HP3Par(ip, oAuth, sysname, oRedisConn=oRedis)
 

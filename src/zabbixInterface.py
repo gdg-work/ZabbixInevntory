@@ -8,13 +8,14 @@ import re
 oLog = getLogger(__name__)
 
 # Constants
-RE_DISK = re.compile('^Drive Disk \d{2,3}$')
-RE_ENCLOSURE = re.compile('^DiskShelf Disk Enclosure \d{1,2}$')
-RE_CONTROLLER = re.compile('^Controller Controller .{1,2}$')
+RE_DISK = re.compile('^Drive\s+')
+RE_ENCLOSURE = re.compile('^DiskShelf\s+')
+RE_CONTROLLER = re.compile('^Controller\s+')
 
 
 # THE simplest function, can take any number of arguments
-def _NullFunction(*args): return None
+def _NullFunction(*args):
+    return None
 
 
 # exceptions
@@ -22,7 +23,8 @@ class ZabInterfaceException(Exception):
     def __init__(self, sData):
         self.sData = sData
 
-    def __str__(self): return self.sData
+    def __str__(self):
+        return self.sData
 
 
 class GeneralZabbix:
@@ -55,7 +57,7 @@ class GeneralZabbix:
             raise ZabInterfaceException
         return
 
-    def __fillApplications__(self, reFilter: re):
+    def __fillApplications__(self, reFilter):
         # receive the list of applications
         ldApplications = self.oZapi.do_request('application.get', {'hostids': self.sHostID})
         if len(ldApplications['result']) == 0:
@@ -66,15 +68,14 @@ class GeneralZabbix:
             # now filter the apps list for disks
             for dApp in ldApplications['result']:
                 self.dApplicationNamesToIds[dApp['name']] = dApp['applicationid']
-            # oLog.debug("==== Applications from array: ====")
-            # for app, id in self.dApplicationNamesToIds.items():
-            #     oLog.debug("Name: {0}\tID: {1}".format(app, id))
-            # oLog.debug("---- Applications from array: ----")
             # === === === === === === ===
             dBuf = {}
+            # oLog.debug("==== Applications from array after filtering: ====")
             for sName, sID in self.dApplicationNamesToIds.items():
                 if reFilter.match(sName):
                     dBuf[sName] = sID
+                    # oLog.debug("Name: {0}\tID: {1}".format(sName, sID))
+            # oLog.debug("------------ Applications from array: ------------")
             self.dApplicationNamesToIds = dBuf
         return
 
@@ -129,15 +130,7 @@ class DisksToZabbix(GeneralZabbix):
                             'size': self._oPrepareDiskSize}
         return
 
-    # def __fillApplications__(self):
-    #     # receive the list of applications
-    #     super().__fillApplications__()
-    #     dBuf = {}
-    #     for sName, sID in self.dApplicationNamesToIds.items():
-    #         if RE_DISK.match(sName):
-    #             dBuf[sName] = sID
-    #     self.dApplicationNamesToIds = dBuf
-    #     return
+    # def __fillApplications__(self): <-- moved to superclass
 
     def _oPrepareDiskRPM(self, sAppName, iValue):
         return self._oPrepareZabMetric(sAppName, 'RPM', iValue)
@@ -168,11 +161,11 @@ class DisksToZabbix(GeneralZabbix):
                     loMetrics.append(self.dOperations[sName](sAppName, oValue))
                 except KeyError:
                     # unknown names passed
-                    oLog.info('Skipped unknown disk information item named {} with value {}'.format(sName, str(oValue)))
+                    oLog.info('Skipped unknown disk information item named {} with value {}'.format(
+                        sName, str(oValue)))
                     pass
         self._SendMetrics(loMetrics)
         return
-
 
 
 class EnclosureToZabbix(GeneralZabbix):
@@ -187,15 +180,7 @@ class EnclosureToZabbix(GeneralZabbix):
                             "ps-amount":    self._oPrepareEnclPSAmount}
         return
 
-    # def __fillApplications__(self):
-    #     # receive the list of applications
-    #     super().__fillApplications__()
-    #     dBuf = {}
-    #     for sName, sID in self.dApplicationNamesToIds.items():
-    #         if RE_ENCLOSURE.match(sName):
-    #             dBuf[sName] = sID
-    #     self.dApplicationNamesToIds = dBuf
-    #     return
+    # def __fillApplications__(self): <-- Moved to superclass
 
     def _oPrepareEnclSN(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Serial Number', sValue)
@@ -227,7 +212,8 @@ class EnclosureToZabbix(GeneralZabbix):
                     loMetrics.append(self.dOperations[sName](sAppName, oValue))
                 except KeyError:
                     # unknown names passed
-                    oLog.info('Skipped unknown DE information item named {} with value {}'.format(sName, str(oValue)))
+                    oLog.info('Skipped unknown DE information item named {} with value {}'.format(
+                        sName, str(oValue)))
                     pass
         self._SendMetrics(loMetrics)
         return
@@ -246,15 +232,7 @@ class CtrlsToZabbix(GeneralZabbix):
                             "port-count": self._oPrepareHostPortNum}
         return
 
-    # def __fillApplications__(self):
-    #     # receive the list of applications
-    #     super().__fillApplications__()
-    #     dBuf = {}
-    #     for sName, sID in self.dApplicationNamesToIds.items():
-    #         if RE_CONTROLLER.match(sName):
-    #             dBuf[sName] = sID
-    #     self.dApplicationNamesToIds = dBuf
-    #     return
+    # def __fillApplications__(self):  <-- Moved to superclass
 
     def _oPrepareCtrlSN(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Serial Number', sValue)
@@ -286,7 +264,8 @@ class CtrlsToZabbix(GeneralZabbix):
                     loMetrics.append(self.dOperations[sName](sAppName, oValue))
                 except KeyError:
                     # unknown names passed
-                    oLog.info('Skipped unknown controller information item named {} with value {}'.format(sName, str(oValue)))
+                    oLog.info('Skipped unknown controller information item named {} with value {}'.format(
+                        sName, str(oValue)))
                     pass
         self._SendMetrics(loMetrics)
         return

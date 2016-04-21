@@ -78,8 +78,13 @@ def _SendArrayInfo(oRedis, oArgs):
         dArrayAccess['access'] = {'user':   oArgs.user,
                                   'pass':   oArgs.password,
                                   'system': oArgs.system}
-    elif oArgs.type == "":
+    elif oArgs.type == "3Par":
+        dArrayAccess['access'] = {'user':   oArgs.user,
+                                  'pass':   oArgs.password,
+                                  'system': oArgs.system}
+    else:
         pass
+
     dZabbixAccess = {'zabbix_user': oArgs.zabbixuser,
                      'zabbix_passwd': oArgs.zabbixpassword,
                      'zabbix_IP': oArgs.zabbixip,

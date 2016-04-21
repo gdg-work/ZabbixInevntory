@@ -65,7 +65,6 @@ class MySSHConnection:
                 # self.oClient.load_host_keys(dssParams['KnownHostsFile'])
                 self.oClient.connect(hostname=sIP, port=iPort, username=oAuth._sLogin(),
                                      password=oAuth._sPasswd(), sock=self.oSocket)
-                print("*DBG* Connected (hopefully)")
             except Exception as e:
                 oLog.error("*CRIT* Error connecting: " + str(e))
                 self.bConnected = False
@@ -445,6 +444,33 @@ class HP3Par(ClassicArrayClass):
             oLog.debug("Exception: " + str(e))
         return ldRet
 
+    def _ldGetControllersInfoAsDict(self):
+        ldRet = []
+        if self.lControllers == []:
+            self.__FillControllers__()
+        try:
+            for oCtrl in self.lControllers:
+                ldRet.append(oCtrl._dGetDataAsDict())
+        except Exception as e:
+            oLog.warning("Exception when filling array controllers' parameters list")
+            oLog.debug("Exception: " + str(e))
+        return ldRet
+
+    def _ldGetShelvesAsDicts(self):
+        """ Return DEs' data as a list of Python dictionaries with fields:
+        name, sn, type, model etc.
+        """
+        ldRet = []
+        if self.lCages == []:
+            self.__FillDiskEnclosures__()
+        try:
+            for oShelfObj in self.lCages:
+                ldRet.append(oShelfObj._dGetDataAsDict())
+        except Exception as e:
+            oLog.warning("Exception when filling disk enclosures' parameters list")
+            oLog.debug("Exception: " + str(e))
+        return ldRet
+
 
 class HP3ParController(ControllerClass):
     def __init__(self, sNum, sID, sSN, lCards, iCores, sCPU, lDimms):
@@ -454,7 +480,7 @@ class HP3ParController(ControllerClass):
         self.lCards = lCards
         self.lDimms = lDimms
         self.dQueries = {'name':   lambda: self.sID,
-                         'SN':     lambda: self.sSN,
+                         'sn':     lambda: self.sSN,
                          'cpu':    lambda: self.sCpu,
                          'cards':  self._sGetPCICards,
                          'RAM':    self._sGetDimms}
@@ -516,8 +542,8 @@ class HP3Par_Disk(DASD_Class):
                          'SN':        lambda: self.sSN,
                          'type':      lambda: self.sType,
                          'model':     lambda: self.sModel,
-                         'disk-size': lambda: self.iSize,
-                         'disk-pos':  lambda: self.sCagePos
+                         'size':      lambda: self.iSize,
+                         'position':  lambda: self.sCagePos
                          }
         return
 
