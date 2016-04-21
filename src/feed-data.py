@@ -10,6 +10,7 @@ import logging
 import json
 import argparse as ap
 import hpeva_sssu as eva
+import hp3Par
 import random
 import string
 import re
@@ -119,11 +120,23 @@ def _oEvaConnect(dArrayInfo, oRedis):
     return eva.HP_EVA_Class(ip, user, password, sysname, oRedisConn=oRedis)
 
 
+def _o3ParConnect(dArrayInfo, oRedis):
+    """Connect to HP 3Par array"""
+    ip = dArrayInfo['ip']
+    user = dArrayInfo['access']['user']
+    password = dArrayInfo['access']['pass']
+    oAuth = hp3Par.AuthData(user, password, bUseKey=False)
+    sysname = dArrayInfo['access']['system']
+    return hp3Par.HP3Par(ip, oAuth, sysname, oRedisConn=oRedis)
+
+
 def _oConnect2Array(sArrayName, dArrayInfo, oRedis):
     """make a connection to array, returns array object"""
     oRet = None
     if dArrayInfo['type'] == 'EVA':
         oRet = _oEvaConnect(dArrayInfo, oRedis)
+    elif dArrayInfo['type'] == '3Par':
+        oRet = _o3ParConnect(dArrayInfo, oRedis)
     else:
         oLog.error('Array type {} is unsupported yet'.format(dArrayInfo['type']))
     return oRet

@@ -25,7 +25,7 @@ STORAGE_OPS = set(["ctrl-names",    # list of controllers' names
                    ])
 
 ARRAYS_SUPPORTED = set(["EVA",
-                        #     "3Par",
+                        "3Par",
                         #     "Storwize",
                         #     "XIV",
                         #     "IBM_DS"
@@ -98,6 +98,7 @@ def _sGetArrayData(oRedis, oArgs):
         sJson = oRedis.hget(sArrayKey, D_KEYS[oArgs.query])
         if sJson:
             sJson = sJson.decode(REDIS_ENCODING)
+            oLog.debug('JSon from Redis: {}'.format(sJson))
     except TypeError:
         # no data in Redis
         pass
