@@ -18,6 +18,9 @@ from inventoryLogger import dLoggingConfig
 import zabbixInterface as zi
 from pathlib import Path
 
+# for debugging
+import traceback
+
 # ============================== CONSTANTS ==============================
 REDIS_PREFIX =    "ArraysDiscovery."
 ZBX_CONNECT_PFX = ""
@@ -27,9 +30,10 @@ D_KEYS = {'ctrl-names':  'LIST_OF_CONTROLLER_NAMES',
           'shelf-names': 'LIST OF DISK ENCLOSURE NAMES',
           'disk-names':  'LIST OF DISK NAMES'}
 RANDOM_ID_CHARS = string.ascii_uppercase + string.ascii_lowercase + string.digits
-RE_DISK = re.compile('^Drive\s+')
-RE_ENCLOSURE = re.compile('^DiskShelf\s+')
-RE_CONTROLLER = re.compile('^Controller\s+')
+RE_DISK = re.compile(r'^Drive\s+')
+RE_ENCLOSURE = re.compile(r'^DiskShelf\s+')
+RE_CONTROLLER = re.compile(r'^Controller\s+')
+RE_SYSTEM = re.compile(r'^System$')
 
 
 def _sRandomString(size=8, chars=RANDOM_ID_CHARS):
@@ -176,6 +180,18 @@ def _lGetListOfShelves(sArrayName, oArray, dZbxInfo):
     return lRet
 
 
+def _GetArrayParameters(sArrayName, oArray, dZbxInfo):
+    ssItemsToRemove = set(['disk-names', 'ctrl-names', 'shelf-names', 'node-names'])
+    oArZabCon = _fPrepareZbxConnection(zi.EnclosureToZabbix, sArrayName, dZbxInfo)
+    ssKeys = set(oArray.dQueries.keys())
+    # make a difference of the sets
+    ssKeys = ssKeys.difference(ssItemsToRemove)
+    dArrayInfo = oArray._dGetArrayInfoAsDict(ssKeys)
+    oArZabCon.__fillApplications__(RE_SYSTEM)
+    oArZabCon._SendEnclInfoToZabbix(sArrayName, dArrayInfo)
+    pass
+
+
 def _GetArrayData(sArrName, oArray, oRedis, dZbxParams):
     sRedisArrInfoHashName = REDIS_PREFIX + "ArrayKeys"
     sArrayKey = REDIS_PREFIX + sArrName + "." + _sRandomString(8)
@@ -185,6 +201,9 @@ def _GetArrayData(sArrName, oArray, oRedis, dZbxParams):
     # create a new hash and set its expire time
     oRedis.hset(sArrayKey, 'NAME', sArrName)
     oRedis.expire(sArrayKey, oRedis.cacheTime)
+
+    # get parameters describing a whole array and pass these parameters to Zabbix
+    _GetArrayParameters(sArrName, oArray, dZbxParams)
 
     # get list of controllers and push it to Redis
     lCtrls = _lGetListOfControllers(sArrName, oArray, dZbxParams)
@@ -206,10 +225,6 @@ def _GetArrayData(sArrName, oArray, oRedis, dZbxParams):
     return
 
 
-def _oZabbixConnect():
-    pass
-
-
 def _ProcessArgs(oArgs):
     """ Process the CLI arguments and connect to Redis """
     oRedis = _oConnect2Redis(oArgs.redis)
@@ -222,10 +237,6 @@ def _ProcessArgs(oArgs):
         oArray = _oConnect2Array(sArrName, dArrParams, oRedis)
         _GetArrayData(sArrName, oArray, oRedis, dZbxInfo)
     return
-
-
-def _oRcvArrayInfo(sArrName, oRedis):
-    pass
 
 
 def _oGetCLIParser():
@@ -247,5 +258,6 @@ if __name__ == "__main__":
         _ProcessArgs(oParser)
     except Exception as e:
         oLog.error("Fatal error: {}".format(str(e)))
+        traceback.print_exc()
         iRetCode = 1
     exit(iRetCode)

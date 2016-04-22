@@ -19,6 +19,7 @@ oLog = logging.getLogger(__name__)
 
 # CONSTANTS
 DEFAULT_SSH_PORT = 22
+RE_WS = re.compile(r'\s+')
 
 
 # Helper functions
@@ -27,6 +28,23 @@ def _genSlicesLst(s, lPos):
     for length in lPos:
         yield s[position:position + length]
         position += length
+
+
+def _dDataByFormatString(sHdr, sData):
+    """
+    Parameter1 -- 3Par header string with fields separated by whitespace,
+    width of fields is used for parsing the second parameter -- a string with data
+    returns: a dictionary of type:
+    { name: value, ... }
+    where name is a name from header field and value is a corresponding value from data string.
+    """
+    dRet = {}
+    lHdrFields = RE_WS.split(sHdr)
+    lFieldLengths = [len(s) + 1 for s in lHdrFields]
+    gHdrFields = [f.strip('-') for f in lHdrFields]
+    gDataFields = [f.strip() for f in _genSlicesLst(sData, lFieldLengths)]
+    dRet = dict(zip(gHdrFields, gDataFields))
+    return dRet
 
 
 class AuthData:
@@ -39,11 +57,14 @@ class AuthData:
             self.sPasswd = sPasswd
         return
 
-    def _sLogin(self): return self.sLogin
+    def _sLogin(self):
+        return self.sLogin
 
-    def _sKey(self): return self.sKeyFile
+    def _sKey(self):
+        return self.sKeyFile
 
-    def _sPasswd(self): return self.sPasswd
+    def _sPasswd(self):
+        return self.sPasswd
 
 
 class MySSHConnection:
@@ -52,7 +73,7 @@ class MySSHConnection:
         self.bConnected = False
         self.oClient = paramiko.SSHClient()
         try:
-            oLog.debug("*DBG* Trying to connect to IP {} port {:d}".format(sIP, iPort))
+            # oLog.debug("*DBG* Trying to connect to IP {} port {:d}".format(sIP, iPort))
             self.oSocket.connect((sIP, iPort))
             self.bConnected = True
         except Exception as e:
@@ -220,7 +241,8 @@ class HP3Par(ClassicArrayClass):
                     oDiskMatch.group(5),         # sn
                     oDiskMatch.group(6)))        # Cage position
             elif oTotalMatch:
-                oLog.debug('Total disk amount'.format(oTotalMatch.group(1)))
+                # oLog.debug('Total disk amount'.format(oTotalMatch.group(1)))
+                pass
             else:
                 pass
         return
@@ -229,8 +251,12 @@ class HP3Par(ClassicArrayClass):
         """fills a list of disk enclosures"""
         dCages = OrderedDict({})
         sOut = self.__sFromArray__('showcage')
-        lOut = itertools.islice((l.strip() for l in sOut.split('\n')), 2, None)
+        lOut = itertools.islice((l for l in sOut.split('\n')), 2, None)
         iDECount = 0
+        sPN = ''
+        sType = ''
+        sSN = ''
+        sModel = ''
         for l in lOut:
             if self.reEmptyLine.match(l):
                 break
@@ -250,27 +276,13 @@ class HP3Par(ClassicArrayClass):
             lInvOut = [l for l in dsCageInv[sCmdFmt.format(sName)].split('\n')]
             iterCageMP = itertools.dropwhile(lambda x: not(self.reDE_Midplane_Begin.match(x)), lInvOut)
             l = next(iterCageMP)  # skip header line '--- Midplane ---'
-            l = next(iterCageMP)  # l = midplane header
-            lHdrFields = self.reWhiteSpace.split(l)
-            lFieldLengths = [len(s) + 1 for s in lHdrFields]
-            dFields = zip(itertools.count(), lHdrFields)
-            l = next(iterCageMP)  # l = midplane data
-            lDataFields = [l.strip() for l in _genSlicesLst(l, lFieldLengths)]
-            for k, v in dFields:
-                if 'Saleable_PN' in v:
-                    iPN_Idx = k
-                    sPN = lDataFields[iPN_Idx]
-                elif 'Type' in v:
-                    iType_Idx = k
-                    sType = lDataFields[iType_Idx]
-                elif 'Saleable_SN' in v:
-                    iSN_Idx = k
-                    sSN = lDataFields[iSN_Idx]
-                elif 'Model_Name' in v:
-                    iModIdx = k
-                    sModel = lDataFields[iModIdx]
-                else:
-                    pass
+            sHdr = next(iterCageMP)  # l = midplane header
+            sFields = next(iterCageMP)  # l = midplane data
+            dFields = _dDataByFormatString(sHdr, sFields)
+            sPN = dFields.get('Saleable_PN', '')
+            sType = dFields.get('Type', '')
+            sSN = dFields.get('Saleable_SN', '')
+            sModel = dFields.get('Model_Name', '')
 
             # Power supplies
             iterCagePS = itertools.dropwhile(lambda x: not(self.reDE_Pwr_Begin.match(x)), lInvOut)
@@ -281,12 +293,16 @@ class HP3Par(ClassicArrayClass):
                 else:
                     iPS_Amount += 1
             self.lCages.append(HP3ParDiskEnclosure(sName, sSN, sPN, sType, sModel, sDrives, iPS_Amount))
-        oLog.debug("Cages info: {}".format(str(self.lCages)))
+        # oLog.debug("Cages info: {}".format(str(self.lCages)))
         return
 
     def __FillControllers__(self):
         """Fill a list of controllers defined in a system"""
         lNodes = []
+        sSN = ''
+        sName = ''
+        sType = ''
+        sModel = ''
         lLines = self.__sFromArray__('showsys -d').split('\n')
         for l in lLines:
             if l.find('Nodes Online') >= 0:
@@ -295,21 +311,24 @@ class HP3Par(ClassicArrayClass):
         # we have list of nodes' numbers in lNodes (as strings). Now is time to get some information
         oLog.debug('There are {} nodes: {}'.format(len(lNodes), ', '.join(lNodes)))
         for sNode in lNodes:
-            sOutput = self.__sFromArray__('shownode -i {}'.format(sNode))
+            sOutput = self.__sFromArray__('shownode -i -svc {}'.format(sNode))
             # try to parse 'shownode -i' output
-            iterInventory = (l.strip() for l in sOutput.split('\n'))
+            iterInventory = (l for l in sOutput.split('\n'))
             # rotate until the start of nodes section
             iterNodeStart = itertools.dropwhile(lambda x: not self.reNodesBegin.match(x),
                                                 iterInventory)
-            next(iterNodeStart)  # skip header
-            lHdrFields = self.reWSorDash.split(next(iterNodeStart))     # node header
-            # oLog.debug("__FillControllers__ lHdrFields: {}".format(str(lHdrFields)))
-            iAsmField = int([lHdrFields.index(f) for f in lHdrFields if f == 'Assem_Serial'][0])
-            iNameField = int([lHdrFields.index(f) for f in lHdrFields if f == 'Name'][0])
-            lNodeLineFields = self.reWhiteSpace.split(next(iterNodeStart))
-            sSN = lNodeLineFields[iAsmField]    # actual data line
-            sName = lNodeLineFields[iNameField]
-            oLog.debug('Controller {} ({}) SN is: {}'.format(sNode, sName, sSN))
+            next(iterNodeStart)  # skip nodes section header
+            sHdr = next(iterNodeStart)
+            sFields = next(iterNodeStart)
+            print('*DBG*', '\n', sHdr, '\n', sFields)
+            dFields = _dDataByFormatString(sHdr, sFields)
+            oLog.debug('__FillControllers__: dFields are: ' + str(dFields))
+            sSN = dFields.get('Assem_Serial', '')
+            sName = dFields.get('Name', '')
+            sType = dFields.get('Saleable_PN', '')
+            sModel = dFields.get('Assem_Part', '')
+            # oLog.debug('Controller {} ({}) SN is: {}'.format(sNode, sName, sSN))
+
             # looping forward to PCI cards header
             iterPCIStart = itertools.dropwhile(lambda x: not self.rePCIcardsBegin.match(x),
                                                iterInventory)
@@ -339,7 +358,7 @@ class HP3Par(ClassicArrayClass):
                 else:
                     iCPU_Cores += 1
                     sCPU_Model = self.reCPUModel.search(sLine).group(1)
-            oLog.debug("__FillControllers__: CPU {}, {} cores".format(sCPU_Model, iCPU_Cores))
+            # oLog.debug("__FillControllers__: CPU {}, {} cores".format(sCPU_Model, iCPU_Cores))
 
             # find and parse memory information
             iterRAMStart = itertools.dropwhile(lambda x: not self.reRAMBegin.match(x),
@@ -355,7 +374,8 @@ class HP3Par(ClassicArrayClass):
             # oLog.debug('__FillControllers__: RAM modules: \n{}'.format(
             #     '\n'.join(str(m) for m in lRAM_Modules)))
             self.lControllers.append(HP3ParController(sNode, sName, sSN, lPCICards,
-                                                      iCPU_Cores, sCPU_Model, lRAM_Modules))
+                                                      iCPU_Cores, sCPU_Model, lRAM_Modules,
+                                                      sModel, sType))
         return
 
     def __FillSysParms__(self):
@@ -451,6 +471,7 @@ class HP3Par(ClassicArrayClass):
         try:
             for oCtrl in self.lControllers:
                 ldRet.append(oCtrl._dGetDataAsDict())
+            # oLog.debug('_ldGetControllersInfoAsDict: dictionary: ' + str(ldRet))
         except Exception as e:
             oLog.warning("Exception when filling array controllers' parameters list")
             oLog.debug("Exception: " + str(e))
@@ -471,19 +492,31 @@ class HP3Par(ClassicArrayClass):
             oLog.debug("Exception: " + str(e))
         return ldRet
 
+    def _dGetArrayInfoAsDict(self, ssKeys):
+        """
+        Array-wide parameters as a dictionary.
+        Parameter -- a set of keys/requests
+        Returns: a dictionary {key:value}
+        """
+        return {}
+
 
 class HP3ParController(ControllerClass):
-    def __init__(self, sNum, sID, sSN, lCards, iCores, sCPU, lDimms):
+    def __init__(self, sNum, sID, sSN, lCards, iCores, sCPU, lDimms, sModel='', sType=''):
         super().__init__(sID, sSN)
         self.iNum = int(sNum)
         self.sCpu = 'CPU: {} Cores: {}'.format(sCPU, iCores)
         self.lCards = lCards
         self.lDimms = lDimms
-        self.dQueries = {'name':   lambda: self.sID,
+        self.sModel = sModel
+        self.sType = sType
+        self.dQueries = {'name':   lambda: str(self.iNum),
                          'sn':     lambda: self.sSN,
                          'cpu':    lambda: self.sCpu,
-                         'cards':  self._sGetPCICards,
-                         'RAM':    self._sGetDimms}
+                         'model':  lambda: self.sModel,
+                         'type':   lambda: self.sType,
+                         'pci':    self._sGetPCICards,
+                         'ram':    self._sGetDimms}
         return
 
     def _sGetPCICards(self):
@@ -492,7 +525,7 @@ class HP3ParController(ControllerClass):
 
     def _sGetDimms(self):
         """returns DIMM information as a string"""
-        return self.lDimms
+        return "\n".join(str(d) for d in self.lDimms)
 
     def _dGetDataAsDict(self):
         dRet = {}
@@ -554,7 +587,9 @@ class HP3Par_Disk(DASD_Class):
         lSides = ['Left', 'Right']
         if sCagePos.count(":") == 2:
             iDC, iBay, iMag = sCagePos.split(':')
-            sFormat = "Cage {0}, Disk {3}, Magazine {2}"
+            # For 3Par 7400 I saw only Magazine=0
+            # sFormat = "Cage {0}, Disk {3}, Magazine {2}"
+            sFormat = "Cage {0}, Disk {3}"
         elif sCagePos.count(':') == 3:
             iDC, iSide, iMag, iBay = sCagePos.split(':')
             sFormat = "Cage {0}, {1} Side, Magazine {2}, Disk {3}"
@@ -562,18 +597,6 @@ class HP3Par_Disk(DASD_Class):
         else:
             oLog.info("__sDecodeCagePos__: unknown CagePos format: {}".format(sCagePos))
         return sFormat.format(iDC, sSide, iMag, iBay)
-
-    #  sGetID(self): return self.sID
-
-    #  sGetSN(self): return self.sSN
-
-    #  sGetType(self): return self.sType
-
-    #  sGetModel(self): return self.sModel
-
-    #  iGetSize(self): return self.iSize
-
-    #  sGetPos(self): return self.sCagePos
 
     def __repr__(self):
         return("Disk id:{} ({}, {}, {} GiB) at '{}'".format(
@@ -624,3 +647,5 @@ if __name__ == '__main__':
     print(my3Par.dQueries['shelf-names']())
     print(my3Par.dQueries['ctrl-names']())
     print(my3Par.dQueries['disk-names']())
+
+# vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4

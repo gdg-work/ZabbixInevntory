@@ -5,18 +5,19 @@ import logging
 import re
 import pexpect
 # for XML parsing
-import bs4    # BeautifulSoup v4
-import redis  # In-memory NoSQL DB for caching
-import pickle # serializing/deserializing of objects to stings and files
+import bs4      # BeautifulSoup v4
+# import redis  # In-memory NoSQL DB for caching
+import pickle   # serializing/deserializing of objects to stings and files
 
 # Storage classes
-from inventoryObjects import ClassicArrayClass, ControllerClass, DiskShelfClass, PortClass, DASD_Class
+from inventoryObjects import ClassicArrayClass, ControllerClass, DiskShelfClass, DASD_Class
 # local constants
 from local import SSSU_PATH, CACHE_TIME, REDIS_ENCODING
 
 import sys
 sys.setrecursionlimit(5000)   # for 'pickle' module to correctly encode/decode BeautifulSoup objects
 oLog = logging.getLogger(__name__)
+
 
 #
 # Helper functions
@@ -42,14 +43,15 @@ def __lFlattenListOfLists__(x):
             result.append(el)
     return result
 
+
 #
 #  EVA interface via SSSU
 #
 class SSSU_Error(Exception):
     """Error when running SSSU"""
-    def __init__(self,sStr):
+    def __init__(self, sStr):
         """Initialize the error with a message given as a string"""
-        self.sErrMsg=sStr
+        self.sErrMsg = sStr
         return
 
     def __str__(self):
@@ -57,13 +59,14 @@ class SSSU_Error(Exception):
         return repr(self.sErrMsg)
 
 # CONSTANTS
-MAXREAD = 100*1024   # bytes read at a time
+MAXREAD = 100 * 1024   # bytes read at a time
 SEARCHBUF = 2048     # bytes backward from the current position
 TIMEOUT = 60         # seconds
 
+
 class SSSU_Iface:
     # {{{
-    def __init__(self, sSSSU_Path, sMgmtIP, sLogin, sPasswd, 
+    def __init__(self, sSSSU_Path, sMgmtIP, sLogin, sPasswd,
                  sSystemName,  _Debug, _Error):
         """Инициализация класса. Параметры:
         sSSSU_Path = полное имя программы 'sssu'
@@ -81,14 +84,15 @@ class SSSU_Iface:
         self._Dbg("Initializing SSSU connection")
         self.sSystemName = ''
         try:
-            self.pSSSU = pexpect.spawn(self.SSSU, maxread=MAXREAD, searchwindowsize=SEARCHBUF, timeout=TIMEOUT)
+            self.pSSSU = pexpect.spawn(self.SSSU, maxread=MAXREAD,
+                                       searchwindowsize=SEARCHBUF, timeout=TIMEOUT)
             self.pSSSU.expect("Manager:")
             self.pSSSU.send(sMgmtIP + "\n")
             self.pSSSU.expect("Username:")
             self.pSSSU.send(sLogin + "\n")
             self.pSSSU.expect("Password:")
             self.pSSSU.send(sPasswd + "\n")
-            iIdx = self.pSSSU.expect(["NoSystemSelected>", "Error opening https connection"],5)
+            iIdx = self.pSSSU.expect(["NoSystemSelected>", "Error opening https connection"], 5)
             if iIdx == 0:
                 # Залогинились успешно.
                 self._Dbg("Logged into SSSU")
@@ -96,21 +100,22 @@ class SSSU_Iface:
                 self.pSSSU.expect("NoSystemSelected")
                 # В списке систем пропускаем первые два элемента, а из остальных строк удаляем
                 # пробелы и берём непустую часть
-                lSystemNames = [l.strip() for l in self.pSSSU.before.decode('utf-8').split("\r\n")[3:] 
+                lSystemNames = [l.strip() for l in self.pSSSU.before.decode('utf-8').split("\r\n")[3:]
                                 if l.strip() != ""]
                 self._Dbg("Systems available: " + ", ".join(lSystemNames))
                 if sSystemName in lSystemNames:
-                    self.pSSSU.send("SELECT SYSTEM %s\n" % sSystemName) # good, continue our work
+                    self.pSSSU.send("SELECT SYSTEM %s\n" % sSystemName)   # good, continue our work
                     self.pSSSU.expect_exact(self.sPrompt)
                     # здесь ничего не должно случиться, мы уже проверили, что такое имя существует
-                    self.pSSSU.send("SET OPTIONS on_error=Continue display_status noretries display_width=200\n")
+                    self.pSSSU.send(
+                        "SET OPTIONS on_error=Continue display_status noretries display_width=200\n")
                     self.pSSSU.expect("Status : 0")
                     self.pSSSU.expect_exact(self.sPrompt)
                     self.sSystemName = sSystemName
                     self._Dbg("Name of system and options are set")
                 else:
                     self._Err("The array name '%s' is unknown to Command View on the management server %s" %
-                              (sSystemName,sMgmtIP))
+                              (sSystemName, sMgmtIP))
                     raise SSSU_Error("Unknown or invalid array name %s" % sSystemName)
             else:
                 # Не смогли создать соединение с Command View
@@ -124,7 +129,8 @@ class SSSU_Iface:
             raise SSSU_Error("__init__: Cannot read data from SSSU utility (EOF)")
         return
 
-    def _sGetSysName(self): return self.sSystemName
+    def _sGetSysName(self):
+        return self.sSystemName
 
     def _sRunCommand(self, sCommand, sSeparator="\n"):
         """Runs a command on SSSU, returns the command's output as a string. Raises
@@ -151,15 +157,14 @@ class SSSU_Iface:
         self._Dbg("Closing SSSU connection")
         self.pSSSU.send("\n")
         self.pSSSU.sendline("exit")
-        self.pSSSU.expect([ pexpect.EOF, pexpect.TIMEOUT ],10)
+        self.pSSSU.expect([pexpect.EOF, pexpect.TIMEOUT], 10)
         if self.pSSSU.isalive():
             self.pSSSU.terminate()
         return
 
-    # }}} SSSU_IFace
 
 class EVA_Exception(Exception):
-    def __init__(sData):
+    def __init__(self, sData):
         self.__str__ = lambda: sData
 
 
@@ -177,26 +182,25 @@ class HP_EVA_Class(ClassicArrayClass):
         #   - проверка наличия кэш-файлов в каталоге кэша и
         #   - либо запрос всей информации у CV и создание нового кэша
         #   - либо загрузка кэша
-        self.sRedisKeyPrefix="pyzabbix::hpeva_sssu::" + self.sSysName + "::"
+        self.sRedisKeyPrefix = "pyzabbix::hpeva_sssu::" + self.sSysName + "::"
         self.oRedisConnection = oRedisConn
         # dictionary of available queries and methods of the object
         self.dQueries = {"name": self.getName,
-                    "sn": self.getSN,
-                    "wwn": self.getWWN,
-                    "type": self.getType,
-                    "model": self.getModel,
-                    "ctrls": self.getControllersAmount,
-                    "shelves": self.getShelvesAmount,
-                    "disks": self.getDisksAmount,
-                    "ctrl-names": self.getControllerNames,
-                    "shelf-names": self.getDiskShelfNames,
-                    "disk-names":  self.getDiskNames,
-                    "ps-amount": self.getControllerShelfPSUAmount,
-                   }
+                         "sn": self.getSN,
+                         "wwn": self.getWWN,
+                         "type": self.getType,
+                         "model": self.getModel,
+                         "ctrls": self.getControllersAmount,
+                         "shelves": self.getShelvesAmount,
+                         "disks": self.getDisksAmount,
+                         "ctrl-names": self.getControllerNames,
+                         "shelf-names": self.getDiskShelfNames,
+                         "disk-names":  self.getDiskNames,
+                         "ps-amount": self.getControllerShelfPSUAmount}
 
     def __sFromSystem__(self, sParam):
         """returns information from 'ls system <name>' output as a *string*"""
-        REDIS_KEY=self.sRedisKeyPrefix + "__sFromSystem__::lssystem"
+        REDIS_KEY = self.sRedisKeyPrefix + "__sFromSystem__::lssystem"
         sReturn = ""
         reDots = re.compile(r"{0} \.+: ".format(sParam))
         # try to get cached version
@@ -204,36 +208,39 @@ class HP_EVA_Class(ClassicArrayClass):
             sResult = self.oRedisConnection.get(REDIS_KEY).decode(REDIS_ENCODING)
         except AttributeError:
             # Redis return nothing, make a request again
-            sResult = self.oEvaConnection._sRunCommand("ls system {}".format(self.sSysName),"\n")
+            sResult = self.oEvaConnection._sRunCommand("ls system {}".format(self.sSysName), "\n")
             self.oRedisConnection.set(REDIS_KEY, sResult.encode(REDIS_ENCODING), CACHE_TIME)
         # parameter name begins with position 0 and then a space and a row of dots follows
-        lsLines = [ l for l in sResult.split("\n") if reDots.search(l) ]
+        lsLines = [l for l in sResult.split("\n") if reDots.search(l)]
         sReturn = lsLines[0].split(':')[1].strip()
         if len(lsLines) != 1:
-            oLog.warning("__sFromSystem__: Strange -- more than one (%d) instance of parameter '%s'" % (len(lsLines), sParam))
+            oLog.warning("__sFromSystem__: Strange -- more than one (%d) instance of parameter '%s'" %
+                         (len(lsLines), sParam))
         return (sReturn)
 
     def __lsFromControllers__(self, sParam):
         """Returns information from EVA's controllers as a *list* object"""
-        REDIS_KEY=self.sRedisKeyPrefix + "__lsFromControllers__::lscontroller"
+        REDIS_KEY = self.sRedisKeyPrefix + "__lsFromControllers__::lscontroller"
         reDots = re.compile(r" \.+: ")
         try:
             sResult = self.oRedisConnection.get(REDIS_KEY).decode("utf-8")
         except AttributeError:  
             # Redis return nothing, make a request again
-            sResult = self.oEvaConnection._sRunCommand("ls controller full","\n")
+            sResult = self.oEvaConnection._sRunCommand("ls controller full", "\n")
             self.oRedisConnection.set(REDIS_KEY, sResult, CACHE_TIME)
-        lsLines = [ l for l in sResult.split("\n") if reDots.search(l) ]
-        lsRet =  [ l.split(':')[-1].strip() for l in lsLines ]
+        lsLines = [l for l in sResult.split("\n") if reDots.search(l)]
+        lsRet =  [l.split(':')[-1].strip() for l in lsLines]
         return lsRet
 
     def __lsFromControllersRecursive__(self, lParams):
         """A recursive query of elements from list lParams, first going  to lParams[0], then
         lParams[1] etc. until lParams[len(lParams)-1]. The last element(s) returns 
         as a list of (list of…, list of… etc.) strings"""
-        REDIS_KEY=self.sRedisKeyPrefix + "pyzabbix::hpeva_sssu::__lsFromControllersRecursive__::lscontroller_xml::soup"
-        oSoup = bs4.BeautifulSoup(self.oRedisConnection.get(REDIS_KEY),'xml')
-        if not sResult:
+        REDIS_KEY = self.sRedisKeyPrefix + "pyzabbix::hpeva_sssu::__lsFromControllersRecursive__::lscontroller_xml::soup"
+
+        # XXX такое чувство, что эта функция никогда не работает - в ней явные ошибки XXX
+        oSoup = bs4.BeautifulSoup(self.oRedisConnection.get(REDIS_KEY), 'xml')
+        if not oSoup:
             sResult = self.oEvaConnection._sRunCommand("ls controller full xml","\n")
             self.oRedisConnection.set(REDIS_KEY, sResult)
             iFirstTagPos = sResult.find('<')
@@ -241,7 +248,6 @@ class HP_EVA_Class(ClassicArrayClass):
             oSoup = bs4.BeautifulSoup(sResult,'xml')
             self.oRedisConnection.set(REDIS_KEY, oSoup.encode(REDIS_ENCODING), CACHE_TIME)
         return (__lRecursiveSoupQuery__(oSoup, ['object'] + lParams))
-
 
     def __lsFromDiskShelf__(self, sName, sParam):
         """ Tries to find some information in the 'ls diskshelf' element.
@@ -619,6 +625,14 @@ class HP_EVA_Class(ClassicArrayClass):
             oLog.warning("Exception when filling array controllers' parameters list")
             oLog.debug("Exception: " + str(e))
         return ldRet
+
+    def _dGetArrayInfoAsDict(self, ssKeys):
+        """
+        Array-wide parameters as a dictionary.
+        Parameter -- a set of keys/requests
+        Returns: a dictionary {key:value}
+        """
+        return {}
 
     def getComponent(self, sCompName):
         """returns an object corresponding to an array component by name"""

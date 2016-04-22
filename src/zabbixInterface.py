@@ -8,9 +8,9 @@ import re
 oLog = getLogger(__name__)
 
 # Constants
-RE_DISK = re.compile('^Drive\s+')
-RE_ENCLOSURE = re.compile('^DiskShelf\s+')
-RE_CONTROLLER = re.compile('^Controller\s+')
+RE_DISK = re.compile(r'^Drive\s+')
+RE_ENCLOSURE = re.compile(r'^DiskShelf\s+')
+RE_CONTROLLER = re.compile(r'^Controller\s+')
 
 
 # THE simplest function, can take any number of arguments
@@ -95,7 +95,7 @@ class GeneralZabbix:
                 # now we have key, so we can prepare data to Zabbix
                 oRet = ZabbixMetric(host=self.sArrayName, key=sKey, value=iValue)
             except IndexError:
-                oLog.info("Can't receive item named '{}' from array".format(dFilter['name']))
+                oLog.info("Can't receive item named '{}' from Zabbix with item.get".format(dFilter['name']))
                 oRet = None
         except KeyError:
             oLog.info('Unknown application name "{}"'.format(sAppName))
@@ -119,7 +119,7 @@ class DisksToZabbix(GeneralZabbix):
         sArrayName is a name of array (HOST.HOST) IN ZABBIX
         *Zab* are parameters for Zabbix connection.
         """
-        oLog.debug("Entered DisksToZabbix.__init__")
+        # oLog.debug("Entered DisksToZabbix.__init__")
         super().__init__(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
         self.dOperations = {'type': self._oPrepareDiskType,
                             'name': _NullFunction,
@@ -153,7 +153,7 @@ class DisksToZabbix(GeneralZabbix):
     def sendDiskInfoToZabbix(self, sArrayName, ldDisksInfo):
         """send data to Zabbix via API"""
         loMetrics = []
-        oLog.debug('sendDiskInfoToZabbix: data to send: {}'.format(str(ldDisksInfo)))
+        # oLog.debug('sendDiskInfoToZabbix: data to send: {}'.format(str(ldDisksInfo)))
         for dDiskInfo in ldDisksInfo:
             sAppName = 'Drive ' + dDiskInfo['name']
             for sName, oValue in dDiskInfo.items():
@@ -229,6 +229,8 @@ class CtrlsToZabbix(GeneralZabbix):
                             "model":      self._oPrepareCtrlModel,
                             "cpu-cores":  self._oPrepareCPUCores,
                             "port-names": self._oPreparePortNames,
+                            "pci":        self._oPreparePCICards,
+                            "ram":        self._oPrepareRAMInfo,
                             "port-count": self._oPrepareHostPortNum}
         return
 
@@ -251,6 +253,12 @@ class CtrlsToZabbix(GeneralZabbix):
 
     def _oPrepareHostPortNum(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Number of Host Ports', sValue)
+
+    def _oPreparePCICards(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'PCI', sValue)
+
+    def _oPrepareRAMInfo(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'DIMM', sValue)
 
     def _SendCtrlsToZabbix(self, sArrayName, ldCtrlsInfo):
         """send data to Zabbix via API"""
