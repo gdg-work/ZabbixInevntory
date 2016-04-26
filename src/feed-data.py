@@ -186,10 +186,12 @@ def _GetArrayParameters(sArrayName, oArray, dZbxInfo):
     ssKeys = set(oArray.dQueries.keys())
     # make a difference of the sets
     ssKeys = ssKeys.difference(ssItemsToRemove)
+    oLog.debug('_GetArrayParameters: keys are: ' + str(ssKeys))
     dArrayInfo = oArray._dGetArrayInfoAsDict(ssKeys)
     oArZabCon.__fillApplications__(RE_SYSTEM)
     oArZabCon._SendEnclInfoToZabbix(sArrayName, dArrayInfo)
-    pass
+    oLog.debug('_GetArrayParameters: Array info is {}'.format(str(dArrayInfo)))
+    return
 
 
 def _GetArrayData(sArrName, oArray, oRedis, dZbxParams):

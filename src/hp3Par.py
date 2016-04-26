@@ -251,7 +251,7 @@ class HP3Par(ClassicArrayClass):
         """fills a list of disk enclosures"""
         dCages = OrderedDict({})
         sOut = self.__sFromArray__('showcage')
-        lOut = itertools.islice((l for l in sOut.split('\n')), 2, None)
+        lOut = itertools.islice((l.strip() for l in sOut.split('\n')), 2, None)
         iDECount = 0
         sPN = ''
         sType = ''
@@ -274,6 +274,7 @@ class HP3Par(ClassicArrayClass):
         dsCageInv = self.__dsFromArray__(lsCmds)
         for sName, sDrives in dCages.items():
             lInvOut = [l for l in dsCageInv[sCmdFmt.format(sName)].split('\n')]
+            # oLog.debug("__FillDiskEnclosures__: ouput of 'showcage' is :\n" + "\n".join(lInvOut))
             iterCageMP = itertools.dropwhile(lambda x: not(self.reDE_Midplane_Begin.match(x)), lInvOut)
             l = next(iterCageMP)  # skip header line '--- Midplane ---'
             sHdr = next(iterCageMP)  # l = midplane header
@@ -320,7 +321,6 @@ class HP3Par(ClassicArrayClass):
             next(iterNodeStart)  # skip nodes section header
             sHdr = next(iterNodeStart)
             sFields = next(iterNodeStart)
-            print('*DBG*', '\n', sHdr, '\n', sFields)
             dFields = _dDataByFormatString(sHdr, sFields)
             oLog.debug('__FillControllers__: dFields are: ' + str(dFields))
             sSN = dFields.get('Assem_Serial', '')
@@ -615,7 +615,9 @@ class PCICardClass:
 
     def __init__(self, sLine):
         """Fill card information from a line from 'shownode -i' output"""
-        lFields = self.reWS.split(sLine)
+        oLog.debug("PCICardClass.__init__: sLine is: " + sLine)
+        lFields = self.reWS.split(sLine.strip())
+        oLog.debug("PCICardClass.__init__: line splits as: " + str(lFields))
         sSlot, self.sType, self.sVendor, self.sModel, self.sSN = lFields[1:]
         self.iSlot = int(sSlot)
         return

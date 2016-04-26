@@ -203,9 +203,9 @@ class EnclosureToZabbix(GeneralZabbix):
     def _SendEnclInfoToZabbix(self, sArrayName, ldEnclosuresInfo):
         """send data to Zabbix via API"""
         loMetrics = []
-        oLog.debug('sendDiskInfoToZabbix: data to send: {}'.format(str(ldEnclosuresInfo)))
+        # oLog.debug('sendEnclInfoToZabbix: data to send: {}'.format(str(ldEnclosuresInfo)))
         for dShelfInfo in ldEnclosuresInfo:
-            oLog.debug('_SendEnclInfoToZabbix -- shelf info dict is {}'.format(dShelfInfo))
+            # oLog.debug('_SendEnclInfoToZabbix -- shelf info dict is {}'.format(dShelfInfo))
             sAppName = 'DiskShelf ' + dShelfInfo['name']
             for sName, oValue in dShelfInfo.items():
                 try:
@@ -263,9 +263,9 @@ class CtrlsToZabbix(GeneralZabbix):
     def _SendCtrlsToZabbix(self, sArrayName, ldCtrlsInfo):
         """send data to Zabbix via API"""
         loMetrics = []
-        oLog.debug('sendCtrlsToZabbix: data to send: {}'.format(str(ldCtrlsInfo)))
+        # oLog.debug('sendCtrlsToZabbix: data to send: {}'.format(str(ldCtrlsInfo)))
         for dCtrl in ldCtrlsInfo:
-            oLog.debug('_SendCtrlsInfoToZabbix -- controllers info dict is {}'.format(dCtrl))
+            # oLog.debug('_SendCtrlsInfoToZabbix -- controllers info dict is {}'.format(dCtrl))
             sAppName = 'Controller ' + dCtrl['name']
             for sName, oValue in dCtrl.items():
                 try:
@@ -277,6 +277,39 @@ class CtrlsToZabbix(GeneralZabbix):
                     pass
         self._SendMetrics(loMetrics)
         return
+
+
+class ArrayToZabbix(GeneralZabbix):
+    """Class makes an interface between disk arrays' classes and Zabbix templates"""
+    def __init__(self, sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
+        super().__init__(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
+        self.dOperations = {
+            "name":       _NullFunction,
+            "sn":         self._oPrepareArraySN,
+            "type":       self._oPrepareArrayType,
+            "disks":      self._oPrepareArrayDisks,
+            "shelves":    self._oPrepareArrayShelves,
+            "model":      self._oPrepareArrayModel}
+        return
+
+    def _oPrepareArraySN(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Serial Number', sValue)
+
+    def _oPrepareArrayType(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Type', sValue)
+
+    def _oPrepareArrayWWN(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'WWN', sValue)
+
+    def _oPrepareArrayModel(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Model', sValue)
+
+    def _oPrepareArrayDisks(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, '# of disks', sValue)
+
+    def _oPrepareArrayShelves(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, '# of shelves', sValue)
+
 # --
 
 if __name__ == "__main__":
