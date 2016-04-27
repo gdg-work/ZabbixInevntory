@@ -28,7 +28,7 @@ ARRAYS_SUPPORTED = set(["EVA",
                         "3Par",
                         #     "Storwize",
                         #     "XIV",
-                        #     "IBM_DS"
+                        "IBM_DS"
                         ])
 REDIS_PREFIX = "ArraysDiscovery."
 D_KEYS = {'ctrl-names':  'LIST_OF_CONTROLLER_NAMES',
@@ -82,6 +82,8 @@ def _SendArrayInfo(oRedis, oArgs):
         dArrayAccess['access'] = {'user':   oArgs.user,
                                   'pass':   oArgs.password,
                                   'system': oArgs.system}
+    elif oArgs.type == "IBM_DS":
+        dArrayAccess['access'] = {}
     else:
         pass
 

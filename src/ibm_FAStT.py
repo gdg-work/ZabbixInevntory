@@ -40,6 +40,7 @@ class IBM_DS(invobj.ClassicArrayClass):
         self.iCtrls = 0
         self.iEncls = 0
         self.iDrives = 0
+        self.iPwrSupplies = 0
         self.lControllers = []
         self.lDisks = []
         self.lEnclosures = []
@@ -49,16 +50,15 @@ class IBM_DS(invobj.ClassicArrayClass):
         # strings)
         #
         try:
-            lCommand = [ SMCLI_PATH, sArrayAddr, '-c', 'show storagesubsystem;' ]
+            lCommand = [SMCLI_PATH, sArrayAddr, '-c', 'show storagesubsystem;']
             sData = check_output(lCommand, stderr=STDOUT, universal_newlines=True, shell=False)
-            oLog.debug('Output from command: ' +sData)
+            oLog.debug('Output from command: ' + sData)
         except CalledProcessError as e:
             sData = e.output
             oLog.info('Non-zero return status from SMcli')
 
         lsData = sData.split('\n')
         self.lsData = lsData
-
 
         self.dQueries = {
             'name':        lambda: self.sName,
@@ -121,7 +121,6 @@ class IBM_DS(invobj.ClassicArrayClass):
             else:
                 # print(lsControllersData[i])
                 pass
-        print("Second controller index: {}".format(iSecondCtrlIdx))
         self.lControllers[0] = IBM_DS_Controller(lsControllersData[:iSecondCtrlIdx])
         self.lControllers[1] = IBM_DS_Controller(lsControllersData[iSecondCtrlIdx:])
         return
@@ -129,7 +128,6 @@ class IBM_DS(invobj.ClassicArrayClass):
     def __FillEnclosures__(self):
         """Fill disk enclosures' information from output of 'show storagesubsystem' SMcli command"""
         iterDEs = it.dropwhile(lambda x: not(self.reEnclosures.match(x)), self.lsData)
-        print('============================== ENCLOSURES ==============================')
         iterCtrlEncl = it.dropwhile(lambda x: not(self.reCtrlEnclName.match(x)), iterDEs)
         # print(next(iterCtrlEncl))
         l = next(it.dropwhile(lambda x: not(self.rePwrFanCanisters.match(x)), iterCtrlEncl))
@@ -161,7 +159,6 @@ class IBM_DS(invobj.ClassicArrayClass):
         iRPM = 0
         rSize = 0
         iterDrives = it.dropwhile(lambda x: not(self.reDrivesBegin.match(x)), self.lsData)
-        print('======================== PHYSICAL DISKS ========================')
         iterDrives = it.dropwhile(lambda x: not(self.reTotalDrives.match(x)), iterDrives)
         sLine = next(iterDrives).strip()
         self.iDrives = int(self.reTotalDrives.match(sLine).group(1))
@@ -242,6 +239,62 @@ class IBM_DS(invobj.ClassicArrayClass):
             self.__FillControllers__()
         return self.iPwrSupplies
 
+    def _dGetArrayInfoAsDict(self, ssKeys):
+        """
+        Array-wide parameters as a dictionary.
+        Parameter -- a set of keys/requests
+        Returns: a dictionary {key:value}
+        """
+        dRet = {}
+        for sKey in ssKeys:
+            if sKey in self.dQueries:
+                dRet[sKey] = self.dQueries[sKey]()
+        return dRet
+
+    def _ldGetDisksAsDicts(self):
+        """ Return disk data as a list of Python dictionaries with fields:
+        name, SN, type, model, size, position
+        """
+        ldRet = []
+        if len(self.lDisks) == 0:
+            self.__FillDisks__()
+        try:
+            for oDisk in self.lDisks:
+                ldRet.append(oDisk._dGetDataAsDict())
+        except Exception as e:
+            oLog.warning("Exception when filling a disk parameters list")
+            oLog.debug("Exception: " + str(e))
+        return ldRet
+
+    def _ldGetControllersInfoAsDict(self):
+        ldRet = []
+        if self.lControllers == []:
+            self.__FillControllers__()
+        try:
+            for oCtrl in self.lControllers:
+                ldRet.append(oCtrl._dGetDataAsDict())
+            # oLog.debug('_ldGetControllersInfoAsDict: dictionary: ' + str(ldRet))
+        except Exception as e:
+            oLog.warning("Exception when filling array controllers' parameters list")
+            oLog.debug("Exception: " + str(e))
+        return ldRet
+
+    def _ldGetShelvesAsDicts(self):
+        """ Return DEs' data as a list of Python dictionaries with fields:
+        name, sn, type, model etc.
+        """
+        ldRet = []
+        oLog.debug('Entered IBM DS _ldGetShelvesAsDicts')
+        if self.lEnclosures == []:
+            self.__FillEnclosures__()
+        try:
+            for oShelfObj in self.lEnclosures:
+                ldRet.append(oShelfObj._dGetDataAsDict())
+        except Exception as e:
+            oLog.warning("Exception when filling disk enclosures' parameters list")
+            oLog.debug("Exception: " + str(e))
+        return ldRet
+
 
 class IBM_DS_Controller(invobj.ControllerClass):
     reCtrlBegin = re.compile(r'^Controller in Enclosure \d{1,3}, Slot ([AB])$')
@@ -285,16 +338,23 @@ class IBM_DS_Controller(invobj.ControllerClass):
         self.dQueries = {
             'name': lambda: self.sName,
             'sn':   lambda: self.sSN,
-            'model': lambda: self.sModel,
+            'model': lambda: self.sProdID,
             'type':  lambda: self.sPartNum,
             'ports': lambda: self.iPortCount}
         return
+
+    def _dGetDataAsDict(self):
+        dRet = {}
+        for name, fun in self.dQueries.items():
+            dRet[name] = fun()
+        return dRet
 
 
 class IBM_DS_DriveEnclosure(invobj.DiskShelfClass):
     reDiskEnclName =    re.compile(r'^\s*Drive Enclosure (\d+) Overall Component Information\s*')
     reDE_PN =           re.compile(r'^\s*Part number:\s+PN\s+(\w+)\s*')
     reDE_SN =           re.compile(r'^\s*Serial number:\s+SN\s+(\w+)\s*')
+    reProdID =           re.compile(r'^\s*Product ID:\s+(\w+)\s*')
     rePwrSupplies =     re.compile(r'^\s*Power Supplies Detected:\s+(\d+)\s*')
 
     def __init__(self, iterLines):
@@ -303,6 +363,7 @@ class IBM_DS_DriveEnclosure(invobj.DiskShelfClass):
         self.sPN = ''
         self.sSN = ''
         self.sID = ''
+        self.sProdID = ''
         self.iPwrSupplies = 0
         iLinesCounter = 0   # for iterator debugging
         sLine = next(iterLines)
@@ -320,6 +381,9 @@ class IBM_DS_DriveEnclosure(invobj.DiskShelfClass):
                     self.sPN = self.reDE_PN.match(sLine).group(1)
                 elif self.sSN == '' and self.reDE_SN.match(sLine):
                     self.sSN = self.reDE_SN.match(sLine).group(1)
+                elif self.sProdID == '' and self.reProdID.match(sLine):
+                    # really this line is from ESM canister
+                    self.sProdID = self.reProdID.match(sLine).group(1)
                 elif self.rePwrSupplies.match(sLine):
                     self.iPwrSupplies = int(self.rePwrSupplies.match(sLine).group(1))
                     break    # go out of cycle
@@ -338,11 +402,17 @@ class IBM_DS_DriveEnclosure(invobj.DiskShelfClass):
             self.iNum, self.sPN, self.sSN, self.iPwrSupplies))
         self.dQueries = {'name':      lambda: self.sID,
                          'sn':        lambda: self.sSN,
-                         'type':      lambda: self.sPN,
+                         'type':      lambda: self.sProdID,
                          'model':     lambda: self.sPN,
                          'ps-amount': lambda: self.iPwrSupplies
                          }
         return
+
+    def _dGetDataAsDict(self):
+        dRet = {}
+        for name, fun in self.dQueries.items():
+            dRet[name] = fun()
+        return dRet
 
 
 class IBM_DS_Drive(invobj.DASD_Class):
@@ -355,14 +425,21 @@ class IBM_DS_Drive(invobj.DASD_Class):
         self.rSize = rSize
         self.iRPM = iRPM
         self.sPos = "Enclosure {} Bay {}".format(iEncl, iBay)
-        self.dQueries = {"name": lambda: self.sID,
-                         "sn":   lambda: self.sSN,
-                         "model": lambda: self.sModel,
-                         "size": lambda: self.rSize,
-                         "rpm":  lambda: self.iRPM,
+        self.dQueries = {"name":     lambda: self.sID,
+                         "sn":       lambda: self.sSN,
+                         "model":    lambda: self.sModel,
+                         "size":     lambda: int(self.rSize),
+                         "disk-rpm": lambda: self.iRPM,
                          "position": lambda: self.sPos,
-                         "type": lambda: self.sType}
+                         "type":     lambda: self.sType}
         return
+
+    def _dGetDataAsDict(self):
+        # name, type, model, SN, position, RPM, size
+        dRet = {}
+        for name, fun in self.dQueries.items():
+            dRet[name] = fun()
+        return dRet
 
 if __name__ == "__main__":
     # test section: logging set-up
@@ -380,8 +457,12 @@ if __name__ == "__main__":
     oDS.__FillControllers__()
     oDS.__FillEnclosures__()
     oDS.__FillDisks__()
-    print(str(oDS._lGetCtrls()))
-    print(str(oDS._lGetShelves()))
-    print(str(oDS._lGetDisks()))
+    # print(str(oDS._lGetCtrls()))
+    # print(str(oDS._lGetShelves()))
+    # print(str(oDS._lGetDisks()))
+    print(str(oDS._ldGetShelvesAsDicts()))
+    print(str(oDS._ldGetControllersInfoAsDict()))
+    print(str(oDS._ldGetDisksAsDicts()))
+    print(str(oDS._dGetArrayInfoAsDict()))
 
 # vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4

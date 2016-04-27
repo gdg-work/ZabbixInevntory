@@ -11,6 +11,7 @@ import json
 import argparse as ap
 import hpeva_sssu as eva
 import hp3Par
+import ibm_FAStT as ibmds
 import random
 import string
 import re
@@ -135,6 +136,11 @@ def _o3ParConnect(dArrayInfo, oRedis):
     return hp3Par.HP3Par(ip, oAuth, sysname, oRedisConn=oRedis)
 
 
+def _oIBM_DS_Connect(dArrayInfo):
+    sIp = dArrayInfo['ip']
+    return ibmds.IBM_DS(sIp)
+
+
 def _oConnect2Array(sArrayName, dArrayInfo, oRedis):
     """make a connection to array, returns array object"""
     oRet = None
@@ -142,6 +148,8 @@ def _oConnect2Array(sArrayName, dArrayInfo, oRedis):
         oRet = _oEvaConnect(dArrayInfo, oRedis)
     elif dArrayInfo['type'] == '3Par':
         oRet = _o3ParConnect(dArrayInfo, oRedis)
+    elif dArrayInfo['type'] == 'IBM_DS':
+        oRet = _oIBM_DS_Connect(dArrayInfo)
     else:
         oLog.error('Array type {} is unsupported yet'.format(dArrayInfo['type']))
     return oRet
@@ -175,6 +183,7 @@ def _lGetListOfShelves(sArrayName, oArray, dZbxInfo):
     oArZabCon = _fPrepareZbxConnection(zi.EnclosureToZabbix, sArrayName, dZbxInfo)
     lRet = oArray.dQueries['shelf-names']()
     ldShelvesInfo = oArray._ldGetShelvesAsDicts()
+    oLog.debug('_lGetListOfShelves: ldShelvesInfo = ' + str(ldShelvesInfo))
     oArZabCon.__fillApplications__(RE_ENCLOSURE)
     oArZabCon._SendEnclInfoToZabbix(sArrayName, ldShelvesInfo)
     return lRet
@@ -182,14 +191,14 @@ def _lGetListOfShelves(sArrayName, oArray, dZbxInfo):
 
 def _GetArrayParameters(sArrayName, oArray, dZbxInfo):
     ssItemsToRemove = set(['disk-names', 'ctrl-names', 'shelf-names', 'node-names'])
-    oArZabCon = _fPrepareZbxConnection(zi.EnclosureToZabbix, sArrayName, dZbxInfo)
+    oArZabCon = _fPrepareZbxConnection(zi.ArrayToZabbix, sArrayName, dZbxInfo)
     ssKeys = set(oArray.dQueries.keys())
     # make a difference of the sets
     ssKeys = ssKeys.difference(ssItemsToRemove)
     oLog.debug('_GetArrayParameters: keys are: ' + str(ssKeys))
     dArrayInfo = oArray._dGetArrayInfoAsDict(ssKeys)
     oArZabCon.__fillApplications__(RE_SYSTEM)
-    oArZabCon._SendEnclInfoToZabbix(sArrayName, dArrayInfo)
+    oArZabCon._SendArrayToZabbix(sArrayName, dArrayInfo)
     oLog.debug('_GetArrayParameters: Array info is {}'.format(str(dArrayInfo)))
     return
 

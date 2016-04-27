@@ -34,10 +34,13 @@ dLoggingConfig = yaml.load("""
             level: INFO
             handlers: [ console, logfile ]
         hp3Par:
-            level: DEBUG
+            level: INFO
             handlers: [ console, logfile ]
         hpeva_sssu:
             level: INFO
+            handlers: [ console, logfile ]
+        ibm_FAStT:
+            level: DEBUG
             handlers: [ console, logfile ]
         zabbixInterface:
             level: INFO

@@ -498,7 +498,11 @@ class HP3Par(ClassicArrayClass):
         Parameter -- a set of keys/requests
         Returns: a dictionary {key:value}
         """
-        return {}
+        dRet = {}
+        for sKey in ssKeys:
+            if sKey in self.dQueries:
+                dRet[sKey] = self.dQueries[sKey]()
+        return dRet
 
 
 class HP3ParController(ControllerClass):
@@ -649,5 +653,6 @@ if __name__ == '__main__':
     print(my3Par.dQueries['shelf-names']())
     print(my3Par.dQueries['ctrl-names']())
     print(my3Par.dQueries['disk-names']())
+    print(my3Par._ldGetShelvesAsDicts())
 
 # vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4

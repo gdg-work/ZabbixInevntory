@@ -50,7 +50,7 @@ class GeneralZabbix:
                 oLog.debug("host ID of array: {}".format(self.sHostID))
             else:
                 oLog.error("Invalid or non-existent host in Zabbix")
-                raise ZabInterfaceException("This host isn't known to Zabbix")
+                raise ZabInterfaceException("This host () isn't known to Zabbix".format(sArrayName))
         except ZabbixAPIException as e:
             oLog.error("Cannot connect to Zabbix API")
             oLog.error(str(e))
@@ -121,13 +121,15 @@ class DisksToZabbix(GeneralZabbix):
         """
         # oLog.debug("Entered DisksToZabbix.__init__")
         super().__init__(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
-        self.dOperations = {'type': self._oPrepareDiskType,
-                            'name': _NullFunction,
-                            'model': self._oPrepareDiskModel,
-                            'SN': self._oPrepareDiskSN,
+        self.dOperations = {'type':   self._oPrepareDiskType,
+                            'name':   _NullFunction,
+                            'model':  self._oPrepareDiskModel,
+                            'SN':     self._oPrepareDiskSN,
+                            'sn':     self._oPrepareDiskSN,
                             'position': self._oPrepareDiskPosition,
-                            'RPM': self._oPrepareDiskRPM,
-                            'size': self._oPrepareDiskSize}
+                            'RPM':    self._oPrepareDiskRPM,
+                            'disk-rpm': self._oPrepareDiskRPM,
+                            'size':   self._oPrepareDiskSize}
         return
 
     # def __fillApplications__(self): <-- moved to superclass
@@ -231,7 +233,8 @@ class CtrlsToZabbix(GeneralZabbix):
                             "port-names": self._oPreparePortNames,
                             "pci":        self._oPreparePCICards,
                             "ram":        self._oPrepareRAMInfo,
-                            "port-count": self._oPrepareHostPortNum}
+                            "port-count": self._oPrepareHostPortNum,    # alternate name
+                            "ports":      self._oPrepareHostPortNum}
         return
 
     # def __fillApplications__(self):  <-- Moved to superclass
@@ -289,6 +292,7 @@ class ArrayToZabbix(GeneralZabbix):
             "type":       self._oPrepareArrayType,
             "disks":      self._oPrepareArrayDisks,
             "shelves":    self._oPrepareArrayShelves,
+            "wwn":        self._oPrepareArrayWWN,
             "model":      self._oPrepareArrayModel}
         return
 
@@ -310,6 +314,21 @@ class ArrayToZabbix(GeneralZabbix):
     def _oPrepareArrayShelves(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, '# of shelves', sValue)
 
+    def _SendArrayToZabbix(self, sArrayName, dArrInfo):
+        """send ARRAY data to Zabbix via API"""
+        loMetrics = []
+        # oLog.debug('sendCtrlsToZabbix: data to send: {}'.format(str(ldCtrlsInfo)))
+        sAppName = 'System ' + self.sArrayName
+        for sName, oValue in dArrInfo.items():
+            try:
+                loMetrics.append(self.dOperations[sName](sAppName, oValue))
+            except KeyError:
+                # unknown names passed
+                oLog.info('Skipped unknown ARRAY information item named {} with value {}'.format(
+                    sName, str(oValue)))
+                pass
+        self._SendMetrics(loMetrics)
+        return
 # --
 
 if __name__ == "__main__":
