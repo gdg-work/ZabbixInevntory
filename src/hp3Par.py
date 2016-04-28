@@ -5,8 +5,7 @@
 import logging
 import re
 import redis  # In-memory NoSQL DB for caching
-import paramiko
-import socket
+import MySSH
 import json  # serializing/deserializing of objects to stings and files
 from collections import OrderedDict
 from inventoryObjects import ClassicArrayClass, ControllerClass, DiskShelfClass, DASD_Class
@@ -45,71 +44,6 @@ def _dDataByFormatString(sHdr, sData):
     gDataFields = [f.strip() for f in _genSlicesLst(sData, lFieldLengths)]
     dRet = dict(zip(gHdrFields, gDataFields))
     return dRet
-
-
-class AuthData:
-    def __init__(self, sLogin, bUseKey, sPasswd=None, sKeyFile=None):
-        self.sLogin = sLogin
-        self.bUseKey = bUseKey
-        if self.bUseKey:
-            self.sKeyFile = sKeyFile
-        else:
-            self.sPasswd = sPasswd
-        return
-
-    def _sLogin(self):
-        return self.sLogin
-
-    def _sKey(self):
-        return self.sKeyFile
-
-    def _sPasswd(self):
-        return self.sPasswd
-
-
-class MySSHConnection:
-    def __init__(self, sIP, iPort, oAuth):
-        self.oSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.bConnected = False
-        self.oClient = paramiko.SSHClient()
-        try:
-            # oLog.debug("*DBG* Trying to connect to IP {} port {:d}".format(sIP, iPort))
-            self.oSocket.connect((sIP, iPort))
-            self.bConnected = True
-        except Exception as e:
-            oLog.error("Cannot create socket connection")
-            pass
-        if self.bConnected:
-            try:
-                self.oClient.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
-                self.oClient.load_system_host_keys()
-                # self.oClient.load_host_keys(dssParams['KnownHostsFile'])
-                self.oClient.connect(hostname=sIP, port=iPort, username=oAuth._sLogin(),
-                                     password=oAuth._sPasswd(), sock=self.oSocket)
-            except Exception as e:
-                oLog.error("*CRIT* Error connecting: " + str(e))
-                self.bConnected = False
-        return
-
-    def close(self):
-        try:
-            if self.oClient:
-                self.oClient.close()
-            if self.oSocket:
-                self.oSocket.close()
-        except Exception:
-            pass
-        return
-
-    def fsRunCmd(self, sCmd):
-        lResult = []
-        if self.bConnected:
-            stdin, stdout, stderr = self.oClient.exec_command(sCmd)
-            for l in stdout:
-                lResult.append(l)
-        else:
-            oLog.error("fsRunCmd: isnt connected")
-        return "".join(lResult)
 
 
 class HP3Par_Exception(Exception):
@@ -182,7 +116,7 @@ class HP3Par(ClassicArrayClass):
             sRet = json.loads(self.oRedisConnection.get(sRedisKey).decode(REDIS_ENCODING))
         except AttributeError:
             try:
-                oConn = MySSHConnection(self.sIP, DEFAULT_SSH_PORT, self.oAuthData)
+                oConn = MySSH.MySSHConnection(self.sIP, DEFAULT_SSH_PORT, self.oAuthData)
                 sRet = oConn.fsRunCmd(sCommand)
                 oConn.close()
                 # save results to Redis
@@ -202,7 +136,7 @@ class HP3Par(ClassicArrayClass):
         dData = OrderedDict({})
         sRedisKey = self.sRedisKeyPrefix + "__dsFromArray__"
         try:
-            oConn = MySSHConnection(self.sIP, DEFAULT_SSH_PORT, self.oAuthData)
+            oConn = MySSH.MySSHConnection(self.sIP, DEFAULT_SSH_PORT, self.oAuthData)
             for sCmd in lsCommands:
                 # first try to lookup data in Redis, next ask array itself
                 try:
@@ -641,7 +575,7 @@ if __name__ == '__main__':
     oConHdr.setLevel(logging.DEBUG)
     oLog.addHandler(oConHdr)
     oRedis = redis.StrictRedis()
-    oAuth = AuthData('zabbix', bUseKey=False, sPasswd='G47ufNDybz')
+    oAuth = MySSH.AuthData('zabbix', bUseKey=False, sPasswd='G47ufNDybz')
     my3Par = HP3Par('10.44.0.171', oAuth, 'hp3par02', oRedis)
     print(my3Par.dQueries['shelf-names']())
     print(my3Par.dQueries['ctrl-names']())
