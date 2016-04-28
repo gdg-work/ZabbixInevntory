@@ -230,7 +230,8 @@ class CtrlsToZabbix(GeneralZabbix):
                             "type":       self._oPrepareCtrlType,
                             "model":      self._oPrepareCtrlModel,
                             "cpu-cores":  self._oPrepareCPUCores,
-                            "port-names": self._oPreparePortNames,
+                            "cpu":        self._oPrepareCPUCores,
+                            # "port-names": self._oPreparePortNames,
                             "pci":        self._oPreparePCICards,
                             "ram":        self._oPrepareRAMInfo,
                             "port-count": self._oPrepareHostPortNum,    # alternate name
@@ -249,7 +250,7 @@ class CtrlsToZabbix(GeneralZabbix):
         return self._oPrepareZabMetric(sAppName, 'Model', sValue)
 
     def _oPrepareCPUCores(self, sAppName, sValue):
-        return self._oPrepareZabMetric(sAppName, 'CPU Cores', sValue)
+        return self._oPrepareZabMetric(sAppName, 'CPU', sValue)
 
     def _oPreparePortNames(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Port names', sValue)
@@ -291,8 +292,10 @@ class ArrayToZabbix(GeneralZabbix):
             "sn":         self._oPrepareArraySN,
             "type":       self._oPrepareArrayType,
             "disks":      self._oPrepareArrayDisks,
+            "ctrls":      self._oPrepareArrayControllers,
             "shelves":    self._oPrepareArrayShelves,
             "wwn":        self._oPrepareArrayWWN,
+            "ps-amount":  self._oPreparePwrSuppliesAmount,
             "model":      self._oPrepareArrayModel}
         return
 
@@ -309,24 +312,32 @@ class ArrayToZabbix(GeneralZabbix):
         return self._oPrepareZabMetric(sAppName, 'Model', sValue)
 
     def _oPrepareArrayDisks(self, sAppName, sValue):
-        return self._oPrepareZabMetric(sAppName, '# of disks', sValue)
+        return self._oPrepareZabMetric(sAppName, 'Number of Drives', sValue)
 
     def _oPrepareArrayShelves(self, sAppName, sValue):
-        return self._oPrepareZabMetric(sAppName, '# of shelves', sValue)
+        return self._oPrepareZabMetric(sAppName, 'Number of Drive Shelves', sValue)
+
+    def _oPreparePwrSuppliesAmount(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Number of Power Supplies', sValue)
+
+    def _oPrepareArrayControllers(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Number of Controllers', sValue)
 
     def _SendArrayToZabbix(self, sArrayName, dArrInfo):
         """send ARRAY data to Zabbix via API"""
         loMetrics = []
-        # oLog.debug('sendCtrlsToZabbix: data to send: {}'.format(str(ldCtrlsInfo)))
-        sAppName = 'System ' + self.sArrayName
+        sAppName = 'System'
         for sName, oValue in dArrInfo.items():
             try:
-                loMetrics.append(self.dOperations[sName](sAppName, oValue))
+                oResult = self.dOperations[sName](sAppName, oValue)
+                if not(oResult is None):
+                    loMetrics.append(oResult)
             except KeyError:
                 # unknown names passed
                 oLog.info('Skipped unknown ARRAY information item named {} with value {}'.format(
                     sName, str(oValue)))
                 pass
+        oLog.debug('_SendArrayToZabbix: metrics are {}'.format(str(loMetrics)))
         self._SendMetrics(loMetrics)
         return
 # --

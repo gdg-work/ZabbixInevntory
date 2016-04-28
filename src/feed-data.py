@@ -34,7 +34,7 @@ RANDOM_ID_CHARS = string.ascii_uppercase + string.ascii_lowercase + string.digit
 RE_DISK = re.compile(r'^Drive\s+')
 RE_ENCLOSURE = re.compile(r'^DiskShelf\s+')
 RE_CONTROLLER = re.compile(r'^Controller\s+')
-RE_SYSTEM = re.compile(r'^System$')
+RE_SYSTEM = re.compile(r'^System\s*$')
 
 
 def _sRandomString(size=8, chars=RANDOM_ID_CHARS):
@@ -195,7 +195,7 @@ def _GetArrayParameters(sArrayName, oArray, dZbxInfo):
     ssKeys = set(oArray.dQueries.keys())
     # make a difference of the sets
     ssKeys = ssKeys.difference(ssItemsToRemove)
-    oLog.debug('_GetArrayParameters: keys are: ' + str(ssKeys))
+    # oLog.debug('_GetArrayParameters: keys are: ' + str(ssKeys))
     dArrayInfo = oArray._dGetArrayInfoAsDict(ssKeys)
     oArZabCon.__fillApplications__(RE_SYSTEM)
     oArZabCon._SendArrayToZabbix(sArrayName, dArrayInfo)

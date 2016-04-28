@@ -59,19 +59,39 @@ class IBM_DS(invobj.ClassicArrayClass):
 
         lsData = sData.split('\n')
         self.lsData = lsData
+        # fill information
+        self.__FillGeneral__()
+        self.__FillControllers__()
+        self.__FillEnclosures__()
+        self.__FillDisks__()
 
         self.dQueries = {
-            'name':        lambda: self.sName,
-            'wwn':         lambda: self.sWWN,
-            'ctlrs':       lambda: self.iCtrls,
-            'shelves':     lambda: self.iEncls,
-            'disks':       lambda: self.iDrives,
+            'name':        self.getName,
+            'wwn':         self.getWWN,
+            'ctlrs':       self.getCtrls,
+            'shelves':     self.getShelves,
+            'disks':       self.getDrives,
             'type':        self._sGetType,
             'ps-amount':   self._iGetPSAmount,
             'ctrl-names':  self._lGetCtrls,
             'shelf-names': self._lGetShelves,
             'disk-names':  self._lGetDisks}
         return
+
+    def getName(self):
+        return self.sName
+
+    def getWWN(self):
+        return self.sWWN
+
+    def getCtrls(self):
+        return self.iCtrls
+
+    def getShelves(self):
+        return self.iEncls
+
+    def getDrives(self):
+        return self.iDrives
 
     def __FillGeneral__(self):
         iterName = it.dropwhile(lambda x: not(self.reArrayName.match(x)), self.lsData)
@@ -239,17 +259,17 @@ class IBM_DS(invobj.ClassicArrayClass):
             self.__FillControllers__()
         return self.iPwrSupplies
 
-    def _dGetArrayInfoAsDict(self, ssKeys):
-        """
-        Array-wide parameters as a dictionary.
-        Parameter -- a set of keys/requests
-        Returns: a dictionary {key:value}
-        """
-        dRet = {}
-        for sKey in ssKeys:
-            if sKey in self.dQueries:
-                dRet[sKey] = self.dQueries[sKey]()
-        return dRet
+#    def _dGetArrayInfoAsDict(self, ssKeys):
+#        """
+#        Array-wide parameters as a dictionary.
+#        Parameter -- a set of keys/requests
+#        Returns: a dictionary {key:value}
+#        """
+#        dRet = {}
+#        for sKey in ssKeys:
+#            if sKey in self.dQueries:
+#                dRet[sKey] = self.dQueries[sKey]()
+#        return dRet
 
     def _ldGetDisksAsDicts(self):
         """ Return disk data as a list of Python dictionaries with fields:
@@ -336,18 +356,12 @@ class IBM_DS_Controller(invobj.ControllerClass):
                 pass
         oLog.debug("Host ports: {}".format(self.iPortCount))
         self.dQueries = {
-            'name': lambda: self.sName,
-            'sn':   lambda: self.sSN,
+            'name':  lambda: self.sName,
+            'sn':    lambda: self.sSN,
             'model': lambda: self.sProdID,
             'type':  lambda: self.sPartNum,
             'ports': lambda: self.iPortCount}
         return
-
-    def _dGetDataAsDict(self):
-        dRet = {}
-        for name, fun in self.dQueries.items():
-            dRet[name] = fun()
-        return dRet
 
 
 class IBM_DS_DriveEnclosure(invobj.DiskShelfClass):
@@ -408,12 +422,6 @@ class IBM_DS_DriveEnclosure(invobj.DiskShelfClass):
                          }
         return
 
-    def _dGetDataAsDict(self):
-        dRet = {}
-        for name, fun in self.dQueries.items():
-            dRet[name] = fun()
-        return dRet
-
 
 class IBM_DS_Drive(invobj.DASD_Class):
     """Disk drive"""
@@ -434,12 +442,6 @@ class IBM_DS_Drive(invobj.DASD_Class):
                          "type":     lambda: self.sType}
         return
 
-    def _dGetDataAsDict(self):
-        # name, type, model, SN, position, RPM, size
-        dRet = {}
-        for name, fun in self.dQueries.items():
-            dRet[name] = fun()
-        return dRet
 
 if __name__ == "__main__":
     # test section: logging set-up
@@ -451,7 +453,6 @@ if __name__ == "__main__":
     lLines = []
     # for l in open(",ibmds8k.out", "r"):
     #     lLines.append(l)
-    oLog.debug("{} lines of data read!".format(len(lLines)))
     oDS = IBM_DS("10.44.1.18")
     oDS.__FillGeneral__()
     oDS.__FillControllers__()
@@ -460,9 +461,9 @@ if __name__ == "__main__":
     # print(str(oDS._lGetCtrls()))
     # print(str(oDS._lGetShelves()))
     # print(str(oDS._lGetDisks()))
-    print(str(oDS._ldGetShelvesAsDicts()))
-    print(str(oDS._ldGetControllersInfoAsDict()))
-    print(str(oDS._ldGetDisksAsDicts()))
-    print(str(oDS._dGetArrayInfoAsDict()))
+    # print(str(oDS._ldGetShelvesAsDicts()))
+    # print(str(oDS._ldGetControllersInfoAsDict()))
+    # print(str(oDS._ldGetDisksAsDicts()))
+    print(str(oDS._dGetArrayInfoAsDict(['wwn', 'sn', 'model', 'shelves', 'disks'])))
 
 # vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4

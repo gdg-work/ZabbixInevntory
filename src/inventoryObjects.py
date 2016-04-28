@@ -33,6 +33,9 @@ class ClassicArrayClass(StorageClass):
         self.lControllers = []    # list of ControllerClass
         self.lShelves = []  # list of 'DiskShelfClass'
         self.lDisks = []    # list of DiskClass
+        self.dQueries = {          # possible queries
+                "ctrls": self.getControllersAmount,
+                "disks": self.getDisksAmount}
 
     def getControllersAmount(self):
         return len(self.lControllers)
@@ -60,6 +63,17 @@ class ClassicArrayClass(StorageClass):
         lRet = [ s.getSN() for s in self.lDisks]
         return lRet
 
+    def _dGetArrayInfoAsDict(self, ssKeys):
+        """
+        Array-wide parameters as a dictionary.
+        Parameter -- a set of keys/requests
+        Returns: a dictionary {key:value}
+        """
+        dRet = {}
+        for sKey in ssKeys:
+            if sKey in self.dQueries:
+                dRet[sKey] = self.dQueries[sKey]()
+        return dRet
 
 class ScaleOutStorageClass(StorageClass):
     def __init__(self, sIP: str, sType: str):
@@ -94,12 +108,22 @@ class ComponentClass:
     def __init__(self, sID :str, sSN=""):
         self.sID = sID
         self.sSN = sSN
+        self.dQueries = {"name": self.getID,
+                         "sn" : self.getSN }
 
     def getID(self) -> str:
         return self.sID
 
     def getSN(self) -> str:
         return self.sSN
+
+    def _dGetDataAsDict(self):
+        # name, type, model, SN, position, RPM, size
+        dRet = {}
+        for name, fun in self.dQueries.items():
+            dRet[name] = fun()
+        return dRet
+
 
 class ControllerClass(ComponentClass):
     """Classic array's disk controller"""

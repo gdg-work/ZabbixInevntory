@@ -442,13 +442,6 @@ class HP3Par(ClassicArrayClass):
             lRet.append(d.dQueries['name']())
         return lRet
 
-    #
-    # Methods for receiving components' information as a list of name:value dictionaries
-    #
-    def _dGetSysParams(self):
-        """returns some system-wide parameters as a dictionary"""
-        pass
-
     def _ldGetDisksAsDicts(self):
         """ Return disk data as a list of Python dictionaries with fields:
         name, SN, type, model, size, position

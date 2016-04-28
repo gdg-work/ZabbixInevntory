@@ -4,3 +4,4 @@ __pycache__
 tox.ini
 *.pyc
 info.txt
+tags

@@ -224,7 +224,7 @@ class HP_EVA_Class(ClassicArrayClass):
         reDots = re.compile(r" \.+: ")
         try:
             sResult = self.oRedisConnection.get(REDIS_KEY).decode("utf-8")
-        except AttributeError:  
+        except AttributeError:
             # Redis return nothing, make a request again
             sResult = self.oEvaConnection._sRunCommand("ls controller full", "\n")
             self.oRedisConnection.set(REDIS_KEY, sResult, CACHE_TIME)
@@ -234,18 +234,19 @@ class HP_EVA_Class(ClassicArrayClass):
 
     def __lsFromControllersRecursive__(self, lParams):
         """A recursive query of elements from list lParams, first going  to lParams[0], then
-        lParams[1] etc. until lParams[len(lParams)-1]. The last element(s) returns 
+        lParams[1] etc. until lParams[len(lParams)-1]. The last element(s) returns
         as a list of (list of…, list of… etc.) strings"""
-        REDIS_KEY = self.sRedisKeyPrefix + "pyzabbix::hpeva_sssu::__lsFromControllersRecursive__::lscontroller_xml::soup"
+        REDIS_SUFFIX = "pyzabbix::hpeva_sssu::__lsFromControllersRecursive__::lscontroller_xml::soup"
+        REDIS_KEY = self.sRedisKeyPrefix + REDIS_SUFFIX
 
         # XXX такое чувство, что эта функция никогда не работает - в ней явные ошибки XXX
         oSoup = bs4.BeautifulSoup(self.oRedisConnection.get(REDIS_KEY), 'xml')
         if not oSoup:
-            sResult = self.oEvaConnection._sRunCommand("ls controller full xml","\n")
+            sResult = self.oEvaConnection._sRunCommand("ls controller full xml", "\n")
             self.oRedisConnection.set(REDIS_KEY, sResult)
             iFirstTagPos = sResult.find('<')
-            sResult = sResult[iFirstTagPos-1:]
-            oSoup = bs4.BeautifulSoup(sResult,'xml')
+            sResult = sResult[iFirstTagPos - 1:]
+            oSoup = bs4.BeautifulSoup(sResult, 'xml')
             self.oRedisConnection.set(REDIS_KEY, oSoup.encode(REDIS_ENCODING), CACHE_TIME)
         return (__lRecursiveSoupQuery__(oSoup, ['object'] + lParams))
 
@@ -253,26 +254,26 @@ class HP_EVA_Class(ClassicArrayClass):
         """ Tries to find some information in the 'ls diskshelf' element.
         First, the function searches in <object> element, if the parameter isn't found,
         it is searched in child elements """
-        REDIS_KEY="{0}__lsFromDiskShelf__::lsdiskshelf_xml::{1}::soup".format(self.sRedisKeyPrefix,sName)
-        oSoup = bs4.BeautifulSoup(self.oRedisConnection.get(REDIS_KEY),'xml')
+        REDIS_KEY = "{0}__lsFromDiskShelf__::lsdiskshelf_xml::{1}::soup".format(self.sRedisKeyPrefix, sName)
+        oSoup = bs4.BeautifulSoup(self.oRedisConnection.get(REDIS_KEY), 'xml')
         if not oSoup:
             sResult = self.oEvaConnection._sRunCommand(
-                    'ls diskshelf "%s" xml' % sName,"\n")
+                'ls diskshelf "%s" xml' % sName, "\n")
             lRet = []
             # skip sResult string to first '<'
             iFirstTagPos = sResult.find('<')
-            sResult = sResult[iFirstTagPos-1:]
-            oSoup = bs4.BeautifulSoup(sResult,'xml')
+            sResult = sResult[iFirstTagPos - 1:]
+            oSoup = bs4.BeautifulSoup(sResult, 'xml')
             self.oRedisConnection.set(REDIS_KEY, oSoup.encode(REDIS_ENCODING), CACHE_TIME)
         # now I can parse this objects by any method
-        for oDiskShelf in oSoup.find_all('object',recursive=False, limit=32):
-            oElem = oDiskShelf.find(sParam,recursive=False)
+        for oDiskShelf in oSoup.find_all('object', recursive=False, limit=32):
+            oElem = oDiskShelf.find(sParam, recursive=False)
             if oElem:
-                lRet.append( oElem.string )
+                lRet.append(oElem.string)
             else:
                 lElems = oDiskShelf.find_all(sParam)
                 for oElem in lElems:
-                    lRet.append( oElem.string )
+                    lRet.append(oElem.string)
         return lRet
 
     def __lsFromDiskShelves__(self, sParam):
@@ -626,14 +627,6 @@ class HP_EVA_Class(ClassicArrayClass):
             oLog.debug("Exception: " + str(e))
         return ldRet
 
-    def _dGetArrayInfoAsDict(self, ssKeys):
-        """
-        Array-wide parameters as a dictionary.
-        Parameter -- a set of keys/requests
-        Returns: a dictionary {key:value}
-        """
-        return {}
-
     def getComponent(self, sCompName):
         """returns an object corresponding to an array component by name"""
         oLog.debug("getComponent called with name <%s>" % sCompName)
@@ -744,7 +737,8 @@ class EVA_ControllerClass(ControllerClass):
             pass
         return sRet
 
-    def getCPUCores(self): return "N/A"
+    def getCPUCores(self):
+        return "N/A"
 
     def getModel(self):
         sRet = "Model isn't known"
@@ -756,9 +750,9 @@ class EVA_ControllerClass(ControllerClass):
         return sRet
 
     def getPortNames(self):
-        lPortNames=[]
+        lPortNames = []
         if self.oSoup:
-            lPorts=self.oSoup.find_all("hostport")
+            lPorts = self.oSoup.find_all("hostport")
             lPortNames = [p.portname.string for p in lPorts]
         else:
             pass
@@ -767,15 +761,16 @@ class EVA_ControllerClass(ControllerClass):
     def getPortCount(self):
         iRet = 0
         if self.oSoup:
-            iRet= len(self.oSoup.find_all("hostport"))
+            iRet = len(self.oSoup.find_all("hostport"))
         else:
             pass
         return iRet
 
+
 class EVA_DiskShelfClass(DiskShelfClass):
     def __init__(self, sID, oSoup, oArrayObj):
-        """creates an object. Parameters: 1) string ID, 
-        2) XML data as BeautifulSoup4 object, 
+        """creates an object. Parameters: 1) string ID,
+        2) XML data as BeautifulSoup4 object,
         3) parent object (disk array) """
         self.oSoup = oSoup
         self.sName = str(self.oSoup.find('objectname').string)
@@ -784,14 +779,13 @@ class EVA_DiskShelfClass(DiskShelfClass):
             raise EVA_Exception("Invalid name of shelf in EVA_DiskShelfClass.init")
         self.oParentArray = oArrayObj
         self.dQueries = {   # permitted queries
-                "name":   self.getName,
-                "sn":     self.getSN,
-                "type":   self.getType,
-                "model":  self.getModel,
-                "disks":  self.getDisksAmount,
-                "disk-slots":  self.getSlotsAmount,
-                "ps-amount":  self.getPwrSupplyAmount
-                }
+            "name":   self.getName,
+            "sn":     self.getSN,
+            "type":   self.getType,
+            "model":  self.getModel,
+            "disks":  self.getDisksAmount,
+            "disk-slots":  self.getSlotsAmount,
+            "ps-amount":  self.getPwrSupplyAmount}
 
         #   "disk-names": self.getDiskNames, # <--- isn't needed now
 
@@ -802,10 +796,11 @@ class EVA_DiskShelfClass(DiskShelfClass):
             dRet[name] = fun()
         return dRet
 
-    def getName(self): return self.sShortName
+    def getName(self):
+        return self.sShortName
 
     def getSN(self):
-        sRet='S/N not known'
+        sRet = 'S/N not known'
         if self.oSoup:
             try:
                 sRet = self.oSoup.serialnumber.string
@@ -964,9 +959,9 @@ class EVA_DiskDriveClass(DASD_Class):
                 'position': self.getPosition(),
                 'RPM': self.getRPM(),
                 'size': self.getSize()}
-    
+
 #
-# some checks when this module isn't imported but is called with python directly 
+# some checks when this module isn't imported but is called with python directly
 #
 if __name__ == '__main__':
     oLog.error("hpeva_sssu: This is a library, not an executable")
