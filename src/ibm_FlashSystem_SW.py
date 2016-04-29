@@ -7,6 +7,7 @@ import json
 import itertools as it
 from redis import StrictRedis
 # import re
+from collections import OrderedDict
 import inventoryObjects as inv
 # CONSTANTS from a separate module
 from local import CACHE_TIME, REDIS_ENCODING, DEFAULT_SSH_PORT
@@ -93,8 +94,9 @@ class IBMFlashSystem(inv.ClassicArrayClass):
                          "shelf-names": self._lsShelfNames,
                          "disk-names":  self._lsDiskNames}
         # fill the real parameters
-        self.__FillNodes__()
-        self.__FillDisks__()
+        self.__FillNodes2__()
+        self.__FillEnclosures__()
+        self.__FillDisks2__()
         self.__FillArrayParams__()
         return
 
@@ -161,6 +163,37 @@ class IBMFlashSystem(inv.ClassicArrayClass):
                 oConn.close()
         return sRet
 
+    def __dsFromArray__(self, lsCommands):
+        """
+        Connects to array, runs a SERIES of commands and return results as a dictionary
+        with commands as keys and returned output as values
+        """
+        dData = OrderedDict({})
+        sRedisKey = self.sRedisKeyPrefix + "__dsFromArray__"
+        try:
+            oConn = MySSH.MySSHConnection(self.sIP, DEFAULT_SSH_PORT, self.oAuthData)
+            for sCmd in lsCommands:
+                # first try to lookup data in Redis, next ask array itself
+                try:
+                    sData = self.oRedisConnection.hget(sRedisKey, sCmd).decode(REDIS_ENCODING)
+                except AttributeError:
+                    try:
+                        # oLog.debug('__dsFromArray__: Command to run: {}'.format(sCmd))
+                        sData = oConn.fsRunCmd(sCmd)
+                        # oLog.debug('__dsFromArray__: output: {}'.format(sData))
+                    except Exception as e:
+                        oLog.error('__dsFromArray__: failed to exec command')
+                        oLog.error('__dsFromArray__: Additional info: ' + str(e))
+                        raise IBMFSException
+                    self.oRedisConnection.hset(sRedisKey, sCmd, sData.encode(REDIS_ENCODING))
+                    self.oRedisConnection.expire(sRedisKey, self.iRedisTimeout)
+                dData[sCmd] = sData
+            oConn.close()
+        except Exception as e:
+            oLog.error('__dsFromArray__: SSH failed on login')
+            oLog.debug('__dsFromArray__: Additional info: ' + str(e))
+        return dData
+
     def __FillArrayParams__(self):
         # common information (name and model)
         lCommonParams = self.__sFromArray__('lssystem -delim {}'.format(SEP)).split('\n')
@@ -189,9 +222,9 @@ class IBMFlashSystem(inv.ClassicArrayClass):
                 oEnclTable._sGetField('product_MTM'),
                 oEnclTable._sGetField('serial_number'),
                 oEnclTable._sGetField('drive_slots'),
-                oEnclTable._sGetField('online_PSUs')))
+                oEnclTable._sGetField('online_PSUs'), self))
         # oLog.debug('Encl. header: ' + str(sHeader))
-        # oLog.debug('Encl. info list: ' + str(lEnclInfo))
+        oLog.debug('Encl. info list: ' + str(lEnclInfo))
         return
 
     def __FillNodes__(self):
@@ -239,6 +272,62 @@ class IBMFlashSystem(inv.ClassicArrayClass):
                 lAdapters, iMem))
         return
 
+    def __FillNodes2__(self):
+        """Fills nodes information, updated version (with a sequence of command from one connection"""
+        lsNodesInfo = [l for l in self.__sFromArray__('lsnode -delim {}'.format(SEP)).split('\n')
+                       if len(l.strip()) > 0]
+        sHdr = lsNodesInfo.pop(0)
+        self.iNodes = len(lsNodesInfo)
+        oNodesTable = TabbedValues(sHdr)
+        lCmds = []
+        lNodes = []
+        for sNodeData in lsNodesInfo:
+            oNodesTable._ParseLine(sNodeData)
+            iNum = oNodesTable._sGetField('id')
+            lNodes.append(int(iNum))
+            lCmds.append('lsnode -delim {0} {1}'.format(SEP, iNum))
+            lCmds.append('lsnodehw -delim {0} {1}'.format(SEP, iNum))
+        dArrayReplies = self.__dsFromArray__(lCmds)
+
+        self.lControllers = []
+        for iNodeNum in lNodes:
+            iPortsCount = 0
+            lAdapters = []
+            lCPUs = []
+            sCmd1 = 'lsnode -delim {0} {1}'.format(SEP, iNum)
+            sCmd2 = 'lsnodehw -delim {0} {1}'.format(SEP, iNum)
+            sReply = dArrayReplies[sCmd1]
+            lsThisNodeData = [l for l in sReply.split("\n") if len(l.strip()) > 0]
+            for sKey, sVal in (l.split(SEP) for l in lsThisNodeData):
+                if sKey == 'port_id':
+                    iPortsCount += 1
+                elif sKey == 'name':
+                    sNodeName = sVal
+                elif sKey == 'product_mtm':
+                    sMTM = sVal
+                elif sKey == 'panel_name':
+                    sNodeSN = sVal
+                else:
+                    pass
+            sReply = dArrayReplies[sCmd2]
+            lsThisNodeData = [l for l in sReply.split("\n") if len(l.strip()) > 0]
+            for sKey, sVal in (l.split(SEP) for l in lsThisNodeData if SEP in l):
+                if sKey == 'cpu_count':
+                    self.iCPUs = int(sVal)
+                elif sKey == 'cpu_actual':
+                    lCPUs.append(sVal)
+                elif sKey == 'adapter_actual':
+                    lAdapters.append(sVal)
+                elif sKey == 'memory_actual':
+                    iMem = int(sVal)
+                else:
+                    pass
+            self.lControllers.append(IBMFlashNode(
+                iNodeNum, sNodeName, sNodeSN, iPortsCount, sMTM, lCPUs,
+                lAdapters, iMem))
+            # end for
+        return
+
     def __FillDisks__(self):
         """Fills list of disks"""
         sDiskIDs = set([])
@@ -257,6 +346,35 @@ class IBMFlashSystem(inv.ClassicArrayClass):
             for sKey, sVal in [l.split(SEP) for l in lsOut if SEP in l]:
                 dssDiskData[sKey] = sVal
             # make the disk object
+            sPosition = "Enclosure {}, slot {}".format(dssDiskData['enclosure_id'], dssDiskData['slot_id'])
+            self.lDisks.append(IBMFlashCard(sId, sPosition, dssDiskData))
+        return
+
+    def __FillDisks2__(self):
+        """Fills list of disks, improved version"""
+        sDiskIDs = set([])
+        dCmds = {}
+        dSummary = {}
+        lAllDisks = [l.strip() for l in
+                     self.__sFromArray__('lsdrive -bytes -delim {}'.format(SEP)).split('\n')
+                     if len(l.strip()) > 0]
+        sHdr = lAllDisks.pop(0)
+        oDisksTable = TabbedValues(sHdr)
+        # make list of disks and commands querying disks parameters
+        for sDsk in lAllDisks:
+            oLog.debug("__FillDisks2__: disk info {}".format(sDsk))
+            dssDiskData = oDisksTable._dssParseToDict(sDsk)
+            sId = dssDiskData['id']
+            sDiskIDs.add(sId)
+            dSummary[sId] = dssDiskData
+            dCmds[sId] = "lsdrive -bytes -delim {0} {1}".format(SEP, sId)
+        # execute commands on the array
+        dReplies = self.__dsFromArray__(dCmds.values())
+        for sId in sDiskIDs:
+            lsReply = dReplies[dCmds[sId]].split('\n')
+            dssDiskData = dSummary[sId]
+            for sKey, sVal in [l.split(SEP) for l in lsReply if SEP in l]:
+                dssDiskData[sKey] = sVal
             sPosition = "Enclosure {}, slot {}".format(dssDiskData['enclosure_id'], dssDiskData['slot_id'])
             self.lDisks.append(IBMFlashCard(sId, sPosition, dssDiskData))
         return
@@ -307,17 +425,31 @@ class IBMFlashSystem(inv.ClassicArrayClass):
 
 class IBMFlashEnclosure(inv.DiskShelfClass):
     """IBM FlashSystem enclosure class"""
-    def __init__(self, iNum, sMTM, sSN, iSlots, iPSUs):
+    def __init__(self, iNum, sMTM, sSN, iSlots, iPSUs, oArray):
         self.iNum = iNum
         self.sType, self.sModel = sMTM.split('-')
         self.sSN = sSN
-        self.iDiskSlots = iSlots
         self.iNPwr = iPSUs
+        # check free/occupied slots information
+        lSlotsData = [l for l in
+                      oArray.__sFromArray__("lsenclosureslot -delim , {}".format(self.iNum)).split('\n')
+                      if len(l.strip()) > 0]
+        oLog.debug("IBMFlashEnclosure constructor: lSlotsData: {}".format(str(lSlotsData)))
+        sSlotsHdr = lSlotsData.pop(0)
+        oSlotsTable = TabbedValues(sSlotsHdr)
+        iTotalSlots = len(lSlotsData)
+        self.iDiskSlots = iTotalSlots
+        iOccupiedSlots = 0
+        for sLine in lSlotsData:
+            oSlotsTable._ParseLine(sLine)
+            if oSlotsTable._sGetField('drive_present') == 'yes':
+                iOccupiedSlots += 1
         self.dQueries = {'name':       lambda: 'Enclosure {}'.format(self.iNum),
                          'type':       lambda: self.sType,
                          'model':      lambda: self.sModel,
                          'sn':         lambda: self.sSN,
-                         'disks':      lambda: self.iDiskSlots,
+                         'disks':      lambda: iOccupiedSlots,
+                         'disk-slots': lambda: self.iDiskSlots,
                          'ps-amount':  lambda: self.iNPwr}
         return
 
@@ -343,7 +475,7 @@ class IBMFlashNode(inv.ControllerClass):
         lAds = zip(it.count(1), lAdapters)
         self.sAdapters = "\n".join(["{}: {}".format(n, s) for n, s in lAds])
 
-        self.dQueries = {'name':   lambda: self.sName,
+        self.dQueries = {'name':   lambda: str(self.iNum),
                          'sn':     lambda: self.sSN,
                          'ports':  lambda: self.iPorts,
                          'type':   lambda: self.sType,

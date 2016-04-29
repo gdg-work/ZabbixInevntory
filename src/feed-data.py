@@ -265,6 +265,7 @@ def _ProcessArgs(oArgs, oLog):
         except Exception as e:
             oLog.error('Exception when processing array: ' + sArrName)
             oLog.error(str(e))
+            traceback.print_exc()
             continue
     return
 
