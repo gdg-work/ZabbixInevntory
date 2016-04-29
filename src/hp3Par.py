@@ -503,7 +503,7 @@ class HP3Par_Disk(DASD_Class):
         self.iSize = iSize_MB // 1024
         self.sCagePos = self.__sDecodeCagePos__(sCagePos)
         self.dQueries = {'name':      lambda: self.sID,
-                         'SN':        lambda: self.sSN,
+                         'sn':        lambda: self.sSN,
                          'type':      lambda: self.sType,
                          'model':     lambda: self.sModel,
                          'size':      lambda: self.iSize,
