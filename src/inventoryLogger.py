@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
-import logging, logging.config
+import logging
+import logging.config
 import yaml
 
 #
@@ -39,8 +40,11 @@ dLoggingConfig = yaml.load("""
         hpeva_sssu:
             level: INFO
             handlers: [ console, logfile ]
+        ibm_FlashSystem_SW:
+            level: INFO
+            handlers: [ console, logfile ]
         ibm_FAStT:
-            level: DEBUG
+            level: INFO
             handlers: [ console, logfile ]
         zabbixInterface:
             level: INFO

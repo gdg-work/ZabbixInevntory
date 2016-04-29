@@ -11,7 +11,9 @@ import json
 import argparse as ap
 import hpeva_sssu as eva
 import hp3Par
+import MySSH
 import ibm_FAStT as ibmds
+import ibm_FlashSystem_SW as IbmFS
 import random
 import string
 import re
@@ -131,7 +133,7 @@ def _o3ParConnect(dArrayInfo, oRedis):
     ip = dArrayInfo['ip']
     user = dArrayInfo['access']['user']
     password = dArrayInfo['access']['pass']
-    oAuth = hp3Par.AuthData(user, bUseKey=False, sPasswd=password)
+    oAuth = MySSH.AuthData(user, bUseKey=False, sPasswd=password)
     sysname = dArrayInfo['access']['system']
     return hp3Par.HP3Par(ip, oAuth, sysname, oRedisConn=oRedis)
 
@@ -139,6 +141,16 @@ def _o3ParConnect(dArrayInfo, oRedis):
 def _oIBM_DS_Connect(dArrayInfo):
     sIp = dArrayInfo['ip']
     return ibmds.IBM_DS(sIp)
+
+
+def _oIBM_FlashSys_Connect(dArrayInfo, oRedis):
+    ip = dArrayInfo['ip']
+    user = dArrayInfo['access']['user']
+    password = dArrayInfo['access']['pass']
+    sysname = dArrayInfo['access']['system']
+    oAuth = MySSH.AuthData(user, bUseKey=False, sPasswd=password)
+    oLog.debug('creating IBM FlashSystem object for array {}'.format(sysname))
+    return IbmFS.IBMFlashSystem(ip, oAuth, sysname, oRedis)
 
 
 def _oConnect2Array(sArrayName, dArrayInfo, oRedis):
@@ -150,6 +162,8 @@ def _oConnect2Array(sArrayName, dArrayInfo, oRedis):
         oRet = _o3ParConnect(dArrayInfo, oRedis)
     elif dArrayInfo['type'] == 'IBM_DS':
         oRet = _oIBM_DS_Connect(dArrayInfo)
+    elif dArrayInfo['type'] == 'FlashSys':
+        oRet = _oIBM_FlashSys_Connect(dArrayInfo, oRedis)
     else:
         oLog.error('Array type {} is unsupported yet'.format(dArrayInfo['type']))
     return oRet
@@ -236,7 +250,7 @@ def _GetArrayData(sArrName, oArray, oRedis, dZbxParams):
     return
 
 
-def _ProcessArgs(oArgs):
+def _ProcessArgs(oArgs, oLog):
     """ Process the CLI arguments and connect to Redis """
     oRedis = _oConnect2Redis(oArgs.redis)
     oRedis.cacheTime = oArgs.redis_ttl
@@ -245,8 +259,13 @@ def _ProcessArgs(oArgs):
     dArrayInfo = _dGetArrayInfo(oRedis)
     for sArrName in dArrayInfo:
         dArrParams = dArrayInfo[sArrName]
-        oArray = _oConnect2Array(sArrName, dArrParams, oRedis)
-        _GetArrayData(sArrName, oArray, oRedis, dZbxInfo)
+        try:
+            oArray = _oConnect2Array(sArrName, dArrParams, oRedis)
+            _GetArrayData(sArrName, oArray, oRedis, dZbxInfo)
+        except Exception as e:
+            oLog.error('Exception when processing array: ' + sArrName)
+            oLog.error(str(e))
+            continue
     return
 
 
@@ -266,9 +285,10 @@ if __name__ == "__main__":
         oLog = logging.getLogger('FeedData')
         oLog.info('Starting Zabbix-Feeder program')
         oParser = _oGetCLIParser()
-        _ProcessArgs(oParser)
+        _ProcessArgs(oParser, oLog)
     except Exception as e:
         oLog.error("Fatal error: {}".format(str(e)))
         traceback.print_exc()
         iRetCode = 1
+    oLog.info('Zabbix-Feeder: End of job')
     exit(iRetCode)

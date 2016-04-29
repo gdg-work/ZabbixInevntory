@@ -119,19 +119,19 @@ class IBMFlashSystem(inv.ClassicArrayClass):
     def _lsControllerNames(self):
         lRet = []
         for oCtrl in self.lControllers:
-            lRet.append(oCtrl.dQueries['name'])
+            lRet.append(oCtrl.dQueries['name']())
         return lRet
 
     def _lsShelfNames(self):
         lRet = []
         for oEnc in self.lEnclosures:
-            lRet.append(oEnc.dQueries('name'))
+            lRet.append(oEnc.dQueries['name']())
         return lRet
 
     def _lsDiskNames(self):
         lRet = []
         for oDsk in self.lDisks:
-            lRet.append(oDsk.dQueries['name'])
+            lRet.append(oDsk.dQueries['name']())
         return lRet
 
     def __sFromArray__(self, sCommand):

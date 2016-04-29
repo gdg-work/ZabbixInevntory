@@ -44,11 +44,6 @@ class IBM_DS(invobj.ClassicArrayClass):
         self.lControllers = []
         self.lDisks = []
         self.lEnclosures = []
-        #
-        # XXX IRL, here will be a call to external utility (SMcli) with a parameter: IP address of
-        # the array. All the data will be in SMcli output as a file (will be converted to a list of
-        # strings)
-        #
         try:
             lCommand = [SMCLI_PATH, sArrayAddr, '-c', 'show storagesubsystem;']
             sData = check_output(lCommand, stderr=STDOUT, universal_newlines=True, shell=False)

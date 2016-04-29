@@ -50,7 +50,7 @@ class GeneralZabbix:
                 oLog.debug("host ID of array: {}".format(self.sHostID))
             else:
                 oLog.error("Invalid or non-existent host in Zabbix")
-                raise ZabInterfaceException("This host () isn't known to Zabbix".format(sArrayName))
+                raise ZabInterfaceException("This host '{}' isn't known to Zabbix".format(sArrayName))
         except ZabbixAPIException as e:
             oLog.error("Cannot connect to Zabbix API")
             oLog.error(str(e))

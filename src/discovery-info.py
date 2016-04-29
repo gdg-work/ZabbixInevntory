@@ -26,7 +26,7 @@ STORAGE_OPS = set(["ctrl-names",    # list of controllers' names
 
 ARRAYS_SUPPORTED = set(["EVA",
                         "3Par",
-                        #     "Storwize",
+                        "FlashSys",
                         #     "XIV",
                         "IBM_DS"
                         ])
@@ -84,6 +84,10 @@ def _SendArrayInfo(oRedis, oArgs):
                                   'system': oArgs.system}
     elif oArgs.type == "IBM_DS":
         dArrayAccess['access'] = {}
+    elif oArgs.type == "FlashSys":
+        dArrayAccess['access'] = {'user':   oArgs.user,
+                                  'pass':   oArgs.password,
+                                  'system': oArgs.system}
     else:
         pass
 
