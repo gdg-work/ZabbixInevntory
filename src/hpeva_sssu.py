@@ -702,8 +702,9 @@ class EVA_ControllerClass(ControllerClass):
             "type":       self.getType,
             "model":      self.getModel,
             "cpu-cores":  self.getCPUCores,
-            "port-names": self.getPortNames,
             "port-count": self.getPortCount}
+
+    # "port-names": self.getPortNames,
 
     def _dGetDataAsDict(self):
         # name, type, model, SN, position, RPM, size
