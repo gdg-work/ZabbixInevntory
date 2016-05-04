@@ -56,8 +56,9 @@ class XIVError(Exception):
 
 
 class IBM_XIV_Storage(inv.ScaleOutStorageClass):
-    def __init__(self, sName, sUser, sPass, oRedis):
+    def __init__(self, sIP, sUser, sPass, oRedis, sName):
         self.sRedisPrefix = REDIS_PREFIX + "XIV::" + sName + "::"
+        self.sIP = sIP
         self.sSysName = sName
         self.sUser = sUser
         self.sPass = sPass
@@ -74,6 +75,7 @@ class IBM_XIV_Storage(inv.ScaleOutStorageClass):
         self.oFCs = IBM_XIV_FCPortsList(self)
         self.dQueries = {"nodes-list":  self.oNodesList._lsListNames,
                          "switch-list": self.oSwitches._lsListNames,
+                         "disk-names":  self.oDisksList._lsListNames,
                          "ups-list":    self.oUPSs._lsListNames,
                          }
         return
@@ -287,25 +289,9 @@ class IBM_XIV_UPS_List(XIV_Componens_Collection):
         return
 
 
+#
 # ============================== Components ==============================
 #
-class XIV_Disk(inv.DASD_Class):
-    """Physical disk in XIV"""
-    def __init__(self, sID, dParams, oNode):
-        # self.sSN = dParams["Serial"]
-        super().__init__(sID, dParams["Serial"])
-        self.sID = sID
-        self.iSizeKB = int(dParams['Size'])
-        self.sSizeH = dParams['Capacity (GB)']
-        self.sModel = dParams['Model']
-        self.dQueries = {"name": lambda: self.sID,
-                         "type": self.getType}
-        return
-
-    def __repr__(self):
-        return "Drive: ID: {}, size:{}, mod:{}".format(self.sID, self.sSizeH, self.sModel)
-
-
 class XIV_Node(inv.NodeClass):
     """XIV node"""
     def __init__(self, sId, dParams):
@@ -325,6 +311,14 @@ class XIV_Node(inv.NodeClass):
         self.iRAM_MBs = 0
         self.lPSUs = []
         self.oCF = None
+        self.dQueries = {"name":       lambda: self.sID,
+                         "disks":      lambda: len(self.lDisks),
+                         "disk-bays":  lambda: self.iDiskBaysCount,
+                         "ps-amount":  lambda: self.iPwrSupplies,
+                         "disk-names": self._lsGetDiskNames,
+                         "fc-ports":   lambda: self.iFCPorts,
+                         "eth-ports":  lambda: self.iEthPorts
+                         }
         return
 
     def __repr__(self):
@@ -372,6 +366,27 @@ class XIV_Node(inv.NodeClass):
         self.iPwrSupplies += 1
         self.lPSUs.append(oPSU)
         return
+
+    def _lsGetDiskNames(self):
+        """return a list of this node disks"""
+        return [d.getID() for d in self.lDisks]
+
+
+class XIV_Disk(inv.DASD_Class):
+    """Physical disk in XIV"""
+    def __init__(self, sID, dParams, oNode):
+        # self.sSN = dParams["Serial"]
+        super().__init__(sID, dParams["Serial"])
+        self.sID = sID
+        self.iSizeKB = int(dParams['Size'])
+        self.sSizeH = dParams['Capacity (GB)']
+        self.sModel = dParams['Model']
+        self.dQueries = {"name": lambda: self.sID,
+                         "type": self.getType}
+        return
+
+    def __repr__(self):
+        return "Drive: ID: {}, size:{}, mod:{}".format(self.sID, self.sSizeH, self.sModel)
 
 
 class XIV_CompFlash:
@@ -474,7 +489,7 @@ class XIV_IB_Switch(ComponentClass):
 if __name__ == '__main__':
     oRedis = StrictRedis()
     oXiv = IBM_XIV_Storage("10.44.0.60", 'zabbix', 'AmtZ204sx6', oRedis)
-    print(str(oXiv.oNodesList))
+    # print(str(oXiv.oNodesList))
     print(oXiv.dQueries["nodes-list"]())
     print(oXiv.dQueries["switch-list"]())
     print(oXiv.dQueries["ups-list"]())

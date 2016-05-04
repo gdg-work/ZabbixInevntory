@@ -14,6 +14,7 @@ import hp3Par
 import MySSH
 import ibm_FAStT as ibmds
 import ibm_FlashSystem_SW as IbmFS
+import ibm_XIV as xiv
 import random
 import string
 import re
@@ -29,9 +30,12 @@ REDIS_PREFIX =    "ArraysDiscovery."
 ZBX_CONNECT_PFX = ""
 QUERY_PFX =       ""
 REDIS_ENCODING =  "UTF-8"
-D_KEYS = {'ctrl-names':  'LIST_OF_CONTROLLER_NAMES',
-          'shelf-names': 'LIST OF DISK ENCLOSURE NAMES',
-          'disk-names':  'LIST OF DISK NAMES'}
+D_KEYS = {'ctrl-names':    'LIST_OF_CONTROLLER_NAMES',
+          'shelf-names':   'LIST OF DISK ENCLOSURE NAMES',
+          'disk-names':    'LIST OF DISK NAMES',
+          "node-names":    'LIST OF NODE NAMES',
+          "ups-names":     'LIST OF UPSes',
+          "switch-names":  'LIST OF SWITCHES'}
 RANDOM_ID_CHARS = string.ascii_uppercase + string.ascii_lowercase + string.digits
 RE_DISK = re.compile(r'^Drive\s+')
 RE_ENCLOSURE = re.compile(r'^DiskShelf\s+')
@@ -153,6 +157,15 @@ def _oIBM_FlashSys_Connect(dArrayInfo, oRedis):
     return IbmFS.IBMFlashSystem(ip, oAuth, sysname, oRedis)
 
 
+def _oIBM_XIV_Connect(dArrayInfo, oRedis):
+    ip = dArrayInfo['ip'],
+    user = dArrayInfo['access']['user']
+    password = dArrayInfo['access']['pass']
+    sysname = dArrayInfo['access']['system']
+    oLog.debug('Creating XIV object for array {}'.format(ip))
+    return xiv.IBM_XIV_Storage(ip, user, password, oRedis, sysname)
+
+
 def _oConnect2Array(sArrayName, dArrayInfo, oRedis):
     """make a connection to array, returns array object"""
     oRet = None
@@ -164,6 +177,8 @@ def _oConnect2Array(sArrayName, dArrayInfo, oRedis):
         oRet = _oIBM_DS_Connect(dArrayInfo)
     elif dArrayInfo['type'] == 'FlashSys':
         oRet = _oIBM_FlashSys_Connect(dArrayInfo, oRedis)
+    elif dArrayInfo['type'] == 'XIV':
+        oRet = _oIBM_XIV_Connect(dArrayInfo, oRedis)
     else:
         oLog.error('Array type {} is unsupported yet'.format(dArrayInfo['type']))
     return oRet
@@ -218,6 +233,7 @@ def _GetArrayParameters(sArrayName, oArray, dZbxInfo):
 
 
 def _GetArrayData(sArrName, oArray, oRedis, dZbxParams):
+    # XXX проверка на запрос узлов, UPS-ов и свитчей XXX
     sRedisArrInfoHashName = REDIS_PREFIX + "ArrayKeys"
     sArrayKey = REDIS_PREFIX + sArrName + "." + _sRandomString(8)
     oRedis.hset(sRedisArrInfoHashName, sArrName, sArrayKey)

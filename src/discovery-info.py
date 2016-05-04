@@ -22,18 +22,24 @@ from redis import StrictRedis, RedisError
 STORAGE_OPS = set(["ctrl-names",    # list of controllers' names
                    "shelf-names",   # list of disk enclosures' names
                    "disk-names",    # list of disks' names (ID's)
+                   "node-names",    # list of nodes (Scale-Out arrays)
+                   "ups-names",     # list of UPSes (XIV)
+                   "switch-names"   # list of IB switches (XIV)
                    ])
 
 ARRAYS_SUPPORTED = set(["EVA",
                         "3Par",
                         "FlashSys",
-                        #     "XIV",
+                        "XIV",
                         "IBM_DS"
                         ])
 REDIS_PREFIX = "ArraysDiscovery."
-D_KEYS = {'ctrl-names':  'LIST_OF_CONTROLLER_NAMES',
-          'shelf-names': 'LIST OF DISK ENCLOSURE NAMES',
-          'disk-names':  'LIST OF DISK NAMES'}
+D_KEYS = {'ctrl-names':      'LIST_OF_CONTROLLER_NAMES',
+          'shelf-names':     'LIST OF DISK ENCLOSURE NAMES',
+          'disk-names':      'LIST OF DISK NAMES',
+          "node-names":      'LIST OF NODE NAMES',
+          "ups-names":       'LIST OF UPSes',
+          "switch-names":    'LIST OF SWITCHES'}
 REDIS_ENCODING = 'utf-8'
 
 
@@ -84,6 +90,10 @@ def _SendArrayInfo(oRedis, oArgs):
                                   'system': oArgs.system}
     elif oArgs.type == "IBM_DS":
         dArrayAccess['access'] = {}
+    elif oArgs.type == "XIV":
+        dArrayAccess['access'] = {'user':   oArgs.user,
+                                  'pass':   oArgs.password,
+                                  'system': oArgs.system}
     elif oArgs.type == "FlashSys":
         dArrayAccess['access'] = {'user':   oArgs.user,
                                   'pass':   oArgs.password,
