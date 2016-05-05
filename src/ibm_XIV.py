@@ -11,11 +11,10 @@ place given for this component in the system.  For example: "1:Disk:2:10".
 """
 
 import inventoryObjects as inv
-from inventoryObjects import ComponentClass
 from collections import OrderedDict
 from local import XCLI_PATH, REDIS_ENCODING
 from subprocess import check_output, CalledProcessError, STDOUT
-from redis import StrictRedis
+# from redis import StrictRedis
 import csv
 import os
 import logging
@@ -25,7 +24,7 @@ REDIS_PREFIX = "pyzabbix::FlashSys::"
 FAKE_HOME = '/tmp/'
 
 
-oLog = logging.getLogger('__name__')
+oLog = logging.getLogger(__name__)
 
 
 # -- Helper functions --
@@ -73,10 +72,10 @@ class IBM_XIV_Storage(inv.ScaleOutStorageClass):
         self.oMMs = IBM_XIV_MaintenanceModulesList(self)
         self.oNICs = IBM_XIV_NICsList(self)
         self.oFCs = IBM_XIV_FCPortsList(self)
-        self.dQueries = {"nodes-list":  self.oNodesList._lsListNames,
-                         "switch-list": self.oSwitches._lsListNames,
-                         "disk-names":  self.oDisksList._lsListNames,
-                         "ups-list":    self.oUPSs._lsListNames,
+        self.dQueries = {"node-names":   self.oNodesList._lsListNames,
+                         "switch-names": self.oSwitches._lsListNames,
+                         "disk-names":   self.oDisksList._lsListNames,
+                         "ups-names":    self.oUPSs._lsListNames,
                          }
         return
 
@@ -101,6 +100,50 @@ class IBM_XIV_Storage(inv.ScaleOutStorageClass):
         lRet = sLine.split('\n')
         return lRet
 
+    def _dGetArrayInfoAsDict(self, ssKeys):
+        """
+        Array-wide parameters as a dictionary.  Parameter -- a set of
+        keys/requests.
+        Returns: a dictionary {key:value}
+        """
+        dRet = {}
+        for sKey in ssKeys:
+            if sKey in self.dQueries:
+                dRet[sKey] = self.dQueries[sKey]()
+        return dRet
+
+    def _ldGetDisksAsDicts(self):
+        """ Return disk data as a list of Python dictionaries with fields:
+        name, SN, type, model, size, position
+        """
+        ldRet = []
+        try:
+            ldRet = self.oDisksList._ldGetData()
+        except Exception as e:
+            oLog.warning("Exception when filling a disk parameters list")
+            oLog.debug("Exception: " + str(e))
+        return ldRet
+
+    def _ldGetNodesAsDicts(self):
+        """Return nodes' information as a list of dicts"""
+        ldRet = []
+        try:
+            ldRet = self.oNodesList._ldGetData()
+        except Exception as e:
+            oLog.warning("Exception when filling a disk parameters list")
+            oLog.warning("Exception: " + str(e))
+        return ldRet
+
+    def _ldGetSwitchesAsDicts(self):
+        """Return nodes' information as a list of dicts"""
+        ldRet = []
+        try:
+            ldRet = self.oSwitches._ldGetData()
+        except Exception as e:
+            oLog.warning("Exception when filling a disk parameters list")
+            oLog.warning("Exception: " + str(e))
+        return ldRet
+
 
 class XIV_Componens_Collection(OrderedDict):
     def __init__(self, oSystem, sCommandLine):
@@ -109,6 +152,7 @@ class XIV_Componens_Collection(OrderedDict):
         self.oSystem = oSystem
         self.lData = oSystem._lsRunCommand(sCommandLine)
         if self.lData:
+            oLog.debug("XIV_Componens_Collection constructor: command output is " + str(self.lData))
             self.oCSV = csv.DictReader(self.lData,  delimiter=',', quotechar='"')
         else:
             raise XIVError("No output from a command")
@@ -122,6 +166,13 @@ class XIV_Componens_Collection(OrderedDict):
     def _lsListNames(self):
         """return a copy of Component IDs list"""
         return list(self.lComponentIDs)
+
+    def _ldGetData(self):
+        """return collection's data as a list of dictionaries"""
+        ldRet = []
+        for oObj in self.dComponents.values():
+            ldRet.append(oObj._dGetDataAsDict())
+        return ldRet
 
 
 class IBM_XIV_DisksList(XIV_Componens_Collection):
@@ -148,6 +199,7 @@ class IBM_XIV_NodesList(XIV_Componens_Collection):
         sCmd = 'module_list -t ' + sFields
         super().__init__(oSystem, sCmd)
         for dNodeData in self.oCSV:
+            oLog.debug("IBM_XIV_NodesList constructor: dNodeData: " + str(dNodeData))
             sID = dNodeData['Component ID']
             self.lComponentIDs.append(sID)
             self.dComponents[sID] = XIV_Node(sID, dNodeData)
@@ -292,7 +344,22 @@ class IBM_XIV_UPS_List(XIV_Componens_Collection):
 #
 # ============================== Components ==============================
 #
-class XIV_Node(inv.NodeClass):
+
+class XIV_Component(inv.ComponentClass):
+    def __init__(self, sID, sSN=""):
+        self.sID = sID
+        self.sSN = sSN
+        self.dQueries = {}
+
+    def _dGetDataAsDict(self):
+        # name, type, model, etc
+        dRet = {}
+        for name, fun in self.dQueries.items():
+            dRet[name] = fun()
+        return dRet
+
+
+class XIV_Node(XIV_Component):
     """XIV node"""
     def __init__(self, sId, dParams):
         """Node constructor. 2nd parameter is a dictionary of data: type, disk bays amount,
@@ -372,7 +439,7 @@ class XIV_Node(inv.NodeClass):
         return [d.getID() for d in self.lDisks]
 
 
-class XIV_Disk(inv.DASD_Class):
+class XIV_Disk(XIV_Component):
     """Physical disk in XIV"""
     def __init__(self, sID, dParams, oNode):
         # self.sSN = dParams["Serial"]
@@ -381,15 +448,18 @@ class XIV_Disk(inv.DASD_Class):
         self.iSizeKB = int(dParams['Size'])
         self.sSizeH = dParams['Capacity (GB)']
         self.sModel = dParams['Model']
-        self.dQueries = {"name": lambda: self.sID,
-                         "type": self.getType}
+        self.dQueries = {"name":  lambda: self.sID,
+                         "id":    lambda: self.sID,
+                         "model": lambda: self.sModel,
+                         "size":  lambda: int(self.iSizeKB // (1024 * 1024)),
+                         "sn":    lambda: self.sSN}
         return
 
     def __repr__(self):
         return "Drive: ID: {}, size:{}, mod:{}".format(self.sID, self.sSizeH, self.sModel)
 
 
-class XIV_CompFlash:
+class XIV_CompFlash(XIV_Component):
     """XIV CF device"""
     def __init__(self, sID, sPN, sSN):
         self.sID = sID
@@ -402,7 +472,7 @@ class XIV_CompFlash:
         return "Compact Flash device, ID: {0:12s}, P/N:{1}, S/N:{2}".format(self.sID, self.sModel, self.sSN)
 
 
-class XIV_NIC(ComponentClass):
+class XIV_NIC(XIV_Component):
     """XIV Network Interface Card (Ethernet)"""
     def __init__(self, sID, sPN, sSN):
         self.sID = sID
@@ -415,7 +485,7 @@ class XIV_NIC(ComponentClass):
         return("NIC: ID {}, PN: {}, SN: {}".format(self.sID, self.sPN, self.sSN))
 
 
-class XIV_MaintenanceModule(ComponentClass):
+class XIV_MaintenanceModule(XIV_Component):
     """Maintenance module. I can't receive any information from XIV abt this module"""
     def __init__(self, sID, sPN, sSN):
         self.sID = sID
@@ -424,7 +494,7 @@ class XIV_MaintenanceModule(ComponentClass):
         return
 
 
-class XIV_DIMM(ComponentClass):
+class XIV_DIMM(XIV_Component):
     """DIMM module"""
     def __init__(self, sID, sSizeMB, sPN, sSN):
         self.sID = sID
@@ -441,7 +511,7 @@ class XIV_DIMM(ComponentClass):
         return self.iSizeMB
 
 
-class XIV_PwrSupply(ComponentClass):
+class XIV_PwrSupply(XIV_Component):
     def __init__(self, sID):
         self.sID = sID
         return
@@ -450,12 +520,12 @@ class XIV_PwrSupply(ComponentClass):
         return "Power supply, ID: {}".format(self.sID)
 
 
-class XIV_UPS(ComponentClass):
+class XIV_UPS(XIV_Component):
     def __init__(sID, sSN, sMFDate, sBtryYear):
         pass
 
 
-class XIV_FCPort(ComponentClass):
+class XIV_FCPort(XIV_Component):
     def __init__(self, sID, dDataDict):
         self.sID = sID
         self.sModel = dDataDict['Model']
@@ -473,10 +543,12 @@ class XIV_FCPort(ComponentClass):
             self.sWWN, self.sModID, self.sModel, self.sSN))
 
 
-class XIV_IB_Switch(ComponentClass):
+class XIV_IB_Switch(XIV_Component):
     def __init__(self, sID, sSerial):
         self.sID = sID
         self.sSN = sSerial
+        self.dQueries = {"name":       lambda: self.sID,
+                         "sn":         lambda: self.sSN}
         pass
 
     def __repr__(self):
@@ -487,9 +559,8 @@ class XIV_IB_Switch(ComponentClass):
 # Testing section
 # --------------------------------------------
 if __name__ == '__main__':
-    oRedis = StrictRedis()
-    oXiv = IBM_XIV_Storage("10.44.0.60", 'zabbix', 'AmtZ204sx6', oRedis)
     # print(str(oXiv.oNodesList))
-    print(oXiv.dQueries["nodes-list"]())
-    print(oXiv.dQueries["switch-list"]())
-    print(oXiv.dQueries["ups-list"]())
+    # rint(oXiv.dQueries["nodes-list"]())
+    # rint(oXiv.dQueries["switch-list"]())
+    # rint(oXiv.dQueries["ups-list"]())
+    pass

@@ -221,6 +221,76 @@ class EnclosureToZabbix(GeneralZabbix):
         return
 
 
+class NodeToZabbix(GeneralZabbix):
+    def __init__(self, sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
+        super().__init__(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
+        self.dOperations = {"name":         _NullFunction,
+                            "sn":           self._oPrepareNodeSN,
+                            "model":        self._oPrepareNodeModel,
+                            "disks":        self._oPrepareNodeDisksAmount,
+                            "fc-ports":     self._oPrepareNodeFCPorts,
+                            "ps-amount":    self._oPrepareNodePSAmount}
+        return
+
+    def _oPrepareNodeSN(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Serial Number', sValue)
+
+    def _oPrepareNodeModel(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Model', sValue)
+
+    def _oPrepareNodeDisksAmount(self, sAppName, iValue):
+        return self._oPrepareZabMetric(sAppName, 'Number of Occupied Slots', iValue)
+
+    def _oPrepareNodeFCPorts(self, sAppName, iValue):
+        return self._oPrepareZabMetric(sAppName, 'Number of FC Ports', iValue)
+
+    def _oPrepareNodePSAmount(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Number of Power Supplies', sValue)
+
+    def _SendNodeInfoToZabbix(self, sArrayName, ldNodesInfo):
+        """send data to Zabbix via API"""
+        loMetrics = []
+        for dNodeInfo in ldNodesInfo:
+            sAppName = 'Node ' + dNodeInfo['name']
+            for sName, oValue in dNodeInfo.items():
+                try:
+                    loMetrics.append(self.dOperations[sName](sAppName, oValue))
+                except KeyError:
+                    # unknown names passed
+                    oLog.info('Skipped unknown Node information item named {} with value {}'.format(
+                        sName, str(oValue)))
+                    pass
+        self._SendMetrics(loMetrics)
+        return
+
+
+class SwitchToZabbix(GeneralZabbix):
+    def __init__(self, sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
+        super().__init__(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
+        self.dOperations = {"name":         _NullFunction,
+                            "sn":           self._oPrepareSwitchSN}
+        return
+
+    def _oPrepareSwitchSN(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Serial Number', sValue)
+
+    def _SendSwitchInfoToZabbix(self, sArrayName, ldSwitchInfo):
+        """send data to Zabbix via API"""
+        loMetrics = []
+        for dSwitchInfo in ldSwitchInfo:
+            sAppName = 'Switch ' + dSwitchInfo['name']
+            for sName, oValue in dSwitchInfo.items():
+                try:
+                    loMetrics.append(self.dOperations[sName](sAppName, oValue))
+                except KeyError:
+                    # unknown names passed
+                    oLog.info('Skipped unknown Switch information item named {} with value {}'.format(
+                        sName, str(oValue)))
+                    pass
+        self._SendMetrics(loMetrics)
+        return
+
+
 class CtrlsToZabbix(GeneralZabbix):
     """Disk controllers to Zabbix interface"""
     def __init__(self, sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):

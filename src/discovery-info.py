@@ -17,6 +17,7 @@ from pathlib import Path
 from inventoryLogger import dLoggingConfig
 from redis import StrictRedis, RedisError
 # from local import CACHE_TIME
+import sys         #  <--- for debugging
 
 # ============================== CONSTANTS ==============================
 STORAGE_OPS = set(["ctrl-names",    # list of controllers' names
@@ -113,20 +114,28 @@ def _SendArrayInfo(oRedis, oArgs):
 
 def _sGetArrayData(oRedis, oArgs):
     ARRINFO_HASHNAME = REDIS_PREFIX + "ArrayKeys"
-    sJson = ''
+    sRet = ''
     try:
         sArrayKey = oRedis.hget(ARRINFO_HASHNAME, oArgs.system)
-        sJson = oRedis.hget(sArrayKey, D_KEYS[oArgs.query])
+        sJson = oRedis.hget(sArrayKey, D_KEYS[oArgs.query]).decode(REDIS_ENCODING)
+        # print("*DBG* JSON from Redis: {}".format(sJson))
         if sJson:
-            sJson = sJson.decode(REDIS_ENCODING)
-            oLog.debug('JSon from Redis: {}'.format(sJson))
+            if sJson == "None":
+                pass
+            else:
+                # sJson = sJson.decode(REDIS_ENCODING)
+                oLog.debug('JSon from Redis: {}'.format(sJson))
+                sRet = sJson
+    except AttributeError:
+        # no data in Redis, nothing to decode
+        pass
     except TypeError:
         # no data in Redis
         pass
     except Exception as e:
         oLog.error(str(e))
         pass
-    return sJson
+    return sRet
 
 
 def _sProcessArgs(oArgs):
@@ -168,7 +177,7 @@ if __name__ == '__main__':
     logging.config.dictConfig(dLoggingConfig)
     oLog = logging.getLogger('Discovery')
     oLog.info('Starting Discovery-info program')
-
+    # oLog.debug(" ".join(sys.argv))
     oParser = _oGetCLIParser()
     sRet = "Not implemented yet"
     iRetCode = -1
