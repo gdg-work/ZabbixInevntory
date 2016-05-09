@@ -17,7 +17,7 @@ import ibm_FlashSystem_SW as IbmFS
 import ibm_XIV as xiv
 import random
 import string
-import re
+# import re
 from inventoryLogger import dLoggingConfig
 import zabbixInterface as zi
 from pathlib import Path
@@ -36,6 +36,7 @@ D_KEYS = {'ctrl-names':   'LIST_OF_CONTROLLER_NAMES',
           "node-names":   'LIST OF NODE NAMES',
           "ups-names":    'LIST OF UPSes',
           "dimm-names":   'LIST OF RAM MODULES',
+          "cf-names":     'LIST OF COMPACT FLASH MODULES',
           "switch-names": 'LIST OF SWITCHES'}
 RANDOM_ID_CHARS = string.ascii_uppercase + string.ascii_lowercase + string.digits
 # RE_DISK =       re.compile(r'^Drive\s+')
@@ -234,14 +235,14 @@ def _lGetListOfSomething(sArrayName, oArray, dZbxInfo, sParamName, oZI_Object):
         lRet = oArray.dQueries[sParamName]()
         ldInfoList = oArray._ldGetInfoDict(sParamName)
         oArZabCon = _fPrepareZbxConnection(oZI_Object, sArrayName, dZbxInfo)
-        oLog.debug('_lGetListOfSomething: ldInfoList = ' + str(ldInfoList))
+        # oLog.debug('_lGetListOfSomething: ldInfoList = ' + str(ldInfoList))
         oArZabCon._SendInfoToZabbix(sArrayName, ldInfoList)
     return lRet
 
 
 def _GetArrayParameters(sArrayName, oArray, dZbxInfo):
     ssItemsToRemove = set(['disk-names', 'ctrl-names', 'shelf-names', 'node-names',
-                           'switch-names', 'ups-names', 'dimm-names'])
+                           'switch-names', 'ups-names', 'dimm-names', 'cf-names'])
     oArZabCon = _fPrepareZbxConnection(zi.ArrayToZabbix, sArrayName, dZbxInfo)
     ssKeys = set(oArray.dQueries.keys())
     # XXX Подумать - возможно, тут лучше выкинуть из множества все элементы, в которых есть
@@ -287,6 +288,9 @@ def _GetArrayData(sArrName, oArray, oRedis, dZbxParams):
 
         lDIMMs = _lGetListOfSomething(sArrName, oArray, dZbxParams, 'dimm-names', zi.DIMMsToZabbix)
         oRedis.hset(sArrayKey, D_KEYS['dimm-names'], _sListOfStringsToJSON(lDIMMs))
+
+        lCFs = _lGetListOfSomething(sArrName, oArray, dZbxParams, 'cf-names', zi.CFtoZabbix)
+        oRedis.hset(sArrayKey, D_KEYS['cf-names'], _sListOfStringsToJSON(lCFs))
     else:
         # get list of controllers and push it to Redis
         lCtrls = _lGetListOfControllers(sArrName, oArray, dZbxParams)

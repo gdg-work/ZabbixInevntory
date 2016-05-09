@@ -25,6 +25,7 @@ STORAGE_OPS = set(["ctrl-names",    # list of controllers' names
                    "disk-names",    # list of disks' names (ID's)
                    "node-names",    # list of nodes (Scale-Out arrays)
                    "ups-names",     # list of UPSes (XIV)
+                   "cf-names",      # list of Compact Flash modules (XIV)
                    "dimm-names",    # list of RAM modules (XIV)
                    "switch-names"   # list of IB switches (XIV)
                    ])
@@ -42,6 +43,7 @@ D_KEYS = {'ctrl-names':   'LIST_OF_CONTROLLER_NAMES',
           "node-names":   'LIST OF NODE NAMES',
           "ups-names":    'LIST OF UPSes',
           "dimm-names":   'LIST OF RAM MODULES',
+          "cf-names":     'LIST OF COMPACT FLASH MODULES',
           "switch-names": 'LIST OF SWITCHES'}
 REDIS_ENCODING = 'utf-8'
 

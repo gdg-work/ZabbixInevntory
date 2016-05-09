@@ -76,6 +76,7 @@ class IBM_XIV_Storage(inv.ScaleOutStorageClass):
                          "switch-names": self.oSwitches._lsListNames,
                          "disk-names":   self.oDisksList._lsListNames,
                          "ups-names":    self.oUPSs._lsListNames,
+                         "cf-names":     self.oCFList._lsListNames,
                          "nodes":        self.oNodesList._iLength,
                          "disks":        self.oDisksList._iLength,
                          "fc-ports":     self.oFCs._iLength,
@@ -111,19 +112,26 @@ class IBM_XIV_Storage(inv.ScaleOutStorageClass):
         if sParamName is 'node-names', returns a result of _ldGetNodeNames() function. So, this
         method is just a dispatcher to simplify calling modules"""
         ldRet = []
-        if sParamName == 'node-names':
-            ldRet = self._ldGetNodesAsDicts()
-        elif sParamName == 'switch-names':
-            ldRet = self._ldGetSwitchesAsDicts()
-        elif sParamName == 'disk-names':
-            ldRet = self._ldGetSwitchesAsDicts()
-        elif sParamName == 'ups-names':
-            ldRet = self._ldGetUPSesAsDicts()
-        elif sParamName == 'dimm-names':
-            ldRet = self._ldGetDIMMsAsDicts()
-        else:
+        try:
+            if sParamName == 'node-names':
+                ldRet = self._ldGetNodesAsDicts()
+            elif sParamName == 'switch-names':
+                ldRet = self._ldGetSwitchesAsDicts()
+            elif sParamName == 'disk-names':
+                ldRet = self._ldGetDisksAsDicts()
+            elif sParamName == 'ups-names':
+                ldRet = self._ldGetUPSesAsDicts()
+            elif sParamName == 'dimm-names':
+                ldRet = self._ldGetDIMMsAsDicts()
+            elif sParamName == 'cf-names':
+                ldRet = self.oCFList._ldGetData()
+            else:
+                ldRet = [{}]
+                oLog.error("_ldGetInfoDict: incorrect parameter")
+        except Exception as e:
+            oLog.warning("Exception when filling components' parameters list")
+            oLog.warning("Exception: " + str(e))
             ldRet = [{}]
-            oLog.error("_ldGetInfoDict: incorrect parameter")
         return ldRet
 
     def _dGetArrayInfoAsDict(self, ssKeys):
@@ -443,7 +451,7 @@ class XIV_Node(XIV_Component):
                          "model":      lambda: self.sModel,
                          "type":       lambda: self.sType,
                          "eth-ports":  lambda: self.iEthPorts,
-                         "memoryGBs":  lambda: self.iRAM_GBs
+                         "memory":     lambda: self.iRAM_GBs
                          }
         return
 
@@ -532,7 +540,16 @@ class XIV_CompFlash(XIV_Component):
         # Node number is 3rd colon-separated field in the component ID
         self.sModel = sPN
         self.sSN = sSN
+        self.dQueries = {"name":     lambda: self.sID,
+                         "sn":       lambda: self.sSN,
+                         "model":    lambda: self.sModel,
+                         "position": self._sGetPos}
         return
+
+    def _sGetPos(self):
+        """return module number based on ID"""
+        lFields = self.sID.split(':')
+        return("Node {0}".format(lFields[2]))
 
     def __repr__(self):
         return "Compact Flash device, ID: {0:12s}, P/N:{1}, S/N:{2}".format(self.sID, self.sModel, self.sSN)

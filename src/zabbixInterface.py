@@ -16,6 +16,7 @@ RE_NODE =       re.compile(r'^Node\s')
 RE_SWITCH =     re.compile(r'^Switch\s')
 RE_UPS =        re.compile(r'^UPS\s')
 RE_DIMM =       re.compile(r'^DIMM\s')
+RE_CF =         re.compile(r'^Compact Flash ')
 
 
 # THE simplest function, can take any number of arguments
@@ -94,8 +95,6 @@ class GeneralZabbix:
                          'filter': dFilter,
                          'sort': 'name'}
             dResult = self.oZapi.do_request('item.get', dItem2Get)
-            if self.sHostID == '10173':
-                oLog.debug("_oPrepareZabMetric -- result of item.get(): {}".format(dResult['result']))
             try:
                 sKey = dResult['result'][0]['key_']
                 # now we have key, so we can prepare data to Zabbix
@@ -363,16 +362,60 @@ class DIMMsToZabbix(GeneralZabbix):
         return
 
 
+class CFtoZabbix(GeneralZabbix):
+    def __init__(self, sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
+        super().__init__(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
+        self.dOperations = {"name":     _NullFunction,
+                            "sn":       self._oPrepareSN,
+                            "position": self._oPreparePosition,
+                            "model":    self._oPrepareModel}
+        self.__fillApplications__(RE_CF)
+        return
+
+    def _oPrepareSN(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Serial', sValue)
+
+    def _oPrepareModel(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Model', sValue)
+
+    def _oPrepareSize(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Size', sValue)
+
+    def _oPreparePosition(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Module', sValue)
+
+    def _SendInfoToZabbix(self, sArrayName, ldInfo):
+        """send data to Zabbix via API"""
+        loMetrics = []
+        oLog.debug('CFtoZabbix: _SendInfoToZabbix: info list is ' + str(ldInfo))
+        for dInfo in ldInfo:
+            sAppName = 'Compact Flash ' + dInfo['name']
+            for sName, oValue in dInfo.items():
+                try:
+                    loMetrics.append(self.dOperations[sName](sAppName, oValue))
+                except KeyError:
+                    # unknown names passed
+                    oLog.info('Skipped unknown CF information item named {} with value {}'.format(
+                        sName, str(oValue)))
+                    pass
+        self._SendMetrics(loMetrics)
+        return
+
+
 class UPSesToZabbix(GeneralZabbix):
     def __init__(self, sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
         super().__init__(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
         self.dOperations = {"name":         _NullFunction,
+                            "mfgdate":      self._oPrepareMDate,
                             "sn":           self._oPrepareSN}
         self.__fillApplications__(RE_UPS)
         return
 
     def _oPrepareSN(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Serial Number', sValue)
+
+    def _oPrepareMDate(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Production Date', sValue)
 
     def _SendInfoToZabbix(self, sArrayName, ldInfo):
         """send data to Zabbix via API"""
@@ -509,7 +552,7 @@ class ArrayToZabbix(GeneralZabbix):
         return self._oPrepareZabMetric(sAppName, 'Number of Nodes', sValue)
 
     def _oPrepareArrayMemory(self, sAppName, sValue):
-        return self._oPrepareZabMetric(sAppName, 'Memory', sValue)
+        return self._oPrepareZabMetric(sAppName, 'Total RAM', sValue)
 
     def _SendInfoToZabbix(self, sArrayName, dArrInfo):
         """send ARRAY data to Zabbix via API"""
