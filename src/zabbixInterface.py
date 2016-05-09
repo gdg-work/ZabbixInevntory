@@ -11,6 +11,11 @@ oLog = getLogger(__name__)
 RE_DISK = re.compile(r'^Drive\s+')
 RE_ENCLOSURE = re.compile(r'^DiskShelf\s+')
 RE_CONTROLLER = re.compile(r'^Controller\s+')
+RE_SYSTEM =     re.compile(r'^System\s*$')
+RE_NODE =       re.compile(r'^Node\s')
+RE_SWITCH =     re.compile(r'^Switch\s')
+RE_UPS =        re.compile(r'^UPS\s')
+RE_DIMM =       re.compile(r'^DIMM\s')
 
 
 # THE simplest function, can take any number of arguments
@@ -60,22 +65,22 @@ class GeneralZabbix:
     def __fillApplications__(self, reFilter):
         # receive the list of applications
         ldApplications = self.oZapi.do_request('application.get', {'hostids': self.sHostID})
-        if len(ldApplications['result']) == 0:
+        ldAppResult = ldApplications['result']
+        dBuf = {}
+        if len(ldAppResult) == 0:
             # the host exists but didn't return anything, just continue
             oLog.info("Array with ID {0} and name {1} doesn't answer".format(self.sHostID, self.sArrayName))
         else:
-            # oLog.debug("Applications on host {0}: {1}".format(self.sHostID, ldApplications['result']))
-            # now filter the apps list for disks
-            for dApp in ldApplications['result']:
-                self.dApplicationNamesToIds[dApp['name']] = dApp['applicationid']
-            # === === === === === === ===
-            dBuf = {}
-            # oLog.debug("==== Applications from array after filtering: ====")
-            for sName, sID in self.dApplicationNamesToIds.items():
-                if reFilter.match(sName):
-                    dBuf[sName] = sID
-                    # oLog.debug("Name: {0}\tID: {1}".format(sName, sID))
-            # oLog.debug("------------ Applications from array: ------------")
+            # oLog.debug("Applications on host {0}: {1}".format(self.sArrayName, ldAppResult))
+            # now filter the apps list for this host
+            for dApp in ldAppResult:
+                sAppName = dApp['name']
+                if reFilter.match(sAppName):
+                    dBuf[sAppName] = dApp['applicationid']
+                    # oLog.debug('__fillApplications__: found app {}'.format(sAppName))
+                else:
+                    # oLog.debug("__fillApplications__: skipped app {}".format(sAppName))
+                    pass
             self.dApplicationNamesToIds = dBuf
         return
 
@@ -89,8 +94,9 @@ class GeneralZabbix:
                          'filter': dFilter,
                          'sort': 'name'}
             dResult = self.oZapi.do_request('item.get', dItem2Get)
+            if self.sHostID == '10173':
+                oLog.debug("_oPrepareZabMetric -- result of item.get(): {}".format(dResult['result']))
             try:
-                # oLog.debug("_oPrepareZabMetric -- result of item.get(): {}".format(dResult['result']))
                 sKey = dResult['result'][0]['key_']
                 # now we have key, so we can prepare data to Zabbix
                 oRet = ZabbixMetric(host=self.sArrayName, key=sKey, value=iValue)
@@ -99,6 +105,7 @@ class GeneralZabbix:
                 oRet = None
         except KeyError:
             oLog.info('Unknown application name "{}"'.format(sAppName))
+            # oLog.info('Known apps: ' + str(self.dApplicationNamesToIds))
             oRet = None
         return oRet
 
@@ -130,6 +137,7 @@ class DisksToZabbix(GeneralZabbix):
                             'RPM':    self._oPrepareDiskRPM,
                             'disk-rpm': self._oPrepareDiskRPM,
                             'size':   self._oPrepareDiskSize}
+        self.__fillApplications__(RE_DISK)
         return
 
     # def __fillApplications__(self): <-- moved to superclass
@@ -152,7 +160,7 @@ class DisksToZabbix(GeneralZabbix):
     def _oPrepareDiskPosition(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Position', sValue)
 
-    def sendDiskInfoToZabbix(self, sArrayName, ldDisksInfo):
+    def _SendInfoToZabbix(self, sArrayName, ldDisksInfo):
         """send data to Zabbix via API"""
         loMetrics = []
         # oLog.debug('sendDiskInfoToZabbix: data to send: {}'.format(str(ldDisksInfo)))
@@ -180,6 +188,7 @@ class EnclosureToZabbix(GeneralZabbix):
                             "disks":        self._oPrepareEnclDisksAmount,
                             "disk-slots":   self._oPrepareEnclSlotsAmount,
                             "ps-amount":    self._oPrepareEnclPSAmount}
+        self.__fillApplications__(RE_ENCLOSURE)
         return
 
     # def __fillApplications__(self): <-- Moved to superclass
@@ -202,7 +211,7 @@ class EnclosureToZabbix(GeneralZabbix):
     def _oPrepareEnclPSAmount(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Number of Power Supplies', sValue)
 
-    def _SendEnclInfoToZabbix(self, sArrayName, ldEnclosuresInfo):
+    def _SendInfoToZabbix(self, sArrayName, ldEnclosuresInfo):
         """send data to Zabbix via API"""
         loMetrics = []
         # oLog.debug('sendEnclInfoToZabbix: data to send: {}'.format(str(ldEnclosuresInfo)))
@@ -227,9 +236,15 @@ class NodeToZabbix(GeneralZabbix):
         self.dOperations = {"name":         _NullFunction,
                             "sn":           self._oPrepareNodeSN,
                             "model":        self._oPrepareNodeModel,
-                            "disks":        self._oPrepareNodeDisksAmount,
+                            "ps-amount":    self._oPrepareNodePSAmount,
                             "fc-ports":     self._oPrepareNodeFCPorts,
-                            "ps-amount":    self._oPrepareNodePSAmount}
+                            "eth-ports":    self._oPrepareNodeEthPorts,
+                            "type":         self._oPrepareNodeType,
+                            "ps-amount":    self._oPrepareNodePwrSupplies,
+                            "disks":        self._oPrepareNodeDisksAmount,
+                            "memory":       self._oPrepareNodeRAM_GB,
+                            "disk-bays":    self._oPrepareNodeDisksAmount}
+        self.__fillApplications__(RE_NODE)
         return
 
     def _oPrepareNodeSN(self, sAppName, sValue):
@@ -238,16 +253,31 @@ class NodeToZabbix(GeneralZabbix):
     def _oPrepareNodeModel(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Model', sValue)
 
+    def _oPrepareNodeType(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Type', sValue)
+
     def _oPrepareNodeDisksAmount(self, sAppName, iValue):
-        return self._oPrepareZabMetric(sAppName, 'Number of Occupied Slots', iValue)
+        return self._oPrepareZabMetric(sAppName, 'Disks Amount', iValue)
+
+    def _oPrepareNodeDiskBays(self, sAppName, iValue):
+        return self._oPrepareZabMetric(sAppName, '# Disk Bays', iValue)
+
+    def _oPrepareNodePwrSupplies(self, sAppName, iValue):
+        return self._oPrepareZabMetric(sAppName, '# Pwr Supplies', iValue)
 
     def _oPrepareNodeFCPorts(self, sAppName, iValue):
-        return self._oPrepareZabMetric(sAppName, 'Number of FC Ports', iValue)
+        return self._oPrepareZabMetric(sAppName, 'FC Ports', iValue)
+
+    def _oPrepareNodeEthPorts(self, sAppName, iValue):
+        return self._oPrepareZabMetric(sAppName, 'Ethernet Ports', iValue)
 
     def _oPrepareNodePSAmount(self, sAppName, sValue):
-        return self._oPrepareZabMetric(sAppName, 'Number of Power Supplies', sValue)
+        return self._oPrepareZabMetric(sAppName, '# Power Supplies', sValue)
 
-    def _SendNodeInfoToZabbix(self, sArrayName, ldNodesInfo):
+    def _oPrepareNodeRAM_GB(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Memory', sValue)
+
+    def _SendInfoToZabbix(self, sArrayName, ldNodesInfo):
         """send data to Zabbix via API"""
         loMetrics = []
         for dNodeInfo in ldNodesInfo:
@@ -269,12 +299,13 @@ class SwitchToZabbix(GeneralZabbix):
         super().__init__(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
         self.dOperations = {"name":         _NullFunction,
                             "sn":           self._oPrepareSwitchSN}
+        self.__fillApplications__(RE_SWITCH)
         return
 
     def _oPrepareSwitchSN(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Serial Number', sValue)
 
-    def _SendSwitchInfoToZabbix(self, sArrayName, ldSwitchInfo):
+    def _SendInfoToZabbix(self, sArrayName, ldSwitchInfo):
         """send data to Zabbix via API"""
         loMetrics = []
         for dSwitchInfo in ldSwitchInfo:
@@ -285,6 +316,75 @@ class SwitchToZabbix(GeneralZabbix):
                 except KeyError:
                     # unknown names passed
                     oLog.info('Skipped unknown Switch information item named {} with value {}'.format(
+                        sName, str(oValue)))
+                    pass
+        self._SendMetrics(loMetrics)
+        return
+
+
+class DIMMsToZabbix(GeneralZabbix):
+    def __init__(self, sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
+        super().__init__(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
+        self.dOperations = {"name":     _NullFunction,
+                            "sn":       self._oPrepareSN,
+                            "size":     self._oPrepareSize,
+                            "position": self._oPreparePosition,
+                            "model":    self._oPrepareModel}
+        self.__fillApplications__(RE_DIMM)
+        return
+
+    def _oPrepareSN(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Serial Number', sValue)
+
+    def _oPrepareModel(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Model', sValue)
+
+    def _oPrepareSize(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Size', sValue)
+
+    def _oPreparePosition(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Position', sValue)
+
+    def _SendInfoToZabbix(self, sArrayName, ldInfo):
+        """send data to Zabbix via API"""
+        loMetrics = []
+        oLog.debug('DIMMsToZabbix: _SendInfoToZabbix: info list is ' + str(ldInfo))
+        for dInfo in ldInfo:
+            sAppName = 'DIMM ' + dInfo['name']
+            for sName, oValue in dInfo.items():
+                try:
+                    loMetrics.append(self.dOperations[sName](sAppName, oValue))
+                except KeyError:
+                    # unknown names passed
+                    oLog.info('Skipped unknown DIMM information item named {} with value {}'.format(
+                        sName, str(oValue)))
+                    pass
+        self._SendMetrics(loMetrics)
+        return
+
+
+class UPSesToZabbix(GeneralZabbix):
+    def __init__(self, sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
+        super().__init__(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
+        self.dOperations = {"name":         _NullFunction,
+                            "sn":           self._oPrepareSN}
+        self.__fillApplications__(RE_UPS)
+        return
+
+    def _oPrepareSN(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Serial Number', sValue)
+
+    def _SendInfoToZabbix(self, sArrayName, ldInfo):
+        """send data to Zabbix via API"""
+        loMetrics = []
+        for dInfo in ldInfo:
+            sAppName = 'UPS ' + dInfo['name']
+            for sName, oValue in dInfo.items():
+                try:
+                    loMetrics.append(self.dOperations[sName](sAppName, oValue))
+                except KeyError:
+                    # unknown names passed
+                    oLog.info('Skipped unknown UPS information item named {} with value {}'.format(
                         sName, str(oValue)))
                     pass
         self._SendMetrics(loMetrics)
@@ -306,6 +406,7 @@ class CtrlsToZabbix(GeneralZabbix):
                             "ram":        self._oPrepareRAMInfo,
                             "port-count": self._oPrepareHostPortNum,    # alternate name
                             "ports":      self._oPrepareHostPortNum}
+        self.__fillApplications__(RE_CONTROLLER)
         return
 
     # def __fillApplications__(self):  <-- Moved to superclass
@@ -334,7 +435,7 @@ class CtrlsToZabbix(GeneralZabbix):
     def _oPrepareRAMInfo(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'DIMM', sValue)
 
-    def _SendCtrlsToZabbix(self, sArrayName, ldCtrlsInfo):
+    def _SendInfoToZabbix(self, sArrayName, ldCtrlsInfo):
         """send data to Zabbix via API"""
         loMetrics = []
         # oLog.debug('sendCtrlsToZabbix: data to send: {}'.format(str(ldCtrlsInfo)))
@@ -363,14 +464,25 @@ class ArrayToZabbix(GeneralZabbix):
             "type":       self._oPrepareArrayType,
             "disks":      self._oPrepareArrayDisks,
             "ctrls":      self._oPrepareArrayControllers,
+            "nodes":      self._oPrepareArrayNodes,
             "shelves":    self._oPrepareArrayShelves,
             "wwn":        self._oPrepareArrayWWN,
             "ps-amount":  self._oPreparePwrSuppliesAmount,
-            "model":      self._oPrepareArrayModel}
+            "model":      self._oPrepareArrayModel,
+            "memory":     self._oPrepareArrayMemory,
+            "fc-ports":   self._oPrepareFCPorts,
+            "eth-ports":  self._oPrepareNICs}
+        self.__fillApplications__(RE_SYSTEM)
         return
 
     def _oPrepareArraySN(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Serial Number', sValue)
+
+    def _oPrepareFCPorts(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, '# FC Ports', sValue)
+
+    def _oPrepareNICs(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, '# NICs', sValue)
 
     def _oPrepareArrayType(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Type', sValue)
@@ -393,7 +505,13 @@ class ArrayToZabbix(GeneralZabbix):
     def _oPrepareArrayControllers(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Number of Controllers', sValue)
 
-    def _SendArrayToZabbix(self, sArrayName, dArrInfo):
+    def _oPrepareArrayNodes(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Number of Nodes', sValue)
+
+    def _oPrepareArrayMemory(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Memory', sValue)
+
+    def _SendInfoToZabbix(self, sArrayName, dArrInfo):
         """send ARRAY data to Zabbix via API"""
         loMetrics = []
         sAppName = 'System'

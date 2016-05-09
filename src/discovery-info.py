@@ -17,7 +17,7 @@ from pathlib import Path
 from inventoryLogger import dLoggingConfig
 from redis import StrictRedis, RedisError
 # from local import CACHE_TIME
-import sys         #  <--- for debugging
+# import sys         #  <--- for debugging
 
 # ============================== CONSTANTS ==============================
 STORAGE_OPS = set(["ctrl-names",    # list of controllers' names
@@ -25,6 +25,7 @@ STORAGE_OPS = set(["ctrl-names",    # list of controllers' names
                    "disk-names",    # list of disks' names (ID's)
                    "node-names",    # list of nodes (Scale-Out arrays)
                    "ups-names",     # list of UPSes (XIV)
+                   "dimm-names",    # list of RAM modules (XIV)
                    "switch-names"   # list of IB switches (XIV)
                    ])
 
@@ -35,12 +36,13 @@ ARRAYS_SUPPORTED = set(["EVA",
                         "IBM_DS"
                         ])
 REDIS_PREFIX = "ArraysDiscovery."
-D_KEYS = {'ctrl-names':      'LIST_OF_CONTROLLER_NAMES',
-          'shelf-names':     'LIST OF DISK ENCLOSURE NAMES',
-          'disk-names':      'LIST OF DISK NAMES',
-          "node-names":      'LIST OF NODE NAMES',
-          "ups-names":       'LIST OF UPSes',
-          "switch-names":    'LIST OF SWITCHES'}
+D_KEYS = {'ctrl-names':   'LIST_OF_CONTROLLER_NAMES',
+          'shelf-names':  'LIST OF DISK ENCLOSURE NAMES',
+          'disk-names':   'LIST OF DISK NAMES',
+          "node-names":   'LIST OF NODE NAMES',
+          "ups-names":    'LIST OF UPSes',
+          "dimm-names":   'LIST OF RAM MODULES',
+          "switch-names": 'LIST OF SWITCHES'}
 REDIS_ENCODING = 'utf-8'
 
 
@@ -176,7 +178,7 @@ def _oGetCLIParser():
 if __name__ == '__main__':
     logging.config.dictConfig(dLoggingConfig)
     oLog = logging.getLogger('Discovery')
-    oLog.info('Starting Discovery-info program')
+    oLog.debug('Starting Discovery-info program')
     # oLog.debug(" ".join(sys.argv))
     oParser = _oGetCLIParser()
     sRet = "Not implemented yet"

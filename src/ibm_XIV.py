@@ -76,6 +76,12 @@ class IBM_XIV_Storage(inv.ScaleOutStorageClass):
                          "switch-names": self.oSwitches._lsListNames,
                          "disk-names":   self.oDisksList._lsListNames,
                          "ups-names":    self.oUPSs._lsListNames,
+                         "nodes":        self.oNodesList._iLength,
+                         "disks":        self.oDisksList._iLength,
+                         "fc-ports":     self.oFCs._iLength,
+                         "eth-ports":    self.oNICs._iLength,
+                         "dimm-names":   self.oDIMMs._lsListNames,
+                         "memory":       self.oDIMMs._iTotalGBs
                          }
         return
 
@@ -91,7 +97,7 @@ class IBM_XIV_Storage(inv.ScaleOutStorageClass):
                 os.environ['XIV_XCLIUSER'] = self.sUser
                 os.environ['XIV_XCLIPASSWORD'] = self.sPass
                 os.environ['HOME'] = FAKE_HOME
-                lCommand = [XCLI_PATH, '-y', '-m', self.sSysName, sCmd, '-s']
+                lCommand = [XCLI_PATH, '-y', '-m', self.sIP, sCmd, '-s']
                 # sLine = check_output(lCommand, stderr=STDOUT, universal_newlines=True, shell=False)
                 sLine = check_output(' '.join(lCommand), stderr=STDOUT, universal_newlines=True, shell=True)
                 self.oRedisDB.set(sRedisKey, sLine.encode(REDIS_ENCODING))
@@ -99,6 +105,26 @@ class IBM_XIV_Storage(inv.ScaleOutStorageClass):
                 sLine = e.output
         lRet = sLine.split('\n')
         return lRet
+
+    def _ldGetInfoDict(self, sParamName):
+        """returns a list of information dictionaries corresponding to parameter. For example,
+        if sParamName is 'node-names', returns a result of _ldGetNodeNames() function. So, this
+        method is just a dispatcher to simplify calling modules"""
+        ldRet = []
+        if sParamName == 'node-names':
+            ldRet = self._ldGetNodesAsDicts()
+        elif sParamName == 'switch-names':
+            ldRet = self._ldGetSwitchesAsDicts()
+        elif sParamName == 'disk-names':
+            ldRet = self._ldGetSwitchesAsDicts()
+        elif sParamName == 'ups-names':
+            ldRet = self._ldGetUPSesAsDicts()
+        elif sParamName == 'dimm-names':
+            ldRet = self._ldGetDIMMsAsDicts()
+        else:
+            ldRet = [{}]
+            oLog.error("_ldGetInfoDict: incorrect parameter")
+        return ldRet
 
     def _dGetArrayInfoAsDict(self, ssKeys):
         """
@@ -130,17 +156,37 @@ class IBM_XIV_Storage(inv.ScaleOutStorageClass):
         try:
             ldRet = self.oNodesList._ldGetData()
         except Exception as e:
-            oLog.warning("Exception when filling a disk parameters list")
+            oLog.warning("Exception when filling a nodes parameters list")
             oLog.warning("Exception: " + str(e))
         return ldRet
 
     def _ldGetSwitchesAsDicts(self):
-        """Return nodes' information as a list of dicts"""
+        """Return switches' information as a list of dicts"""
         ldRet = []
         try:
             ldRet = self.oSwitches._ldGetData()
         except Exception as e:
-            oLog.warning("Exception when filling a disk parameters list")
+            oLog.warning("Exception when filling a switch parameters list")
+            oLog.warning("Exception: " + str(e))
+        return ldRet
+
+    def _ldGetDIMMsAsDicts(self):
+        """Return DIMMs' information as a list of dicts"""
+        ldRet = []
+        try:
+            ldRet = self.oDIMMs._ldGetData()
+        except Exception as e:
+            oLog.warning("Exception when filling DIMMs parameters list")
+            oLog.warning("Exception: " + str(e))
+        return ldRet
+
+    def _ldGetUPSesAsDicts(self):
+        """Return upses' information as a list of dicts"""
+        ldRet = []
+        try:
+            ldRet = self.oUPSs._ldGetData()
+        except Exception as e:
+            oLog.warning("Exception when filling an UPSes parameters list")
             oLog.warning("Exception: " + str(e))
         return ldRet
 
@@ -174,6 +220,10 @@ class XIV_Componens_Collection(OrderedDict):
             ldRet.append(oObj._dGetDataAsDict())
         return ldRet
 
+    def _iLength(self):
+        """# of elements in the collection"""
+        return len(self.lComponentIDs)
+
 
 class IBM_XIV_DisksList(XIV_Componens_Collection):
     def __init__(self, oSystem):
@@ -186,24 +236,23 @@ class IBM_XIV_DisksList(XIV_Componens_Collection):
             oDisk = XIV_Disk(sID, dDiskData, oSystem)
             oSystem.oNodesList._AddDisk(sID, oDisk)
             self.dComponents[sID] = oDisk
-        oSystem.oDisksList = self
         return
 
 
 class IBM_XIV_NodesList(XIV_Componens_Collection):
     """ CAUTION: you must call this method first, before other *List constructors """
     def __init__(self, oSystem):
-        lsFields = ["component_id", "type", "disk_bay_count", "fc_port_count",
-                    "ethernet_port_count", "serial", "part_number"]
-        sFields = ",".join(lsFields)
-        sCmd = 'module_list -t ' + sFields
+        # lsFields = ["component_id", "type", "disk_bay_count", "fc_port_count",
+        #             "ethernet_port_count", "serial", "part_number, memory_gb"]
+        # sFields = ",".join(lsFields)
+        # sCmd = 'module_list -t ' + sFields
+        sCmd = 'module_list -t all'
         super().__init__(oSystem, sCmd)
         for dNodeData in self.oCSV:
             oLog.debug("IBM_XIV_NodesList constructor: dNodeData: " + str(dNodeData))
             sID = dNodeData['Component ID']
             self.lComponentIDs.append(sID)
             self.dComponents[sID] = XIV_Node(sID, dNodeData)
-        oSystem.oNodesList = self
         return
 
     def _AddDisk(self, sDiskID, oDisk):
@@ -263,7 +312,7 @@ class IBM_XIV_SwitchesList(XIV_Componens_Collection):
             sID = dSwitchData['Component ID']
             self.lComponentIDs.append(sID)
             self.dComponents[sID] = XIV_IB_Switch(sID, dSwitchData['Serial'])
-        oSystem.oSwitchesList = self
+        # oSystem.oSwitchesList = self
         return
 
 
@@ -304,6 +353,12 @@ class IBM_XIV_DIMMSlist(XIV_Componens_Collection):
             self.dComponents[sID] = oDIMM
             oSystem.oNodesList._AddDIMM(sID, oDIMM)
         return
+
+    def _iTotalGBs(self):
+        iTotalMBs = 0
+        for oDimm in self.dComponents.values():
+            iTotalMBs += oDimm.dQueries['size']()
+        return (iTotalMBs / 1024)    # to gigabytes
 
 
 class IBM_XIV_MaintenanceModulesList(XIV_Componens_Collection):
@@ -370,21 +425,25 @@ class XIV_Node(XIV_Component):
         self.iDiskBaysCount = int(dParams['Data Disks'])
         self.iFCPorts = int(dParams['FC Ports'])
         self.iEthPorts = int(dParams['iSCSI Ports'])
+        self.iRAM_GBs = int(dParams['Mem'])
         self.iPwrSupplies = 0
         self.lDisks = []
         self.lNICs = []
         self.lFCPorts = []
         self.lDimms = []
-        self.iRAM_MBs = 0
         self.lPSUs = []
         self.oCF = None
         self.dQueries = {"name":       lambda: self.sID,
+                         "sn":         lambda: self.sSN,
                          "disks":      lambda: len(self.lDisks),
                          "disk-bays":  lambda: self.iDiskBaysCount,
                          "ps-amount":  lambda: self.iPwrSupplies,
-                         "disk-names": self._lsGetDiskNames,
+                         # "disk-names": self._lsGetDiskNames,
                          "fc-ports":   lambda: self.iFCPorts,
-                         "eth-ports":  lambda: self.iEthPorts
+                         "model":      lambda: self.sModel,
+                         "type":       lambda: self.sType,
+                         "eth-ports":  lambda: self.iEthPorts,
+                         "memoryGBs":  lambda: self.iRAM_GBs
                          }
         return
 
@@ -445,15 +504,22 @@ class XIV_Disk(XIV_Component):
         # self.sSN = dParams["Serial"]
         super().__init__(sID, dParams["Serial"])
         self.sID = sID
-        self.iSizeKB = int(dParams['Size'])
+        self.iSizeMB = int(dParams['Size'])
         self.sSizeH = dParams['Capacity (GB)']
         self.sModel = dParams['Model']
         self.dQueries = {"name":  lambda: self.sID,
-                         "id":    lambda: self.sID,
+                         # "id":    lambda: self.sID,
                          "model": lambda: self.sModel,
-                         "size":  lambda: int(self.iSizeKB // (1024 * 1024)),
+                         "position": self._sGetPosition,
+                         "size":  lambda: int(self.iSizeMB / 1024),
                          "sn":    lambda: self.sSN}
+        oLog.debug('Disk ID: {}, sizeH: {}, sizeKB: {}'.format(self.sID, self.sSizeH, self.iSizeMB))
         return
+
+    def _sGetPosition(self):
+        """return disk position based on ID"""
+        lFields = self.sID.split(':')
+        return("Node {0}, bay {1}".format(lFields[2], lFields[3]))
 
     def __repr__(self):
         return "Drive: ID: {}, size:{}, mod:{}".format(self.sID, self.sSizeH, self.sModel)
@@ -501,11 +567,21 @@ class XIV_DIMM(XIV_Component):
         self.iSizeMB = int(sSizeMB)
         self.sSN = sSN
         self.sPN = sPN
+        self.dQueries = {"name":     lambda: self.sID,
+                         "sn":       lambda: self.sSN,
+                         "size":     lambda: self.iSizeMB,
+                         "model":    lambda: self.sPN,
+                         "position": self._sGetPos}
         return
 
     def __repr__(self):
         return("RAM Module {3}: size:{0}, P/N:{1}, S/N:{2}".format(
             self.iSizeMB, self.sPN, self.sSN, self.sID))
+
+    def _sGetPos(self):
+        """return disk position based on ID"""
+        lFields = self.sID.split(':')
+        return("Node {0}, Slot {1}".format(lFields[2], lFields[3]))
 
     def _iGetRAM_MB(self):
         return self.iSizeMB
@@ -521,8 +597,14 @@ class XIV_PwrSupply(XIV_Component):
 
 
 class XIV_UPS(XIV_Component):
-    def __init__(sID, sSN, sMFDate, sBtryYear):
-        pass
+    def __init__(self, sID, sSN, sMFDate):
+        self.sSN = sSN
+        self.sID = sID
+        self.sMfgDate = sMFDate
+        self.dQueries = {"name":    lambda: self.sID,
+                         "sn":      lambda: self.sSN,
+                         "mfgdate": lambda: self.sMfgDate}
+        return
 
 
 class XIV_FCPort(XIV_Component):
@@ -560,7 +642,12 @@ class XIV_IB_Switch(XIV_Component):
 # --------------------------------------------
 if __name__ == '__main__':
     # print(str(oXiv.oNodesList))
-    # rint(oXiv.dQueries["nodes-list"]())
-    # rint(oXiv.dQueries["switch-list"]())
-    # rint(oXiv.dQueries["ups-list"]())
+    import redis
+    oRedis = redis.StrictRedis()
+    oXiv = IBM_XIV_Storage('10.44.0.63', 'zabbix', 'AmtZ204sx6', oRedis, 'IBM_XIV_1')
+    print(oXiv.dQueries["node-names"]())
+    print(oXiv.dQueries["switch-names"]())
+    # print(oXiv._ldGetSwitchesAsDicts())
+    print(oXiv.dQueries["ups-names"]())
+    print(oXiv.dQueries["disk-names"]())
     pass

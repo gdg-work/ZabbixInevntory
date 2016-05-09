@@ -27,22 +27,24 @@ import traceback
 
 # ============================== CONSTANTS ==============================
 REDIS_PREFIX =    "ArraysDiscovery."
-ZBX_CONNECT_PFX = ""
-QUERY_PFX =       ""
+# ZBX_CONNECT_PFX = ""
+# QUERY_PFX =       ""
 REDIS_ENCODING =  "UTF-8"
-D_KEYS = {'ctrl-names':    'LIST_OF_CONTROLLER_NAMES',
-          'shelf-names':   'LIST OF DISK ENCLOSURE NAMES',
-          'disk-names':    'LIST OF DISK NAMES',
-          "node-names":    'LIST OF NODE NAMES',
-          "ups-names":     'LIST OF UPSes',
-          "switch-names":  'LIST OF SWITCHES'}
+D_KEYS = {'ctrl-names':   'LIST_OF_CONTROLLER_NAMES',
+          'shelf-names':  'LIST OF DISK ENCLOSURE NAMES',
+          'disk-names':   'LIST OF DISK NAMES',
+          "node-names":   'LIST OF NODE NAMES',
+          "ups-names":    'LIST OF UPSes',
+          "dimm-names":   'LIST OF RAM MODULES',
+          "switch-names": 'LIST OF SWITCHES'}
 RANDOM_ID_CHARS = string.ascii_uppercase + string.ascii_lowercase + string.digits
-RE_DISK = re.compile(r'^Drive\s+')
-RE_ENCLOSURE = re.compile(r'^DiskShelf\s+')
-RE_CONTROLLER = re.compile(r'^Controller\s+')
-RE_SYSTEM = re.compile(r'^System\s*$')
-RE_NODE = re.compile(r'^Node\s*$')
-RE_SWITCH = re.compile(r'^Switch\s*$')
+# RE_DISK =       re.compile(r'^Drive\s+')
+# RE_ENCLOSURE =  re.compile(r'^DiskShelf\s+')
+# RE_CONTROLLER = re.compile(r'^Controller\s+')
+# RE_SYSTEM =     re.compile(r'^System\s*$')
+# RE_NODE =       re.compile(r'^Node\s*$')
+# RE_SWITCH =     re.compile(r'^Switch\s*$')
+# RE_UPS =        re.compile(r'^UPS\s*$')
 
 
 def _sRandomString(size=8, chars=RANDOM_ID_CHARS):
@@ -114,7 +116,7 @@ def _dGetArrayInfo(oRedis):
     ACCESS_PFX = REDIS_PREFIX + "ArrayAccess"
     lRet = {}
     lArrayInfoDictNames = [b.decode(REDIS_ENCODING) for b in oRedis.hkeys(ACCESS_PFX)]
-    oLog.debug("*DBG* Arrays defined: {}".format(lArrayInfoDictNames))
+    # oLog.debug("*DBG* Arrays defined: {}".format(lArrayInfoDictNames))
     for sArrName in lArrayInfoDictNames:
         sJson = oRedis.hget(ACCESS_PFX, sArrName)
         if sJson:
@@ -155,7 +157,7 @@ def _oIBM_FlashSys_Connect(dArrayInfo, oRedis):
     password = dArrayInfo['access']['pass']
     sysname = dArrayInfo['access']['system']
     oAuth = MySSH.AuthData(user, bUseKey=False, sPasswd=password)
-    oLog.debug('creating IBM FlashSystem object for array {}'.format(sysname))
+    # oLog.debug('creating IBM FlashSystem object for array {}'.format(sysname))
     return IbmFS.IBMFlashSystem(ip, oAuth, sysname, oRedis)
 
 
@@ -164,7 +166,7 @@ def _oIBM_XIV_Connect(dArrayInfo, oRedis):
     user = dArrayInfo['access']['user']
     password = dArrayInfo['access']['pass']
     sysname = dArrayInfo['access']['system']
-    oLog.debug('Creating XIV object for array {}'.format(ip))
+    # oLog.debug('Creating XIV object for array {}'.format(ip))
     return xiv.IBM_XIV_Storage(ip, user, password, oRedis, sysname)
 
 
@@ -197,8 +199,7 @@ def _lGetListOfDisks(sArrayName, oArray, dZbxInfo):
         lRet = oArray.dQueries['disk-names']()
         ldDisksInfo = oArray._ldGetDisksAsDicts()
         oArZabCon = _fPrepareZbxConnection(zi.DisksToZabbix, sArrayName, dZbxInfo)
-        oArZabCon.__fillApplications__(RE_DISK)
-        oArZabCon.sendDiskInfoToZabbix(sArrayName, ldDisksInfo)
+        oArZabCon._SendInfoToZabbix(sArrayName, ldDisksInfo)
     else:
         lRet = []
     return lRet
@@ -209,8 +210,7 @@ def _lGetListOfControllers(sArrayName, oArray, dZbxInfo):
         lRet = oArray.dQueries['ctrl-names']()
         ldCtrlInfo = oArray._ldGetControllersInfoAsDict()
         oArZabCon = _fPrepareZbxConnection(zi.CtrlsToZabbix, sArrayName, dZbxInfo)
-        oArZabCon.__fillApplications__(RE_CONTROLLER)
-        oArZabCon._SendCtrlsToZabbix(sArrayName, ldCtrlInfo)
+        oArZabCon._SendInfoToZabbix(sArrayName, ldCtrlInfo)
     else:
         lRet = []
     return lRet
@@ -222,55 +222,40 @@ def _lGetListOfShelves(sArrayName, oArray, dZbxInfo):
         ldShelvesInfo = oArray._ldGetShelvesAsDicts()
         oArZabCon = _fPrepareZbxConnection(zi.EnclosureToZabbix, sArrayName, dZbxInfo)
         oLog.debug('_lGetListOfShelves: ldShelvesInfo = ' + str(ldShelvesInfo))
-        oArZabCon.__fillApplications__(RE_ENCLOSURE)
-        oArZabCon._SendEnclInfoToZabbix(sArrayName, ldShelvesInfo)
+        oArZabCon._SendInfoToZabbix(sArrayName, ldShelvesInfo)
     else:
         lRet = []
     return lRet
 
 
-def _lGetListOfNodes(sArrayName, oArray, dZbxInfo):
-    if 'node-names' in oArray.dQueries:
-        lRet = oArray.dQueries['node-names']()
-        ldNodesInfo = oArray._ldGetNodesAsDicts()
-        oArZabCon = _fPrepareZbxConnection(zi.NodeToZabbix, sArrayName, dZbxInfo)
-        oLog.debug('_lGetListOfNodes: ldNodesInfo = ' + str(ldNodesInfo))
-        oArZabCon.__fillApplications__(RE_NODE)
-        oArZabCon._SendNodeInfoToZabbix(sArrayName, ldNodesInfo)
-    else:
-        lRet = []
-    return lRet
-
-
-def _lGetListOfSwitches(sArrayName, oArray, dZbxInfo):
-    if 'switch-names' in oArray.dQueries:
-        lRet = oArray.dQueries['switch-names']()
-        ldSwitchesInfo = oArray._ldGetSwitchesAsDicts()
-        oArZabCon = _fPrepareZbxConnection(zi.SwitchToZabbix, sArrayName, dZbxInfo)
-        oLog.debug('_lGetListOfSwitches: ldSwitchesInfo = ' + str(ldSwitchesInfo))
-        oArZabCon.__fillApplications__(RE_SWITCH)
-        oArZabCon._SendSwitchInfoToZabbix(sArrayName, ldSwitchesInfo)
-    else:
-        lRet = []
+def _lGetListOfSomething(sArrayName, oArray, dZbxInfo, sParamName, oZI_Object):
+    lRet = []
+    if sParamName in oArray.dQueries:
+        lRet = oArray.dQueries[sParamName]()
+        ldInfoList = oArray._ldGetInfoDict(sParamName)
+        oArZabCon = _fPrepareZbxConnection(oZI_Object, sArrayName, dZbxInfo)
+        oLog.debug('_lGetListOfSomething: ldInfoList = ' + str(ldInfoList))
+        oArZabCon._SendInfoToZabbix(sArrayName, ldInfoList)
     return lRet
 
 
 def _GetArrayParameters(sArrayName, oArray, dZbxInfo):
-    ssItemsToRemove = set(['disk-names', 'ctrl-names', 'shelf-names', 'node-names'])
+    ssItemsToRemove = set(['disk-names', 'ctrl-names', 'shelf-names', 'node-names',
+                           'switch-names', 'ups-names', 'dimm-names'])
     oArZabCon = _fPrepareZbxConnection(zi.ArrayToZabbix, sArrayName, dZbxInfo)
     ssKeys = set(oArray.dQueries.keys())
+    # XXX Подумать - возможно, тут лучше выкинуть из множества все элементы, в которых есть
+    # суффикс -names, то есть запросы списков компонентов XXX
     # make a difference of the sets
     ssKeys = ssKeys.difference(ssItemsToRemove)
     # oLog.debug('_GetArrayParameters: keys are: ' + str(ssKeys))
     dArrayInfo = oArray._dGetArrayInfoAsDict(ssKeys)
-    oArZabCon.__fillApplications__(RE_SYSTEM)
-    oArZabCon._SendArrayToZabbix(sArrayName, dArrayInfo)
-    oLog.debug('_GetArrayParameters: Array info is {}'.format(str(dArrayInfo)))
+    oArZabCon._SendInfoToZabbix(sArrayName, dArrayInfo)
+    # oLog.debug('_GetArrayParameters: Array info is {}'.format(str(dArrayInfo)))
     return
 
 
 def _GetArrayData(sArrName, oArray, oRedis, dZbxParams):
-    # XXX проверка на запрос узлов, UPS-ов и свитчей XXX
     sRedisArrInfoHashName = REDIS_PREFIX + "ArrayKeys"
     sArrayKey = REDIS_PREFIX + sArrName + "." + _sRandomString(8)
     oRedis.hset(sRedisArrInfoHashName, sArrName, sArrayKey)
@@ -285,14 +270,23 @@ def _GetArrayData(sArrName, oArray, oRedis, dZbxParams):
 
     if 'node-names' in oArray.dQueries:
         # scale-out arrays like XIV goes here
-        lNodes = _lGetListOfNodes(sArrName, oArray, dZbxParams)
-        # XXX Try to fool Zabbix XXX
-        lNodes = [l.replace(':', '_') for l in lNodes]
-        # XXX ------------------ XXX
+        # lNodes = _lGetListOfNodes(sArrName, oArray, dZbxParams)
+        lNodes = _lGetListOfSomething(sArrName, oArray, dZbxParams, 'node-names', zi.NodeToZabbix)
         oRedis.hset(sArrayKey, D_KEYS['node-names'], _sListOfStringsToJSON(lNodes))
 
-        lSwitches = _lGetListOfSwitches(sArrName, oArray, dZbxParams)
-        oRedis.hset(sArrName, D_KEYS['switch-names'], _sListOfStringsToJSON(lSwitches))
+        # lSwitches = _lGetListOfSwitches(sArrName, oArray, dZbxParams)
+        lSwitches = _lGetListOfSomething(sArrName, oArray, dZbxParams, 'switch-names', zi.SwitchToZabbix)
+        oRedis.hset(sArrayKey, D_KEYS['switch-names'], _sListOfStringsToJSON(lSwitches))
+
+        # lDisks = _lGetListOfDisks(sArrName, oArray, dZbxParams)
+        lDisks = _lGetListOfSomething(sArrName, oArray, dZbxParams, 'disk-names', zi.DisksToZabbix)
+        oRedis.hset(sArrayKey, D_KEYS['disk-names'], _sListOfStringsToJSON(lDisks))
+
+        lUPSes = _lGetListOfSomething(sArrName, oArray, dZbxParams, 'ups-names', zi.UPSesToZabbix)
+        oRedis.hset(sArrayKey, D_KEYS['ups-names'], _sListOfStringsToJSON(lUPSes))
+
+        lDIMMs = _lGetListOfSomething(sArrName, oArray, dZbxParams, 'dimm-names', zi.DIMMsToZabbix)
+        oRedis.hset(sArrayKey, D_KEYS['dimm-names'], _sListOfStringsToJSON(lDIMMs))
     else:
         # get list of controllers and push it to Redis
         lCtrls = _lGetListOfControllers(sArrName, oArray, dZbxParams)
