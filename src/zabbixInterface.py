@@ -242,7 +242,7 @@ class NodeToZabbix(GeneralZabbix):
                             "ps-amount":    self._oPrepareNodePwrSupplies,
                             "disks":        self._oPrepareNodeDisksAmount,
                             "memory":       self._oPrepareNodeRAM_GB,
-                            "disk-bays":    self._oPrepareNodeDisksAmount}
+                            "disk-bays":    self._oPrepareNodeDiskBays}
         self.__fillApplications__(RE_NODE)
         return
 
@@ -339,7 +339,7 @@ class DIMMsToZabbix(GeneralZabbix):
         return self._oPrepareZabMetric(sAppName, 'Model', sValue)
 
     def _oPrepareSize(self, sAppName, sValue):
-        return self._oPrepareZabMetric(sAppName, 'Size', sValue)
+        return self._oPrepareZabMetric(sAppName, 'Size', str(int(sValue) / 1024))   # convert to GBs
 
     def _oPreparePosition(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Position', sValue)
