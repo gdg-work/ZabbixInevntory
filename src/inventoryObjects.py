@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import itertools
+from collections import OrderedDict
 
 #
 # NetObject: a base class of Zabbix-controlled objects
@@ -50,7 +51,7 @@ class ClassicArrayClass(StorageClass):
         """returns serial numbers of controllers"""
         lRet = []
         for oCtr in self.lControllers:
-            lRet.append(oCtrl.getSN())
+            lRet.append(oCtr.getSN())
         return lRet
 
     def getShelvesSN(self):
@@ -100,7 +101,7 @@ class ScaleOutStorageClass(StorageClass):
         return lSNs
 
 #
-# --- Array components ---
+# --- Array and servers components ---
 #
 
 class ComponentClass:
@@ -188,7 +189,7 @@ class DASD_Class(ComponentClass):
     def getModel(self) ->str:
         return self.sModel
 
-    def getSize(self) ->int: 
+    def getSize(self) ->int:
         return self.iSize
 
     def getPosition(self) ->str:
@@ -200,7 +201,7 @@ class PortClass(ComponentClass):
         self.sType=""
         self.sSpeed=""
 
-    def getType(self) ->str: 
+    def getType(self) ->str:
         return self.sType
 
     def getSpeed(self) ->str:
@@ -215,3 +216,129 @@ class NodeClass(ComponentClass):
         self.lPorts = []
         self.lDisks = []
 
+#
+#  -- servers classes --
+#
+class GenericServer:
+    """General server class. Don't use it directly, use subclasses"""
+    def __init__(self, sName, **dFields):
+        """Class constructor. The one parameter is name"""
+        self.sName =          sName
+        self.sIP =            dFields.get('IP')
+        self.sModel =         dFields.get('Model')
+        self.sType =          dFields.get('Type')
+        self.sSerialNum =     dFields.get('SN')
+        self.iSockets =       dFields.get('Sockets', 0)
+        self.iCores =         dFields.get('Cores', 0)
+        self.sProcType =      dFields.get('Processor')
+        self.iPowerSupplies = dFields.get('PwrSupplyAmount')
+        self.iRamGBs =        dFields.get('RAM GBs', 0)
+        self.iRamModules =    dFields.get('DIMMS', 0)
+        self.dQueries = {'name':        lambda: self.sName,
+                         'model':       lambda: self.sModel,
+                         'type':        lambda: self.sType,
+                         'sn':          lambda: self.sSerialNum,
+                         'sockets':     lambda: self.iSockets,
+                         'cores':       lambda: self.iCores,
+                         'proc-type':   lambda: self.sProcType,
+                         'ps-amount':   lambda: self.iPowerSupplies,
+                         'memory':      lambda: self.iRamGBs,
+                         'dimms':       lambda: self.iRamModules}
+        return
+
+    def _dQueries(self):
+        """returns a dictionary of possible queries"""
+        return self.dQueries
+
+    def __repr__(self):
+        """for printing, debug and error messages etc"""
+        return("Server name: {0}, type-model: {1}-{2}, SN: {3}".format(
+               self.sName, self.sType, self.sModel, self.sSerialNum))
+
+
+class ModularServer:
+    """Modular servers like blade enclosures, HP Moonshot and Apollo servers"""
+    def __init__(self, sName, **dFields):
+        '''Constructor. One mandatory parameter is name, other are optional'''
+        self.sName = sName
+        self.sControlIP = dFields['IP']
+        self.sType = dFields['Type']
+        self.sModel = dFields['Model']
+        self.sSerialNum = dFields['SN']
+        self.oServers = ServersList([])
+        self.oPowerSupplies = PowerSuppliesList([])
+        self.oFans = FansList([])
+        self.oInterconnects = InterConnectsList([])
+        self.lMgmtModules = []
+        self.dQueries = {'name':    lambda: self.sName,
+                         'ip':      lambda: self.sControlIP,
+                         'type':    lambda: self.sType,
+                         'model':   lambda: self.sModel,
+                         'sn':      lambda: self.sSerialNum,
+                         'n-srvs': self.oServers._iGetAmount,
+                         'srv-names': self.oServers._lGetNames,
+                         'srv-params': self.oServers._ldGetParams,
+                         }
+        return
+
+    def _AddComputingNode(self, oServer):
+        self.oServers._add(oServer)
+
+    def _AddPwerSupply(self, oPS):
+        self.oPowerSupplies._add(oPS)
+
+
+class Components_Collection(OrderedDict):
+    def __init__(self, oContainer=None):
+        super().__init__(oContainer)
+        return
+
+    def __repr__(self):
+        """for debug printing"""
+        return ("\n" + "====== List of components: ======" + '\n' +
+                "\n".join([d.__repr__() for d in self.values()]))
+
+    def _append(self, oObj):
+        self[oObj._sGetName()] = oObj
+        return
+
+    def _lsListNames(self):
+        """return a copy of Component IDs list"""
+        return list(self.keys())
+
+    def _ldGetData(self):
+        """return collection's data as a list of dictionaries"""
+        ldRet = []
+        for oObj in self.values():
+            ldRet.append(oObj._dGetDataAsDict())
+        return ldRet
+
+
+class ServersList(Components_Collection):
+    def __init__(self, lObjects):
+        if not (lObjects is None):
+            lServers = lObjects
+            dServers = super().__init__([(s._sGetName, s) for s in lObjects])
+        else:
+            super().__init__()
+        return
+
+
+class AdaptersList(Components_Collection):
+    def __init__(self, lObjects=None):
+        return
+
+class PowerSuppliesList(Components_Collection):
+    pass
+
+class FansList(Components_Collection):
+    def __init__(self, lObjects=None):
+        return
+
+class InterConnectsList(Components_Collection):
+    def __init__(self, lObjects=None):
+        return
+
+class DisksList(Components_Collection):
+    def __init__(self, lObjects=None):
+        return

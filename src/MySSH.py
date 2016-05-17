@@ -3,8 +3,18 @@
 import socket
 import paramiko
 import logging
+# from time import sleep
+
+SLEEP_DURATION = 0.5
+SSH_ENCODING = 'utf-8'
 
 oLog = logging.getLogger(__name__)
+
+
+class MySSH_Error(Exception):
+    def __init__(self, sMsg):
+        super().__init__(sMsg)
+        return
 
 
 class AuthData:
@@ -67,6 +77,25 @@ class MySSHConnection:
             stdin, stdout, stderr = self.oClient.exec_command(sCmd)
             for l in stdout:
                 lResult.append(l)
+            self.close()
         else:
             oLog.error("fsRunCmd: isnt connected")
         return "".join(lResult)
+
+    def _lsRunCommands(self, lsCmds):
+        lResult = []
+        # sCommands = "\n".join(lsCmds)
+        oLog.debug('_lsRunCommands called with commands: ' + str(lsCmds))
+        try:
+            for sCmd in lsCmds:
+                stdin, stdout, stderr = self.oClient.exec_command(sCmd)
+                sRes = stdout.read()
+                if sRes:
+                    lResult.append(sRes.decode(SSH_ENCODING).strip())
+        except Exception as e:
+            oLog.error('_lsRunCommands: error executing commands')
+            oLog.error('Output:' + str(e))
+        finally:
+            self.oClient.close()
+        oLog.debug("_lsRunCommands result:" + str(lResult))
+        return lResult

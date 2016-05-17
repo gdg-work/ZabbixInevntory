@@ -199,7 +199,7 @@ class IBM_XIV_Storage(inv.ScaleOutStorageClass):
         return ldRet
 
 
-class XIV_Componens_Collection(OrderedDict):
+class XIV_Componens_Collection:
     def __init__(self, oSystem, sCommandLine):
         self.lComponentIDs = []
         self.dComponents = {}

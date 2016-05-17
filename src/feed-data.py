@@ -52,12 +52,12 @@ def _sRandomString(size=8, chars=RANDOM_ID_CHARS):
     return ''.join(random.choice(chars) for x in range(size))
 
 
-def _sListOfStringsToJSON(lsStrings):
-    """Converts list of strings to JSON data for Zabbix"""
-    ID = '{#ID}'
-    lRetList = [{ID: n} for n in lsStrings]
-    dRetDict = {"data": lRetList}
-    return json.dumps(dRetDict)
+# def _sListOfStringsToJSON(lsStrings):
+#     """Converts list of strings to JSON data for Zabbix"""
+#     ID = '{#ID}'
+#     lRetList = [{ID: n} for n in lsStrings]
+#     dRetDict = {"data": lRetList}
+#     return json.dumps(dRetDict)
 
 
 def _oConnect2Redis(sConnInfo):
@@ -273,36 +273,36 @@ def _GetArrayData(sArrName, oArray, oRedis, dZbxParams):
         # scale-out arrays like XIV goes here
         # lNodes = _lGetListOfNodes(sArrName, oArray, dZbxParams)
         lNodes = _lGetListOfSomething(sArrName, oArray, dZbxParams, 'node-names', zi.NodeToZabbix)
-        oRedis.hset(sArrayKey, D_KEYS['node-names'], _sListOfStringsToJSON(lNodes))
+        oRedis.hset(sArrayKey, D_KEYS['node-names'], zi._sListOfStringsToJSON(lNodes))
 
         # lSwitches = _lGetListOfSwitches(sArrName, oArray, dZbxParams)
         lSwitches = _lGetListOfSomething(sArrName, oArray, dZbxParams, 'switch-names', zi.SwitchToZabbix)
-        oRedis.hset(sArrayKey, D_KEYS['switch-names'], _sListOfStringsToJSON(lSwitches))
+        oRedis.hset(sArrayKey, D_KEYS['switch-names'], zi._sListOfStringsToJSON(lSwitches))
 
         # lDisks = _lGetListOfDisks(sArrName, oArray, dZbxParams)
         lDisks = _lGetListOfSomething(sArrName, oArray, dZbxParams, 'disk-names', zi.DisksToZabbix)
-        oRedis.hset(sArrayKey, D_KEYS['disk-names'], _sListOfStringsToJSON(lDisks))
+        oRedis.hset(sArrayKey, D_KEYS['disk-names'], zi._sListOfStringsToJSON(lDisks))
 
         lUPSes = _lGetListOfSomething(sArrName, oArray, dZbxParams, 'ups-names', zi.UPSesToZabbix)
-        oRedis.hset(sArrayKey, D_KEYS['ups-names'], _sListOfStringsToJSON(lUPSes))
+        oRedis.hset(sArrayKey, D_KEYS['ups-names'], zi._sListOfStringsToJSON(lUPSes))
 
         lDIMMs = _lGetListOfSomething(sArrName, oArray, dZbxParams, 'dimm-names', zi.DIMMsToZabbix)
-        oRedis.hset(sArrayKey, D_KEYS['dimm-names'], _sListOfStringsToJSON(lDIMMs))
+        oRedis.hset(sArrayKey, D_KEYS['dimm-names'], zi._sListOfStringsToJSON(lDIMMs))
 
         lCFs = _lGetListOfSomething(sArrName, oArray, dZbxParams, 'cf-names', zi.CFtoZabbix)
-        oRedis.hset(sArrayKey, D_KEYS['cf-names'], _sListOfStringsToJSON(lCFs))
+        oRedis.hset(sArrayKey, D_KEYS['cf-names'], zi._sListOfStringsToJSON(lCFs))
     else:
         # get list of controllers and push it to Redis
         lCtrls = _lGetListOfControllers(sArrName, oArray, dZbxParams)
-        oRedis.hset(sArrayKey, D_KEYS['ctrl-names'], _sListOfStringsToJSON(lCtrls))
+        oRedis.hset(sArrayKey, D_KEYS['ctrl-names'], zi._sListOfStringsToJSON(lCtrls))
 
         # get list of disk enclosures and push to Redis
         lEnclosures = _lGetListOfShelves(sArrName, oArray, dZbxParams)
-        oRedis.hset(sArrayKey, D_KEYS['shelf-names'], _sListOfStringsToJSON(lEnclosures))
+        oRedis.hset(sArrayKey, D_KEYS['shelf-names'], zi._sListOfStringsToJSON(lEnclosures))
 
         # and finally list of disks
         lDisks = _lGetListOfDisks(sArrName, oArray, dZbxParams)
-        oRedis.hset(sArrayKey, D_KEYS['disk-names'], _sListOfStringsToJSON(lDisks))
+        oRedis.hset(sArrayKey, D_KEYS['disk-names'], zi._sListOfStringsToJSON(lDisks))
     # test data in Redis
     oLog.debug("Array hash name is {}".format(sArrayKey))
     for sKey in oRedis.hkeys(sArrayKey):

@@ -52,8 +52,20 @@ dLoggingConfig = yaml.load("""
         Discovery:
             level: INFO
             handlers: [ console, logfile ]
+        srv.Discovery:
+            level: DEBUG
+            handlers: [ console, logfile ]
+        Servers_Feed_Data:
+            level: DEBUG
+            handlers: [ console, logfile ]
+        ibm_Power_AIX:
+            level: DEBUG
+            handlers: [ console, logfile ]
         FeedData:
             level: INFO
+            handlers: [ console, logfile ]
+        MySSH:
+            level: DEBUG
             handlers: [ console, logfile ]
     """)
 

@@ -16,6 +16,7 @@ import json
 from pathlib import Path
 from inventoryLogger import dLoggingConfig
 from redis import StrictRedis, RedisError
+# from zabbixInterface import _sListOfStringsToJSON
 # from local import CACHE_TIME
 # import sys         #  <--- for debugging
 
@@ -70,14 +71,6 @@ def _oConnect2Redis(sConnInfo):
         oRedis = StrictRedis(host=sHost, port=iPort)
         oRedis.ping()
     return oRedis
-
-
-def _sListOfStringsToJSON(lsStrings):
-    """Converts list of strings to JSON data for Zabbix"""
-    ID = '{#ID}'
-    lRetList = [{ID: n} for n in lsStrings]
-    dRetDict = {"data": lRetList}
-    return json.dumps(dRetDict)
 
 
 def _SendArrayInfo(oRedis, oArgs):
@@ -162,7 +155,7 @@ def _oGetCLIParser():
     oParser.add_argument('-p', '--password', help="password", type=str, required=False)
     oParser.add_argument('--dummy', help="Dummy unique key (not used)", type=str, required=False)
     oParser.add_argument('-k', '--key', help="SSH private key to authenticate", type=str, required=False)
-    oParser.add_argument('-s', '--system', help="HP EVA name in CV (EVA only)", type=str, required=False)
+    oParser.add_argument('-s', '--system', help="Array name", type=str, required=False)
     oParser.add_argument('-r', '--redis', help="Redis database host:port or socket, default=localhost:6379",
                          default='localhost:6379', type=str, required=False)
     oParser.add_argument('--redis-ttl', help="TTL of Redis-cached data", type=int,
