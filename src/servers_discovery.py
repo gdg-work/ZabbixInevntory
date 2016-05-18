@@ -75,8 +75,6 @@ def _PushConnectionInfo(oParser, oRedis):
     else:
         oLog.error('Unsupported type of server')
         raise(IncorrectServerType)
-    oLog.error('Prefix for Zabbix info: "{}"'.format(ZABBIX_PFX))
-    oLog.error('Prefix for servers access: "{}"'.format(ACCESS_PFX))
     try:
         oRedis.set(ZABBIX_PFX, json.dumps(dZabbixAccess), oParser.redis_ttl)
         oRedis.hset(ACCESS_PFX, oParser.name, json.dumps(dConnectionInfo))

@@ -42,7 +42,7 @@ class PowerHostClass(inv.GenericServer):
         self.sSpPass = dFields['SP_Pass']
         self.sHmcIP = dFields['HMC_IP']
         self.sSerialNum = ''
-        self.oAdapters = inv.AdaptersList([])
+        self.oAdapters = inv.AdaptersList()
         self._Fill_HMC_Data2()
         # print(self)
         return
@@ -157,7 +157,7 @@ class PowerHostClass(inv.GenericServer):
         sAdaptersCmd = 'lshwres -r io -m {0} --rsubtype slot -F {1}'.format(
             self.sName, ','.join(lFields))
         lOut = oHmcConn._lsRunCommands([sMemCmd, sProcCmd, sSysCmd, sAdaptersCmd])
-        print(str(lOut))
+        # print(str(lOut))
         self.iMemGBs = int(lOut[0]) // 1024
         self.iTotalCores = int(float(lOut[1]))
         sTM, self.sHmcIP, self.sSerialNum = lOut[2].split(',')
@@ -170,15 +170,27 @@ class PowerHostClass(inv.GenericServer):
             if d['description'] == 'Empty slot':
                 pass        # skip empty slots
             else:
-                self.oAdapters[d['bus_id']] = IBM_Power_Adapter(
-                    d['description'], d['bus_id'], d['drc_name'])
+                # oLog.debug('Current self.oAdapters content: ' + str(self.oAdapters.items()))
+                self.oAdapters._append(IBM_Power_Adapter(d['description'], d['bus_id'], d['drc_name']))
         return
+
+    def _lGetApplications(self):
+        """return a list of Zabbix 'application' names for this type of server"""
+        lRet = ['System']
+        for oCard in self.oAdapters.values():
+            lRet.append('Adapter ' + str(oCard._sBusID()))
+        return lRet
+
+    def _lGetItems(self, sAppName):
+        """returns a list of item names corresponding to sAppName"""
+        # Вариант -- возвращать Tuple, (приложение, item)
+        return [('System', 'System Memory'), ('System', 'CPU Cores'), ('System', 'System Type')]
 
 
 class IBM_Power_Adapter(inv.ComponentClass):
     def __init__(self, sName, sBusID, sLocation):
         self.sName = sName
-        self.sBusID = sBusID,
+        self.sBusID = sBusID
         self.sLocation = sLocation
         return
 
@@ -188,5 +200,11 @@ class IBM_Power_Adapter(inv.ComponentClass):
 
     def _dGetDataAsDict(self):
         return {'name': self.sName, 'bus_id': self.sBusID, 'location': self.sLocation}
+
+    def _sGetName(self):
+        return self.sName
+
+    def _sBusID(self):
+        return self.sBusID
 
 # vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4

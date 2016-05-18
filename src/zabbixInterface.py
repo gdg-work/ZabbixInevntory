@@ -55,6 +55,7 @@ class GeneralZabbix:
         self.iZabbixPort = iZabbixPort
         self.dApplicationNamesToIds = {}
         self.sHostName = sHostName
+        # self.sArrayName = sHostName
         self.sHostID = ''
         try:
             self.oZapi = ZabbixAPI(url=self.sZabbixURL, user=sZabUser, password=sZabPwd)
@@ -80,7 +81,7 @@ class GeneralZabbix:
         dBuf = {}
         if len(ldAppResult) == 0:
             # the host exists but didn't return anything, just continue
-            oLog.info("Array with ID {0} and name {1} doesn't answer".format(self.sHostID, self.sArrayName))
+            oLog.info("Array with ID {0} and name {1} doesn't answer".format(self.sHostID, self.sHostName))
         else:
             # oLog.debug("Applications on host {0}: {1}".format(self.sArrayName, ldAppResult))
             # now filter the apps list for this host
@@ -111,7 +112,7 @@ class GeneralZabbix:
             try:
                 sKey = dResult['result'][0]['key_']
                 # now we have key, so we can prepare data to Zabbix
-                oRet = ZabbixMetric(host=self.sArrayName, key=sKey, value=iValue)
+                oRet = ZabbixMetric(host=self.sHostName, key=sKey, value=iValue)
             except IndexError:
                 oLog.info("Can't receive item named '{}' from Zabbix with item.get".format(dFilter['name']))
                 oRet = None
@@ -658,7 +659,7 @@ class ZabbixHost:
     def _AddApp(self, sAppName):
         if self._bHasApplication(sAppName):
             # already have this app
-            pass
+            oApp = self._oGetApp(sAppName)
         else:
             oApp = ZabbixApplication(sAppName, self)
             oApp._NewApp(sAppName)
@@ -746,6 +747,9 @@ class ZabbixApplication:
         sRet += "\n".join([i.__repr__() for i in self.lRelatedItems])
         return sRet
 
+    def _loRelatedItems(self):
+        return list(self.lRelatedItems)
+
 
 class ZabbixItem:
     def __init__(self, sName, oHost, dDict=None):
@@ -773,6 +777,9 @@ class ZabbixItem:
 
     def _bExists(self, oHost):
         return oHost._bHasItem(self.sName)
+
+    def _sGetName(self):
+        return self.sName
 
     def _LinkWithApp(self, oApp):
         if not(oApp in self.lRelatedApps):
@@ -826,12 +833,20 @@ class Server_for_Zabbix(GeneralZabbix):
         *Zab* are parameters for Zabbix connection.
         """
         super().__init__(sHostName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
+        self.oHost = ZabbixHost(sHostName, self.oZapi)
         return
 
     def _SendDataToZabbix(self, oSrv):
         """push server's data to Zabbix, creating applications, items etc on the way"""
+        for sAppName in oSrv._lGetApplications():
+            self.oHost._AddApp(sAppName)
+            # applications are empty at the moment
+            # oApp = self.oHost._oGetApp(sAppName)
+            # for oItem in oApp._loRelatedItems():
+            #     self.oHost._AddItem(oItem._sGetName(), sAppName)
+            for sItemName in oSrv._lGetItems(sAppName):
+                self.oHost._AddItem(sItemName, sAppName)
         return
-
 
 # --
 

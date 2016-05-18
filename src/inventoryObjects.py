@@ -290,7 +290,10 @@ class ModularServer:
 
 class Components_Collection(OrderedDict):
     def __init__(self, oContainer=None):
-        super().__init__(oContainer)
+        if oContainer:
+            super().__init__(oContainer)
+        else:
+            super().__init__()
         return
 
     def __repr__(self):
@@ -326,10 +329,16 @@ class ServersList(Components_Collection):
 
 class AdaptersList(Components_Collection):
     def __init__(self, lObjects=None):
+        if lObjects:
+            super().__init__(lObjects)
+        else:
+            super().__init__()
         return
 
 class PowerSuppliesList(Components_Collection):
-    pass
+    def __init__(self, lObjects=None):
+        super().__init__(lObjects)
+        return
 
 class FansList(Components_Collection):
     def __init__(self, lObjects=None):
