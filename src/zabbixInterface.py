@@ -648,7 +648,9 @@ class ZabbixHost:
                 # matching item(s) found
                 for dItemDict in dItems['result']:
                     # dItemDict = dItems['result'][0]
+                    oLog.debug("Item found: {}".format(str(dItemDict)))
                     sName = dItemDict['name']
+                    dItemDict['key'] = dItemDict.get('key_')    # from the Zabbix parameter 'key_'
                     self.dItemNames[sName] = ZabbixItem(sName, self, dItemDict)
                 bRet = True
             else:
@@ -667,19 +669,18 @@ class ZabbixHost:
             self.dApps[oApp._iGetID] = oApp
         return oApp
 
-    def _AddItem(self, sItemName, sAppName='', sKey=''):
+    def _AddItem(self, sItemName, sAppName='', dParams=None):
         if self._bHasItem(sItemName):
             # already have that item
-            pass
+            oItem = self._oGetItem(sItemName)
         else:
-            if sKey == '':
-                sKey = str(uuid4())
             # need to create item
-            oItem = ZabbixItem(sItemName, self)
+            oItem = ZabbixItem(sItemName, self, dParams)
+            self.dItemNames[sItemName] = oItem
             if sAppName != '':
                 oApp = self._oGetApp(sAppName)
                 oItem._LinkWithApp(oApp)
-            oItem._NewZbxItem(sKey)
+            oItem._NewZbxItem()
         return oItem
 
     def __repr__(self):
@@ -757,6 +758,7 @@ class ZabbixItem:
         self.oHost = oHost
         self.iHostID = oHost._iGetHostID()
         self.lRelatedApps = []
+        self.sKey = None
         if dDict is not None:
             self.iID = int(dDict.get('itemid', 0))
             self.sUnits = dDict.get('units', '')
@@ -765,7 +767,7 @@ class ZabbixItem:
             self.iValType = int(dDict.get('value_type', 1))
             # update type: see documentation.  2 is a Zabbix trapper item
             self.iUpdType = int(dDict.get('type', 2))
-            self.sKey = dDict.get('key_')    # unique key
+            self.sKey = dDict.get('key') or dDict.get('key_')    # unique key
             self.iDelay = int(dDict.get('delay', 0))
         else:
             # fill some fields
@@ -773,6 +775,8 @@ class ZabbixItem:
             self.iValType = 1
             self.iUpdType = 2
             self.iDelay = 86400     # 1 day
+        if self.sKey is None:
+            self.sKey = str(uuid4())
         return
 
     def _bExists(self, oHost):
@@ -786,15 +790,15 @@ class ZabbixItem:
             self.lRelatedApps.append(oApp)
         return
 
-    def _NewZbxItem(self, sKey):
+    def _NewZbxItem(self):
         lAppIDs = []
-        self.sKey = sKey
+        # self.sKey = sKey
         for oApp in self.lRelatedApps:
             lAppIDs.append(oApp._iGetID())
         dNewItem = {'hostid': self.oHost.iHostID,
                     'applications': lAppIDs,
                     'name': self.sName,
-                    'key_': sKey,
+                    'key_': self.sKey,
                     # required fields for an item
                     'type': self.iUpdType,
                     'value_type': self.iValType,
@@ -810,6 +814,7 @@ class ZabbixItem:
         return
 
     def _SendValue(self, oValue, oZabSender):
+        oLog.debug('Entered _SendValue, params are: {}, {}'.format(oValue, str(oZabSender)))
         if self.iValType == 0:        # numeric (float)
             oValue = float(oValue)
         elif self.iValType in [1, 2, 4]:      # character
@@ -817,6 +822,7 @@ class ZabbixItem:
         elif self.iValType == 3:      # unsigned int
             oValue = int(oValue)
         oData2Send = ZabbixMetric(host=self.oHost._sName(), key=self.sKey, value=oValue)
+        print(str(oData2Send))
         if not oZabSender.send([oData2Send]):
             # unsuccessful data sending
             oLog.error('Zabbix Sender failed')
@@ -826,27 +832,27 @@ class ZabbixItem:
         return ("Item: name {0}, key {1}, update type: {2}".format(self.sName, self.sKey, self.iUpdType))
 
 
-class Server_for_Zabbix(GeneralZabbix):
-    def __init__(self, sHostName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
-        """
-        sHostName is a name of host or array (HOST.HOST) IN ZABBIX
-        *Zab* are parameters for Zabbix connection.
-        """
-        super().__init__(sHostName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
-        self.oHost = ZabbixHost(sHostName, self.oZapi)
-        return
-
-    def _SendDataToZabbix(self, oSrv):
-        """push server's data to Zabbix, creating applications, items etc on the way"""
-        for sAppName in oSrv._lGetApplications():
-            self.oHost._AddApp(sAppName)
-            # applications are empty at the moment
-            # oApp = self.oHost._oGetApp(sAppName)
-            # for oItem in oApp._loRelatedItems():
-            #     self.oHost._AddItem(oItem._sGetName(), sAppName)
-            for sItemName in oSrv._lGetItems(sAppName):
-                self.oHost._AddItem(sItemName, sAppName)
-        return
+# class Server_for_Zabbix(GeneralZabbix):
+#     def __init__(self, sHostName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
+#         """
+#         sHostName is a name of host or array (HOST.HOST) IN ZABBIX
+#         *Zab* are parameters for Zabbix connection.
+#         """
+#         super().__init__(sHostName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
+#         self.oHost = ZabbixHost(sHostName, self.oZapi)
+#         return
+#
+#     def _SendDataToZabbix(self, oSrv):
+#         """push server's data to Zabbix, creating applications, items etc on the way"""
+#         for sAppName in oSrv._lGetApplications():
+#             self.oHost._AddApp(sAppName)
+#             # applications are empty at the moment
+#             # oApp = self.oHost._oGetApp(sAppName)
+#             # for oItem in oApp._loRelatedItems():
+#             #     self.oHost._AddItem(oItem._sGetName(), sAppName)
+#             for sItemName in oSrv._lGetItems(sAppName):
+#                 self.oHost._AddItem(sItemName, sAppName)
+#         return
 
 # --
 

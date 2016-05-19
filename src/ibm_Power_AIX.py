@@ -6,6 +6,7 @@ import inventoryObjects as inv
 import MySSH
 import logging
 import csv    # because commands output use quoted fields
+import zabbixInterface as zi
 
 oLog = logging.getLogger(__name__)
 
@@ -19,6 +20,11 @@ class expHMC_Error(Exception):
 
     def __repr__(self):
         return self.sMsg
+
+
+class expAIX_Error(expHMC_Error):
+    def __init__(self, sMsg):
+        super().__init__(sMsg)
 
 
 class expHMC_NoAnswer(expHMC_Error):
@@ -43,6 +49,7 @@ class PowerHostClass(inv.GenericServer):
         self.sHmcIP = dFields['HMC_IP']
         self.sSerialNum = ''
         self.oAdapters = inv.AdaptersList()
+        self.oZbxHost = None
         self._Fill_HMC_Data2()
         # print(self)
         return
@@ -174,17 +181,43 @@ class PowerHostClass(inv.GenericServer):
                 self.oAdapters._append(IBM_Power_Adapter(d['description'], d['bus_id'], d['drc_name']))
         return
 
-    def _lGetApplications(self):
+    def _Connect2Zabbix(self, oAPI, oSender):
+        self.oZbxAPI = oAPI
+        self.oZbxSender = oSender
+        self.oZbxHost = zi.ZabbixHost(self.sName, self.oZbxAPI)
+        return
+
+    def _MakeAppsItems(self):
         """return a list of Zabbix 'application' names for this type of server"""
+        if self.oZbxHost:
+            # zabbix interface is defined
+            self.oZbxHost._AddApp('System')
+            # Add items
+            oMemItem = self.oZbxHost._AddItem(
+                "System Memory", sAppName='System',
+                dParams={'key': "Host_{}_Memory".format(self.sName), 'units': 'GB', 'value_type': 3})
+            oMemItem._SendValue(self.iMemGBs, self.oZbxSender)
+            oCPUItem = self.oZbxHost._AddItem(
+                "System Total Cores", sAppName='System',
+                dParams={'key': "Host_{}_Cores".format(self.sName), 'value_type': 3})
+            oCPUItem._SendValue(self.iTotalCores, self.oZbxSender)
+            # self.sType, self.sModel
+            oTypeItem = self.oZbxHost._AddItem(
+                "System Type", sAppName='System', dParams={'key': "Host_{}_Type".format(self.sName)})
+            oTypeItem._SendValue(self.sType, self.oZbxSender)
+            oModelItem = self.oZbxHost._AddItem(
+                "System Model", sAppName='System', dParams={'key': "Host_{}_Model".format(self.sName)})
+            oModelItem._SendValue(self.sModel, self.oZbxSender)
+            # Adapters
+            for oAdapter in self.oAdapters.values():
+                oAdapter._MakeAppsItems(self.oZbxHost, self.oZbxSender)
+        else:
+            oLog.error("Zabbix interface isn't initialized yet")
+            raise expHMC_Error("Zabbix isn't connected yet")
         lRet = ['System']
         for oCard in self.oAdapters.values():
             lRet.append('Adapter ' + str(oCard._sBusID()))
         return lRet
-
-    def _lGetItems(self, sAppName):
-        """returns a list of item names corresponding to sAppName"""
-        # Вариант -- возвращать Tuple, (приложение, item)
-        return [('System', 'System Memory'), ('System', 'CPU Cores'), ('System', 'System Type')]
 
 
 class IBM_Power_Adapter(inv.ComponentClass):
@@ -206,5 +239,18 @@ class IBM_Power_Adapter(inv.ComponentClass):
 
     def _sBusID(self):
         return self.sBusID
+
+    def _MakeAppsItems(self, oZbxHost, oZbxSender):
+        sAppName = "Adapter " + self.sBusID
+        oZbxHost._AddApp(sAppName)
+        oNameItem = oZbxHost._AddItem(
+            sAppName + " Type", sAppName,
+            dParams={'key': "Adapter_{}_of_{}_Type".format(self.sBusID, oZbxHost._sName())})
+        oNameItem._SendValue(self.sName, oZbxSender)
+        oPosItem = oZbxHost._AddItem(
+            sAppName + " Position", sAppName,
+            dParams={'key': "Adapter_{}_of_{}_Pos".format(self.sBusID, oZbxHost._sName())})
+        oPosItem._SendValue(self.sLocation, oZbxSender)
+
 
 # vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4
