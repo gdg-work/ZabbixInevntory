@@ -619,10 +619,10 @@ class ZabbixHost:
         self.dAppIds = {}
         self.dApps = {}
         self.dItemNames = {}
-        self.dItems = {}
         return
 
     def _bHasApplication(self, sAppName):
+        sAppName = sAppName.lower()
         if sAppName in self.dAppIds:
             bRet = True
         else:
@@ -630,13 +630,16 @@ class ZabbixHost:
             # print("Defined applications on host {0}:\n{1}".format(self.iHostID, "\n".join(
             #      [str(a) for a in ldApplications['result']])))
             for dApp in ldApplications['result']:
-                self.dAppIds[dApp['name']] = dApp['applicationid']
-                self.dApps[dApp['applicationid']] = ZabbixApplication(dApp['name'], self, dApp)
+                sNewName = dApp['name'].lower()
+                sNewID = dApp['applicationid']
+                self.dAppIds[sNewName] = dApp['applicationid']
+                self.dApps[sNewID] = ZabbixApplication(sNewName, self, dApp)
             bRet = (sAppName in self.dAppIds)
         return bRet
 
     def _bHasItem(self, sItemName, iAppID=0):
         bRet = False
+        sItemName = sItemName.lower()
         if sItemName in self.dItemNames:
             bRet = True
         else:
@@ -644,21 +647,24 @@ class ZabbixHost:
             dGetItem = {'hostids': self.iHostID,
                         'search': {'name': sItemName}}
             dItems = self.oAPI.do_request('item.get', dGetItem)
+            oLog.debug('_bHasItem: result of item.get() is {}'.format(str(dItems)))
             if len(dItems['result']) > 0:
                 # matching item(s) found
                 for dItemDict in dItems['result']:
                     # dItemDict = dItems['result'][0]
                     oLog.debug("Item found: {}".format(str(dItemDict)))
-                    sName = dItemDict['name']
+                    sName = dItemDict['name'].lower()
                     dItemDict['key'] = dItemDict.get('key_')    # from the Zabbix parameter 'key_'
                     self.dItemNames[sName] = ZabbixItem(sName, self, dItemDict)
                 bRet = True
             else:
                 # No item found
                 bRet = False
+            oLog.debug('_bHasItem: dItemNames after call is: ' + str(self.dItemNames))
         return bRet
 
-    def _AddApp(self, sAppName):
+    def _oAddApp(self, sAppName):
+        # sAppName = sAppName.lower()
         if self._bHasApplication(sAppName):
             # already have this app
             oApp = self._oGetApp(sAppName)
@@ -669,10 +675,12 @@ class ZabbixHost:
             self.dApps[oApp._iGetID] = oApp
         return oApp
 
-    def _AddItem(self, sItemName, sAppName='', dParams=None):
+    def _oAddItem(self, sItemName, sAppName='', dParams=None):
+        # sItemName = sItemName.lower()
         if self._bHasItem(sItemName):
             # already have that item
             oItem = self._oGetItem(sItemName)
+            oLog.debug('Already have that item, returned {}'.format(str(oItem)))
         else:
             # need to create item
             oItem = ZabbixItem(sItemName, self, dParams)
@@ -681,6 +689,7 @@ class ZabbixHost:
                 oApp = self._oGetApp(sAppName)
                 oItem._LinkWithApp(oApp)
             oItem._NewZbxItem()
+            oLog.debug('Created a new item, returned {}'.format(str(oItem)))
         return oItem
 
     def __repr__(self):
@@ -696,12 +705,14 @@ class ZabbixHost:
 
     def _oGetItem(self, sItemName):
         """returns item object by name"""
+        sItemName = sItemName.lower()
         if self._bHasItem(sItemName):
             return self.dItemNames.get(sItemName, None)
         else:
             return None
 
     def _oGetApp(self, sAppName):
+        sAppName = sAppName.lower()
         if self._bHasApplication(sAppName):
             return self.dApps[self.dAppIds[sAppName]]
         else:

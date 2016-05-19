@@ -156,7 +156,7 @@ def _ProcessArgs(oArgs, oLog):
             _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAPI, oZbxSender)
             # oZbxInterface._SendDataToZabbix(oServer)
         except Exception as e:
-            oLog.error('Exception when processing array: ' + sSrvName)
+            oLog.error('Exception when processing server: ' + sSrvName)
             oLog.error(str(e))
             traceback.print_exc()
             continue
