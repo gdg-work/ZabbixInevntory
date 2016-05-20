@@ -813,7 +813,8 @@ class ZabbixItem:
                     # required fields for an item
                     'type': self.iUpdType,
                     'value_type': self.iValType,
-                    'delay': self.iDelay
+                    'delay': self.iDelay,
+                    'units': self.sUnits
                     }
         try:
             dRes = self.oHost.oAPI.do_request('item.create', dNewItem)
@@ -841,29 +842,6 @@ class ZabbixItem:
 
     def __repr__(self):
         return ("Item: name {0}, key {1}, update type: {2}".format(self.sName, self.sKey, self.iUpdType))
-
-
-# class Server_for_Zabbix(GeneralZabbix):
-#     def __init__(self, sHostName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
-#         """
-#         sHostName is a name of host or array (HOST.HOST) IN ZABBIX
-#         *Zab* are parameters for Zabbix connection.
-#         """
-#         super().__init__(sHostName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
-#         self.oHost = ZabbixHost(sHostName, self.oZapi)
-#         return
-#
-#     def _SendDataToZabbix(self, oSrv):
-#         """push server's data to Zabbix, creating applications, items etc on the way"""
-#         for sAppName in oSrv._lGetApplications():
-#             self.oHost._AddApp(sAppName)
-#             # applications are empty at the moment
-#             # oApp = self.oHost._oGetApp(sAppName)
-#             # for oItem in oApp._loRelatedItems():
-#             #     self.oHost._AddItem(oItem._sGetName(), sAppName)
-#             for sItemName in oSrv._lGetItems(sAppName):
-#                 self.oHost._AddItem(sItemName, sAppName)
-#         return
 
 # --
 

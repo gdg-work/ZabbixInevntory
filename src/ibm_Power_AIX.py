@@ -14,6 +14,10 @@ oLog = logging.getLogger(__name__)
 
 DEFAULT_SSH_PORT = 22
 RE_HDISK = re.compile(r'^\s*hdisk\d+\s')
+RE_PWRSUPPLY = re.compile(r'^\s*A IBM AC PS\s*:$')
+RE_WS = re.compile(r'\s+')
+RE_DOTS = re.compile(r'\.\.+')
+RE_RAM_MODULE = re.compile(r'\s*Memory DIMM:$')
 
 
 class expHMC_Error(Exception):
@@ -58,6 +62,8 @@ class PowerHostClass(inv.GenericServer):
         self.sSerialNum = ''
         self.oAdapters = inv.AdaptersList()
         self.lDisks = []
+        self.lPwrSupplies = []
+        self.lDIMMs = []
         self.oZbxHost = None
         self._Fill_HMC_Data()
         self._FillFromAIX()
@@ -89,42 +95,6 @@ class PowerHostClass(inv.GenericServer):
             oLog.error('Command string: {}, output: {}'.format(sCommand, sFromCmd))
             raise expAIX_NoAnswer("No answer from OS SSH")
         return sFromCmd
-
-#     def _dssFromHMC(self, sCommand):
-#         """connect to HMC, run a command and return results"""
-#         oAuth = MySSH.AuthData(self.sSpUser, bUseKey=False, sPasswd=self.sSpPass)
-#         oHmcConn = MySSH.MySSHConnection(self.sHmcIP, DEFAULT_SSH_PORT, oAuth)
-#         sFromCmd = oHmcConn.fsRunCmd(sCommand)
-#         oLog.debug('_dssFromHMC: output of command "{}": "{}"'.format(
-#                    sCommand, sFromCmd))
-#         # result is a long line with 'name=field' format separated by commas
-#         if ',' in sFromCmd:
-#             for lLine in csv.reader([sFromCmd], delimiter=',', quotechar='"'):
-#                 dData = dict([tuple(t.split('=')) for t in lLine])
-#         else:
-#             oLog.error('Cannot receive data from HMC, check the server\'s name IN HMC')
-#             oLog.error('HMC output: ' + sFromCmd)
-#             raise expHMC_InvalidFormat("Invalid format (no comma) of HMC's answer")
-#         return dData
-
-#     def _ldFromHMCMultiLine(self, sCommand):
-#         """connect to HMC, run a command and return results as a list of dictionaries"""
-#         oAuth = MySSH.AuthData(self.sSpUser, bUseKey=False, sPasswd=self.sSpPass)
-#         oHmcConn = MySSH.MySSHConnection(self.sHmcIP, DEFAULT_SSH_PORT, oAuth)
-#         sLines = oHmcConn.fsRunCmd(sCommand)
-#         if not sLines:
-#             raise expHMC_NoAnswer("Empty answer from HMC")
-#
-#         # result is a *list* of long lines with 'name=field' format separated by commas
-#         for sFromCmd in sLines.split('\n'):
-#             if ',' in sFromCmd:
-#                 for lLine in csv.reader([sFromCmd], delimiter=',', quotechar='"'):
-#                     dData = dict([tuple(t.split('=')) for t in lLine])
-#             else:
-#                 oLog.error('Cannot receive data from HMC, check the server\'s name IN HMC')
-#                 oLog.error('HMC output: ' + sFromCmd)
-#                 raise expHMC_InvalidFormat('Cannot receive data from HMC, check the server name')
-#         return dData
 
     def _Fill_HMC_Data(self):
         oAuth = MySSH.AuthData(self.sSpUser, bUseKey=False, sPasswd=self.sSpPass)
@@ -165,14 +135,12 @@ class PowerHostClass(inv.GenericServer):
         # oLog.info("_FillFromAIX: lscfg output is {}".format(sRet))
         lsCfgData = sRet.split('\n')
         self._FillDisks(lsCfgData)
-
+        self._FillPwrSupplies(lsCfgData)
+        self._FillDIMMs(lsCfgData)
         return
 
     def _FillDisks(self, lsCfgData):
         """extract disks information from a list of strings and fills in diskList object"""
-        RE_WS = re.compile(r'\s+')
-        RE_DOTS = re.compile(r'\.+')
-        # XXX a good place for 'stopIteration' catch XXX
         iterDiskData = it.dropwhile(lambda x: not RE_HDISK.match(x), lsCfgData)
         try:
             while True:
@@ -180,7 +148,7 @@ class PowerHostClass(inv.GenericServer):
                 bIsLocal = False        # reset variable
                 iterDiskData = it.dropwhile(lambda x: not RE_HDISK.match(x), iterDiskData)
                 # we are at first line of disk's description. Let's parse it.
-                sL1 = iterDiskData.__next__().strip()
+                sL1 = next(iterDiskData).strip()
                 oLog.debug('_FillDisks: 1st line is {}'.format(sL1))
                 sDskName, sHWLoc, sDesc = RE_WS.split(sL1, maxsplit=2)
                 sL = '--------'   # initialize loop variable
@@ -219,6 +187,72 @@ class PowerHostClass(inv.GenericServer):
             pass
         return
 
+    def _FillPwrSupplies(self, lsCfgData):
+        """ Fills power supplies list from output of 'lscfg -vp' saved in a list of strings """
+        iterPSData = it.dropwhile(lambda x: not RE_PWRSUPPLY.match(x), lsCfgData)
+        self.iPwrSupplies = 0
+        try:
+            while True:
+                sPN = ''                # no P/N on non-local drives
+                iterPSData = it.dropwhile(lambda x: not RE_PWRSUPPLY.match(x), iterPSData)
+                # we are at first line of disk's description. Let's parse it.
+                sL1 = next(iterPSData).strip()
+                self.iPwrSupplies += 1
+                oLog.debug('_FillPwrSupply: 1st line is {}'.format(sL1))
+                sName = 'Power Supply {}'.format(self.iPwrSupplies)
+                sL = '--------'   # initialize loop variable
+                while sL != '':        # empty line is end of PS record
+                    sL = next(iterPSData).strip()
+                    if sL[:22] == "Hardware Location Code":
+                        sHWLoc = RE_DOTS.split(sL)[1]
+                    elif sL[:13] == "Serial Number":
+                        sSN = RE_DOTS.split(sL)[1]
+                    elif sL[:11] == "Part Number":
+                        sPN = RE_DOTS.split(sL)[1]
+                    else:
+                        pass   # skip unknown lines
+                # create PwrSupply object
+                self.lPwrSupplies.append(IBM_Power_Supply(sName, sPN, sSN, sHWLoc))
+                continue   # while true
+        except StopIteration:
+            # end of lscfg output, no more Power Supplies
+            pass
+        return
+
+    def _FillDIMMs(self, lsCfgData):
+        """Fills RAM modules information from 'lscfg -vp' output stored in lsCfgData list"""
+        iterDIMMsData = it.dropwhile(lambda x: not RE_RAM_MODULE.match(x), lsCfgData)
+        self.iDIMMs = 0
+        try:
+            while True:
+                sHWLoc, sName, sSN, sPN, iSize = ('', '', '', '', 0)   # empty variables
+                iterDIMMsData = it.dropwhile(lambda x: not RE_RAM_MODULE.match(x), iterDIMMsData)
+                # we are at first line of disk's description. Let's parse it.
+                sL1 = next(iterDIMMsData).strip()
+                oLog.debug('_FillDIMMs: 1st line is {}'.format(sL1))
+                self.iDIMMs += 1
+                sL = '--------'   # initialize loop variable
+                while sL != '':
+                    sL = next(iterDIMMsData).strip()
+                    if sL[:22] == "Hardware Location Code":
+                        sHWLoc = RE_DOTS.split(sL)[1]
+                        sName = 'RAM Module {}'.format(sHWLoc.split('.')[-1])
+                    elif sL[:13] == "Serial Number":
+                        sSN = RE_DOTS.split(sL)[1]
+                    elif sL[:11] == "Part Number":
+                        sPN = RE_DOTS.split(sL)[1]
+                    elif sL[:6] == "Size..":
+                        iSize = int(RE_DOTS.split(sL)[1]) // 1024
+                    else:
+                        pass   # skip unknown lines
+                # create DIMM object
+                self.lDIMMs.append(IBM_DIMM_Module(sName, sPN, sSN, sHWLoc, iSize))
+                continue   # while true
+        except StopIteration:
+            # end of lscfg output, no more Power Supplies
+            pass
+        return
+
     def _Connect2Zabbix(self, oAPI, oSender):
         self.oZbxAPI = oAPI
         self.oZbxSender = oSender
@@ -250,16 +284,20 @@ class PowerHostClass(inv.GenericServer):
                 "System Serial Number", sAppName='System',
                 dParams={'key': "Host_{}_Serial".format(self.sName)})
             oSN_Item._SendValue(self.sSerialNum, self.oZbxSender)
-            # Adapters
-            for oAdapter in self.oAdapters.values():
-                oAdapter._MakeAppsItems(self.oZbxHost, self.oZbxSender)
-            for oObj in self.lDisks:
+            oTotPS_Item = self.oZbxHost._oAddItem(
+                "System Pwr Supplies", sAppName='System',
+                dParams={'key': "Host_{}_NPwrSupplies".format(self.sName), 'value_type': 3})
+            oTotPS_Item._SendValue(self.iPwrSupplies, self.oZbxSender)
+            oTotDIMMs_Item = self.oZbxHost._oAddItem(
+                "System DIMMs #", sAppName='System',
+                dParams={'key': "Host_{}_NDIMMs".format(self.sName), 'value_type': 3})
+            oTotDIMMs_Item._SendValue(self.iDIMMs, self.oZbxSender)
+            # Adapters, disks, PS, etc.
+            for oObj in (list(self.oAdapters.values()) + self.lDisks + self.lPwrSupplies + self.lDIMMs):
                 oObj._MakeAppsItems(self.oZbxHost, self.oZbxSender)
         else:
             oLog.error("Zabbix interface isn't initialized yet")
             raise expHMC_Error("Zabbix isn't connected yet")
-        # for oCard in self.oAdapters.values():
-        #     lRet.append('Adapter ' + str(oCard._sBusID()))
         return
 
 
@@ -320,5 +358,60 @@ class IBM_Power_Disk(inv.ComponentClass):
             oItem._SendValue(sV, oZbxSender)
         return
 
+
+class IBM_Power_Supply(inv.ComponentClass):
+    def __init__(self, sName, sPN, sSN, sHWLoc):
+        self.sName = sName
+        self.dData = {'Part Number': sPN,
+                      'Serial Number': sSN,
+                      'HW Location': sHWLoc}
+        return
+
+    def _MakeAppsItems(self, oZbxHost, oZbxSender):
+        sAppName = self.sName               # 'Power supply {}'
+        oZbxHost._oAddApp(sAppName)
+        # all parameters are strings, so we can use loop
+        for sN, sV in self.dData.items():
+            oLog.debug('Parameter name:{}, value:{}'.format(sN, sV))
+            sItemName = sAppName + ' ' + sN
+            sItemKey = '{}_of_{}_{}'.format(
+                sAppName, oZbxHost._sName(), sN).replace(' ', '_')
+            oItem = oZbxHost._oAddItem(sItemName, sAppName, dParams={'key': sItemKey})
+            oLog.debug('IBM_Power_Supply._MakeAppsItems: created item is ' + str(oItem))
+            oItem._SendValue(sV, oZbxSender)
+        return
+
+
+class IBM_DIMM_Module(inv.ComponentClass):
+    def __init__(self, sName, sPN, sSN, sHWLoc, iSize):
+        self.sName = sName
+        self.dStrData = {'Part Number': sPN,
+                         'Serial Number': sSN,
+                         'HW Location': sHWLoc}
+        self.iSize = iSize
+        return
+
+    def _MakeAppsItems(self, oZbxHost, oZbxSender):
+        sAppName = self.sName               # 'RAM Module #######-P#-C## {}'
+        oZbxHost._oAddApp(sAppName)
+        # all parameters are strings, so we can use loop
+        for sN, sV in self.dStrData.items():
+            oLog.debug('Parameter name:{}, value:{}'.format(sN, sV))
+            sItemName = sAppName + ' ' + sN
+            sItemKey = '{}_of_{}_{}'.format(
+                sAppName, oZbxHost._sName(), sN).replace(' ', '_')
+            oItem = oZbxHost._oAddItem(sItemName, sAppName, dParams={'key': sItemKey})
+            oLog.debug('IBM_Power_Supply._MakeAppsItems: created item is ' + str(oItem))
+            oItem._SendValue(sV, oZbxSender)
+        # and integer item: size
+        sItemName = sAppName + ' Size'
+        sItemKey = '{}_of_{}_{}'.format(
+            sAppName, oZbxHost._sName(), 'Size').replace(' ', '_')
+        oItem = oZbxHost._oAddItem(sItemName, sAppName,
+                                   dParams={'key': sItemKey, 'value_type': 3, 'units': 'GB'})
+        oLog.debug('IBM_Power_Supply._MakeAppsItems: created item is ' + str(oItem))
+        oItem._SendValue(self.iSize, oZbxSender)
+
+        return
 
 # vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4
