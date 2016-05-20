@@ -75,8 +75,8 @@ class PowerHostClass(inv.GenericServer):
         oAuth = MySSH.AuthData(self.sSpUser, bUseKey=False, sPasswd=self.sSpPass)
         oHmcConn = MySSH.MySSHConnection(self.sHmcIP, DEFAULT_SSH_PORT, oAuth)
         sFromCmd = oHmcConn.fsRunCmd(sCommand)
-        oLog.debug('_sFromHMC: output of command "{}": "{}"'.format(
-                   sCommand, sFromCmd))
+        # oLog.debug('_sFromHMC: output of command "{}": "{}"'.format(
+        #            sCommand, sFromCmd))
         if not sFromCmd:
             oLog.error('Cannot receive data from HMC, check the server\'s name IN HMC')
             oLog.error('HMC output: ' + sFromCmd)
@@ -99,8 +99,6 @@ class PowerHostClass(inv.GenericServer):
     def _Fill_HMC_Data(self):
         oAuth = MySSH.AuthData(self.sSpUser, bUseKey=False, sPasswd=self.sSpPass)
         oHmcConn = MySSH.MySSHConnection(self.sHmcIP, DEFAULT_SSH_PORT, oAuth)
-
-        oLog.debug('_Fill_HMC_Data2 called')
         # Memory
         sMemCmd = 'lshwres -r mem -m {} --level sys -F installed_sys_mem'.format(self.sName)
         # Processors
@@ -157,17 +155,17 @@ class PowerHostClass(inv.GenericServer):
                     if sL[:13] == 'Serial Number':
                         # 'Serial Number...............6XN42PQM':
                         sSN = RE_DOTS.split(sL)[1]
-                        oLog.debug('Disk {} S/N is {}'.format(sDskName, sSN))
+                        # oLog.debug('Disk {} S/N is {}'.format(sDskName, sSN))
                     if sL == '':    # first empty string
                         bInDiskDescription = True
                     elif sL[:11] == 'Part Number':
                         # Part Number.................74Y6486
                         sPN = RE_DOTS.split(sL)[1]
-                        oLog.debug('Disk {} P/N is {}'.format(sDskName, sPN))
+                        # oLog.debug('Disk {} P/N is {}'.format(sDskName, sPN))
                     elif sL[:22] == 'Machine Type and Model':
                         # Machine Type and Model......ST9300653SS
                         sModel = RE_DOTS.split(sL)[1]
-                        oLog.debug('Disk {} MTM is {}'.format(sDskName, sModel))
+                        # oLog.debug('Disk {} MTM is {}'.format(sDskName, sModel))
                     elif sL[:22] == 'Hardware Location Code':  # this line finishes the disk description
                         bIsLocal = True
                     else:
@@ -222,6 +220,7 @@ class PowerHostClass(inv.GenericServer):
     def _FillDIMMs(self, lsCfgData):
         """Fills RAM modules information from 'lscfg -vp' output stored in lsCfgData list"""
         iterDIMMsData = it.dropwhile(lambda x: not RE_RAM_MODULE.match(x), lsCfgData)
+        dDIMMs = {}
         self.iDIMMs = 0
         try:
             while True:
@@ -245,12 +244,37 @@ class PowerHostClass(inv.GenericServer):
                         iSize = int(RE_DOTS.split(sL)[1]) // 1024
                     else:
                         pass   # skip unknown lines
-                # create DIMM object
-                self.lDIMMs.append(IBM_DIMM_Module(sName, sPN, sSN, sHWLoc, iSize))
+                # collect all the information to one data structure
+                dDIMM_Dict = {'SN': sSN, 'PN': sPN, 'Loc': sHWLoc, 'Size': iSize}
+                dDIMMs[sName] = dDIMM_Dict
                 continue   # while true
         except StopIteration:
-            # end of lscfg output, no more Power Supplies
+            # end of lscfg output, no more DIMMs
             pass
+
+        # now dDIMMs dictionary contains our information, but the
+        # dictionary's key is not perfect for Zabbix item name, we need to
+        # shorten it and remove uniqueness linked with usage of box S/N in
+        # DIMM position. First, we need to arrange modules by boxes
+        dDimmsByBoxes = {}
+        for sName, dValue in dDIMMs.items():
+            sBoxName, sOther = sName.split('-', maxsplit=1)
+            # if adding a first element, create a dictionary
+            if dDimmsByBoxes.get(sBoxName, None) is None:
+                dDimmsByBoxes[sBoxName] = {sOther: dValue}
+            else:
+                dDimmsByBoxes[sBoxName][sOther] = dValue
+        # Now (hopefully) all DIMMs are grouped by a box. Just sort and number these boxes
+        lBoxNames = list(dDimmsByBoxes.keys())
+        lBoxNames.sort()        # <-- in place
+        for iBoxNum in range(0, len(lBoxNames)):
+            dInBox = dDimmsByBoxes[lBoxNames[iBoxNum]]
+            for sOther, dValue in dInBox.items():
+                sName = "Box{}-{}".format(iBoxNum + 1, sOther)
+                oDIMM = IBM_DIMM_Module(sName, dValue['PN'], dValue['SN'], dValue['Loc'],
+                                        dValue['Size'])
+                # oLog.debug('DIMM object created: ' + str(oDIMM))
+                self.lDIMMs.append(oDIMM)
         return
 
     def _Connect2Zabbix(self, oAPI, oSender):
@@ -350,11 +374,11 @@ class IBM_Power_Disk(inv.ComponentClass):
         oZbxHost._oAddApp(sAppName)
         # all parameters are strings, so we can use loop
         for sN, sV in self.dData.items():
-            oLog.debug('Parameter name:{}, value:{}'.format(sN, sV))
+            # oLog.debug('Parameter name:{}, value:{}'.format(sN, sV))
             sItemName = sAppName + ' ' + sN
             sItemKey = 'Disk_{}_of_{}_{}'.format(self.sName, oZbxHost._sName(), sN).replace(' ', '_')
             oItem = oZbxHost._oAddItem(sItemName, sAppName, dParams={'key': sItemKey})
-            oLog.debug('IBM_Power_Disk._MakeAppsItems: created item is ' + str(oItem))
+            # oLog.debug('IBM_Power_Disk._MakeAppsItems: created item is ' + str(oItem))
             oItem._SendValue(sV, oZbxSender)
         return
 
@@ -372,36 +396,40 @@ class IBM_Power_Supply(inv.ComponentClass):
         oZbxHost._oAddApp(sAppName)
         # all parameters are strings, so we can use loop
         for sN, sV in self.dData.items():
-            oLog.debug('Parameter name:{}, value:{}'.format(sN, sV))
+            # oLog.debug('Parameter name:{}, value:{}'.format(sN, sV))
             sItemName = sAppName + ' ' + sN
             sItemKey = '{}_of_{}_{}'.format(
                 sAppName, oZbxHost._sName(), sN).replace(' ', '_')
             oItem = oZbxHost._oAddItem(sItemName, sAppName, dParams={'key': sItemKey})
-            oLog.debug('IBM_Power_Supply._MakeAppsItems: created item is ' + str(oItem))
+            # oLog.debug('IBM_Power_Supply._MakeAppsItems: created item is ' + str(oItem))
             oItem._SendValue(sV, oZbxSender)
         return
 
 
 class IBM_DIMM_Module(inv.ComponentClass):
     def __init__(self, sName, sPN, sSN, sHWLoc, iSize):
-        self.sName = sName
+        self.sName = 'RAM module ' + sName
         self.dStrData = {'Part Number': sPN,
                          'Serial Number': sSN,
                          'HW Location': sHWLoc}
         self.iSize = iSize
         return
 
+    def __repr__(self):
+        return str('DIMM module: name:{0}, Serial:{1} at HW Loc:{2}'.format(
+            self.sName, self.dStrData['Serial Number'], self.dStrData['HW Location']))
+
     def _MakeAppsItems(self, oZbxHost, oZbxSender):
         sAppName = self.sName               # 'RAM Module #######-P#-C## {}'
         oZbxHost._oAddApp(sAppName)
         # all parameters are strings, so we can use loop
         for sN, sV in self.dStrData.items():
-            oLog.debug('Parameter name:{}, value:{}'.format(sN, sV))
+            # oLog.debug('Parameter name:{}, value:{}'.format(sN, sV))
             sItemName = sAppName + ' ' + sN
             sItemKey = '{}_of_{}_{}'.format(
                 sAppName, oZbxHost._sName(), sN).replace(' ', '_')
             oItem = oZbxHost._oAddItem(sItemName, sAppName, dParams={'key': sItemKey})
-            oLog.debug('IBM_Power_Supply._MakeAppsItems: created item is ' + str(oItem))
+            # oLog.debug('IBM_DIMM_Module._MakeAppsItems: created item is ' + str(oItem))
             oItem._SendValue(sV, oZbxSender)
         # and integer item: size
         sItemName = sAppName + ' Size'
@@ -409,7 +437,7 @@ class IBM_DIMM_Module(inv.ComponentClass):
             sAppName, oZbxHost._sName(), 'Size').replace(' ', '_')
         oItem = oZbxHost._oAddItem(sItemName, sAppName,
                                    dParams={'key': sItemKey, 'value_type': 3, 'units': 'GB'})
-        oLog.debug('IBM_Power_Supply._MakeAppsItems: created item is ' + str(oItem))
+        # oLog.debug('IBM_DIMM_Module._MakeAppsItems: created item is ' + str(oItem))
         oItem._SendValue(self.iSize, oZbxSender)
 
         return
