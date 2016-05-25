@@ -9,13 +9,13 @@ import redis
 import logging
 import json
 import argparse as ap
-# import MySSH
 import random
 import string
-# import re
+# === host types ===
 import ibm_Power_AIX as aix
+import ibm_BladeCenter_AMM as amm
+# --- end of host types
 from inventoryLogger import dLoggingConfig
-# import zabbixInterface as zi
 from pathlib import Path
 # from servers_discovery import SERVERS_SUPPORTED, OPERATIONS_SUPPORTED, REDIS_PREFIX
 from servers_discovery import REDIS_PREFIX
@@ -121,6 +121,7 @@ def _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAPI, oZbxSender):
     sSrvType = dSrvParams['type']
     oLog.debug("_oCollectInfoFromServer called for server {}, type {}".format(dSrvParams['srv-ip'], sSrvType))
     if sSrvType == 'power_aix':
+        assert(dSrvParams['sp-type'] == 'HMC')
         oZbxHost = aix.PowerHostClass(sSrvName, IP=dSrvParams['srv-ip'],
                                       HMC_IP=dSrvParams['sp-ip'],
                                       User=dSrvParams['user'],
@@ -129,8 +130,18 @@ def _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAPI, oZbxSender):
                                       SP_Pass=dSrvParams['sp-pass'],
                                       SP_Type=dSrvParams['sp-type']
                                       )
+        # print(oZbxHost)
+    elif sSrvName == "xseries_amm":
+        assert(dSrvParams['sp-type'] == 'AMM')
+        oZbxHost = amm.BladeWithAMM(sSrvName, IP=dSrvParams['srv-ip'],
+                                    User=dSrvParams['user'],
+                                    Pass=dSrvParams['password'],
+                                    AMM_IP=dSrvParams['sp-ip'],
+                                    SP_User=dSrvParams['sp-user'],
+                                    SP_Pass=dSrvParams['sp-pass'],
+                                    SP_Type=dSrvParams['sp-type']
+                                    )
         print(oZbxHost)
-        assert(dSrvParams['sp-type'] == 'HMC')
     else:
         oLog.error("Host type is not supported yet!")
     # connect to server, retrieve information from it

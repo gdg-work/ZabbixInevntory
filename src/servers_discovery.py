@@ -12,7 +12,7 @@ import json
 from local import REDIS_ENCODING
 
 # Constants
-SERVERS_SUPPORTED = ['power_aix']
+SERVERS_SUPPORTED = ['power_aix', 'xseries_amm']
 OPERATIONS_SUPPORTED = ['server-name']
 REDIS_PREFIX = "ServersDiscovery."
 
@@ -71,7 +71,15 @@ def _PushConnectionInfo(oParser, oRedis):
                            'sp-pass': oParser.sp_password,
                            'srv-ip': oParser.server_ip,
                            'sp-ip': oParser.sp_ip}
-        # oServer = aix.PowerHostClass(dConnectionInfo)
+    elif oParser.type == "xseries_amm":
+        dConnectionInfo = {'type': 'xseries_amm',
+                           'sp-type': 'AMM',
+                           'user': oParser.user,
+                           'password': oParser.password,
+                           'sp-user': oParser.sp_user,
+                           'sp-pass': oParser.sp_password,
+                           'srv-ip': oParser.server_ip,
+                           'sp-ip': oParser.sp_ip}
     else:
         oLog.error('Unsupported type of server')
         raise(IncorrectServerType)

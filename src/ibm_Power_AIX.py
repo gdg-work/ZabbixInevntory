@@ -53,12 +53,12 @@ class PowerHostClass(inv.GenericServer):
     def __init__(self, sName, **dFields):
         """dParams MUST contain some fields like IP, Login, Password etc"""
         oLog.debug("PowerHostClass constructor called with params: " + str(dFields))
-        super().__init__(sName, IP=dFields['IP'])
-        self.sUser = dFields['User']
-        self.sPass = dFields['Pass']
-        self.sSpUser = dFields['SP_User']
-        self.sSpPass = dFields['SP_Pass']
-        self.sHmcIP = dFields['HMC_IP']
+        super().__init__(sName, IP=dFields.get('IP'))
+        self.sUser = dFields.get('User')
+        self.sPass = dFields.get('Pass')
+        self.sSpUser = dFields.get('SP_User')
+        self.sSpPass = dFields.get('SP_Pass')
+        self.sHmcIP = dFields.get('HMC_IP')
         self.sSerialNum = ''
         self.oAdapters = inv.AdaptersList()
         self.lDisks = []

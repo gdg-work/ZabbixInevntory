@@ -3,6 +3,9 @@
 import socket
 import paramiko
 import logging
+# for debugging
+import traceback
+import time
 # from time import sleep
 
 SLEEP_DURATION = 0.5
@@ -42,6 +45,9 @@ class MySSHConnection:
         self.oSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.bConnected = False
         self.oClient = paramiko.SSHClient()
+        self.sRemoteIP = sIP
+        self.iRemotePort = iPort
+        self.oAuth = oAuth
         try:
             # oLog.debug("*DBG* Trying to connect to IP {} port {:d}".format(sIP, iPort))
             self.oSocket.connect((sIP, iPort))
@@ -74,12 +80,15 @@ class MySSHConnection:
     def fsRunCmd(self, sCmd):
         lResult = []
         if self.bConnected:
-            stdin, stdout, stderr = self.oClient.exec_command(sCmd)
-            for l in stdout:
-                lResult.append(l)
-            self.close()
+            if self.oClient.get_transport() is not None:
+                stdin, stdout, stderr = self.oClient.exec_command(sCmd)
+                for l in stdout:
+                    lResult.append(l)
+            else:
+                oLog.error("No transport for exec_command")
         else:
             oLog.error("fsRunCmd: isnt connected")
+            self.close()
         return "".join(lResult)
 
     def _lsRunCommands(self, lsCmds):
@@ -95,6 +104,39 @@ class MySSHConnection:
         except Exception as e:
             oLog.error('_lsRunCommands: error executing commands')
             oLog.error('Output:' + str(e))
+            traceback.print_exc()
+        finally:
+            self.oClient.close()
+        oLog.debug("_lsRunCommands result:" + str(lResult))
+        return lResult
+
+    def _lsRunCommands2(self, lsCmds):
+        lResult = []
+        SLEEP_TIME = 0.3
+        sRes = '---'
+        # sCommands = "\n".join(lsCmds)
+        lsCmds.append('exit')
+        print('_lsRunCommands2 called with commands: ' + str(lsCmds))
+        try:
+            oChannel = self.oClient.invoke_shell(term='dumb', width=120)
+            # flush the buffer
+            while not oChannel.send_ready():
+                time.sleep(SLEEP_TIME)
+            for sCmd in lsCmds:
+                while not oChannel.send_ready():
+                    time.sleep(SLEEP_TIME)
+                oChannel.send(sCmd + '\r\n')
+            while not oChannel.recv_ready():
+                time.sleep(SLEEP_TIME)
+            while oChannel.recv_ready() and not (sRes.endswith('exit\r')):
+                sRes += oChannel.recv(1024 * 64).decode(SSH_ENCODING)
+                time.sleep(SLEEP_TIME)
+            if sRes:
+                lResult = [s.strip() for s in sRes.split('\n')]
+        except Exception as e:
+            oLog.error('_lsRunCommands2: error executing commands')
+            oLog.error('Output:' + str(e))
+            traceback.print_exc()
         finally:
             self.oClient.close()
         oLog.debug("_lsRunCommands result:" + str(lResult))
