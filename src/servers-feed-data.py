@@ -131,7 +131,7 @@ def _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAPI, oZbxSender):
                                       SP_Type=dSrvParams['sp-type']
                                       )
         # print(oZbxHost)
-    elif sSrvName == "xseries_amm":
+    elif sSrvType == "xseries_amm":
         assert(dSrvParams['sp-type'] == 'AMM')
         oZbxHost = amm.BladeWithAMM(sSrvName, IP=dSrvParams['srv-ip'],
                                     User=dSrvParams['user'],

@@ -63,7 +63,7 @@ class IBM_DS(invobj.ClassicArrayClass):
         self.dQueries = {
             'name':        self.getName,
             'wwn':         self.getWWN,
-            'ctlrs':       self.getCtrls,
+            'ctrls':       self.getCtrls,
             'shelves':     self.getShelves,
             'disks':       self.getDrives,
             'type':        self._sGetType,

@@ -61,6 +61,9 @@ dLoggingConfig = yaml.load("""
         ibm_Power_AIX:
             level: DEBUG
             handlers: [ console, logfile ]
+        ibm_BladeCenter_AMM:
+            level: DEBUG
+            handlers: [ console, logfile ]
         FeedData:
             level: INFO
             handlers: [ console, logfile ]
