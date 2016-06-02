@@ -6,6 +6,7 @@ import itertools as it
 import logging
 import MySSH
 import zabbixInterface as zi
+import WBEM_disks as wd
 import re
 
 # Constants
@@ -66,7 +67,9 @@ class BladeWithAMM(inv.GenericServer):
         self.lDIMMs = []
         self.lCPUs = []
         self.lExps = []
+        self.lDisks = []
         self._FillFromAMM()
+        self._FillDisksFromWBEM()
         return
 
     def _FillFromAMM(self):
@@ -350,6 +353,15 @@ class BladeWithAMM(inv.GenericServer):
             raise expAMM_Error("Zabbix isn't connected yet")
         return
 
+    def _FillDisksFromWBEM(self):
+        ldDicts = wd._ldConnectAndReportDisks(self.sHost, self.sUser, self.sPass, iPort=5989)
+        for dDiskData in ldDicts:
+            iSizeGB = int(dDiskData['MaxMediaSize']) // 2**20   # WBEM returns size in KB
+            self.lDisks.append(
+                Blade_Disk(dDiskData['Name'], dDiskData['Model'], dDiskData['PartNumber'],
+                           dDiskData['SerialNumber'], iSizeGB))
+        return
+
 
 class Blade_CPU(inv.ComponentClass):
     def __init__(self, sName, sSpeed, sFamily, iCores):
@@ -449,6 +461,47 @@ class Blade_EXP(inv.ComponentClass):
         oSN_Item._SendValue(self.dData['sn'], oZbxSender)
         return
 
+
+class Blade_Disk(inv.ComponentClass):
+    def __init__(self, sName, sModel, sPN, sSN, iSizeGB):
+        self.sName = sName
+        self.dDiskData = {
+            "model": sModel,
+            "pn": sPN,
+            "sn": sSN,
+            "size": iSizeGB}
+        return
+
+    def __repr__(self):
+        sFmt = "HDD {0}: model {1}, p/n {2}, s/n {3}, size {4} GiB"
+        return sFmt.format(self.sName, self.dDiskData['Model'], self.dDiskData['PN'],
+                           self.dDiskData['SN'], self.dDiskData['Size'])
+
+    def _MakeAppsItems(self, oZbxHost, oZbxSender):
+        oZbxHost._oAddApp(self.sName)     # Disk Drive_65535_0
+        oModelItem = oZbxHost._oAddItem(
+            self.sName + " Model", sAppName=self.sName,
+            dParams={'key': "{}_{}_Model".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+                     'value_type': 2})
+        oPN_Item = oZbxHost._oAddItem(
+            self.sName + " Part Number", sAppName=self.sName,
+            dParams={'key': "{}_{}_PN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+                     'value_type': 2})
+        oSN_Item = oZbxHost._oAddItem(
+            self.sName + " Serial Number", sAppName=self.sName,
+            dParams={'key': "{}_{}_SN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+                     'value_type': 2})
+        oSize_Item = oZbxHost._oAddItem(
+            self.sName + " Size", sAppName=self.sName,
+            dParams={'key': "{}_{}_Size".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+                     'value_type': 3, 'units': 'GB'})
+        oModelItem._SendValue(self.dData['model'], oZbxSender)
+        oPN_Item._SendValue(self.dData['pn'], oZbxSender)
+        oSN_Item._SendValue(self.dData['sn'], oZbxSender)
+        oSize_Item._SendValue(self.dData['size'], oZbxSender)
+        return
+
+
 if __name__ == '__main__':
     """testing section"""
     oLog.setLevel(logging.DEBUG)
@@ -457,8 +510,8 @@ if __name__ == '__main__':
     oLog.addHandler(oConHdr)
     # oAmm = BladeWithAMM('esxprod04', IP='127.0.0.1', SP_User='USERID',
     #                     SP_Pass='PASSW0RD', AMM_IP='10.1.128.148')
-    oAmm = BladeWithAMM('vmsrv04', IP='127.0.0.1', SP_User='host',
-                        SP_Pass='host123', AMM_IP='10.0.22.61')
+    oAmm = BladeWithAMM('vmsrv06', IP='vmsrv06.msk.protek.ru', User='zabbix', Pass='A3hHr88man01',
+                        SP_User='host', SP_Pass='host123', AMM_IP='10.0.22.61')
     lOut = oAmm._lsFromAMM([])
     # print("\n".join(lOut))
 
