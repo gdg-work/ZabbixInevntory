@@ -5,28 +5,21 @@
 import logging
 import argparse as ap
 from inventoryLogger import dLoggingConfig
-from zabbixInterface import _sListOfStringsToJSON
-from redis import StrictRedis, RedisError
-import ibm_Power_AIX as aix
+# from zabbixInterface import _sListOfStringsToJSON
+from redis import RedisError
+from redis_utils import _oConnect2Redis
 import json
+import traceback
 from local import REDIS_ENCODING
 
 # Constants
-SERVERS_SUPPORTED = ['power_aix', 'xseries_amm']
-OPERATIONS_SUPPORTED = ['server-name']
+SERVERS_SUPPORTED = ['aix_hmc', 'esxi_amm', 'esxi']
+# OPERATIONS_SUPPORTED = ['server-name']
 REDIS_PREFIX = "ServersDiscovery."
-
-dObjects = {'power_aix': aix.PowerHostClass}
 
 
 class IncorrectServerType(Exception):
     pass
-
-
-def _sProcessArgs(oParser, oRedis):
-    sRet = _sListOfStringsToJSON([oParser.name])
-    _PushConnectionInfo(oParser, oRedis)
-    return(sRet)
 
 
 def _sGetServerData(oRedis, oArgs):
@@ -63,7 +56,7 @@ def _PushConnectionInfo(oParser, oRedis):
                      'zabbix_IP': oParser.zabbixip,
                      'zabbix_port': oParser.zabbixport}
     if oParser.type == "power_aix":
-        dConnectionInfo = {'type': 'power_aix',
+        dConnectionInfo = {'type': oParser.server_type,
                            'sp-type': 'HMC',
                            'user': oParser.user,
                            'password': oParser.password,
@@ -71,14 +64,15 @@ def _PushConnectionInfo(oParser, oRedis):
                            'sp-pass': oParser.sp_password,
                            'srv-ip': oParser.server_ip,
                            'sp-ip': oParser.sp_ip}
-    elif oParser.type == "xseries_amm":
-        dConnectionInfo = {'type': 'xseries_amm',
+    elif oParser.type == "esxi_amm":
+        assert oParser.vcenter is not None
+        dConnectionInfo = {'type': oParser.server_type,
                            'sp-type': 'AMM',
                            'user': oParser.user,
                            'password': oParser.password,
                            'sp-user': oParser.sp_user,
                            'sp-pass': oParser.sp_password,
-                           'srv-ip': oParser.server_ip,
+                           'srv-name': oParser.server_name,
                            'sp-ip': oParser.sp_ip}
     else:
         oLog.error('Unsupported type of server')
@@ -93,23 +87,116 @@ def _PushConnectionInfo(oParser, oRedis):
     return
 
 
-def _oGetCLIParser():
-    """parse CLI arguments, returns argparse.ArgumentParser object"""
-    oParser = ap.ArgumentParser(description="Make servers list for Zabbix")
-    oParser.add_argument('-t', '--type', help="Server type", required=True,
-                         choices=SERVERS_SUPPORTED)
-    oParser.add_argument('-q', '--query', choices=OPERATIONS_SUPPORTED, default="server-name")
-    oParser.add_argument('-n', '--name', help='Server name (required for AIX)')
+def _PushConnectionInfo2(dConnInfo, oParser, oRedis):
+    ACCESS_PFX = REDIS_PREFIX + "ServersAccess"
+    ZABBIX_PFX = REDIS_PREFIX + "ZabbixAccess"
+    dZabbixAccess = {'zabbix_user': oParser.zabbixuser,
+                     'zabbix_passwd': oParser.zabbixpassword,
+                     'zabbix_IP': oParser.zabbixip,
+                     'zabbix_port': oParser.zabbixport}
+    try:
+        oRedis.set(ZABBIX_PFX, json.dumps(dZabbixAccess), oParser.redis_ttl)
+        oRedis.hset(ACCESS_PFX, oParser.name, json.dumps(dConnInfo))
+        oRedis.expire(ACCESS_PFX, oParser.redis_ttl)
+    except RedisError:
+        oLog.error('Cannot connect to Redis and set information')
+        raise RedisError
+    return
 
-    oParser.add_argument('-i', '--server-ip', help="Server interface IP or FQDN", type=str, required=True)
-    oParser.add_argument('-I', '--sp-ip', help="Service processor (iLO, HMC, IMM) interface IP or FQDN",
-                         type=str, required=False)
-    oParser.add_argument('-u', '--user', help="Host login", type=str, required=True)
-    oParser.add_argument('-p', '--password', help="Host password", type=str, required=False)
-    oParser.add_argument('-U', '--sp-user', help="Service processor login", type=str, required=False)
-    oParser.add_argument('-P', '--sp-password', help="Service processor password", type=str, required=False)
-    oParser.add_argument('-k', '--key', help="SSH key to authenticate to host", type=str, required=False)
-    oParser.add_argument('-K', '--sp-key', help="SSH key to authenticate to SP", type=str, required=False)
+
+def _PushAIX_Info(oParser, oRedis):
+    print(str(oParser))
+    dConnectionInfo = {'type': oParser.server_type,
+                       'sp-type': 'HMC',
+                       'user': oParser.user,
+                       'name': oParser.name,
+                       'password': oParser.password,
+                       'sp-user': oParser.hmc_user,
+                       'sp-pass': oParser.hmc_password,
+                       'srv-ip': oParser.server_ip,
+                       'sp-ip': oParser.hmc_ip}
+    _PushConnectionInfo2(dConnectionInfo, oParser, oRedis)
+    return
+
+
+def _PushESXnAMMInfo(oParser, oRedis):
+    print(str(oParser))
+    dConnectionInfo = {'type': oParser.server_type,
+                       'sp-type': 'AMM',
+                       'user': oParser.user,
+                       'password': oParser.password,
+                       'vcenter': oParser.vcenter,
+                       'sp-user': oParser.amm_user,
+                       'sp-pass': oParser.amm_password,
+                       'srv-name': oParser.name,
+                       'sp-ip': oParser.amm_ip}
+    _PushConnectionInfo2(dConnectionInfo, oParser, oRedis)
+    return
+
+
+def _PushESXInfo(oParser, oRedis):
+    print(str(oParser))
+    dConnectionInfo = {'type': 'esxi',
+                       'user': oParser.user,
+                       'password': oParser.password,
+                       'vcenter': oParser.vcenter,
+                       'srv-name': oParser.name}
+    _PushConnectionInfo2(dConnectionInfo, oParser, oRedis)
+    return
+
+
+def _Main():
+    """parse CLI arguments, make connection to Redis and call a worker function"""
+    oParser = ap.ArgumentParser(description="Make servers list for Zabbix")
+    oSubParsers = oParser.add_subparsers(title='server types',
+                                         dest='server_type',
+                                         description='Supported server types',
+                                         help='<server type>[_<service processor type>]')
+    oParserAIX = oSubParsers.add_parser('aix_hmc')
+    oParserESXiAmm = oSubParsers.add_parser('esxi_amm')
+    oParserESXi = oSubParsers.add_parser('esxi')
+
+    # construct parser for AIX options group
+    oParserAIX.add_argument('-n', '--name', help='Server name on HMC', type=str, required=True)
+
+    oParserAIX.add_argument('-i', '--server-ip', help="Server interface IP or FQDN", type=str, required=True)
+    oParserAIX.add_argument('-I', '--hmc-ip', help="Service processor (HMC) interface IP or FQDN",
+                            type=str, required=True)
+    oParserAIX.add_argument('-u', '--user', help="Host login", type=str, required=True)
+    oParserAIX.add_argument('-p', '--password', help="Host password", type=str, required=False)
+    oParserAIX.add_argument('-U', '--hmc-user', help="Service processor login", type=str, required=True)
+    oParserAIX.add_argument('-P', '--hmc-password', help="Service processor password",
+                            type=str, required=False)
+    oParserAIX.add_argument('-k', '--key', help="SSH key to authenticate to host", type=str, required=False)
+    oParserAIX.add_argument('-K', '--hmc-key', help="SSH key to authenticate to SP",
+                            type=str, required=False)
+    oParserAIX.set_defaults(func=_PushAIX_Info)
+
+    # Parser for ESXi host with AMM service processor
+    oParserESXiAmm.add_argument('-n', '--name', help='Server full domain name (FQDN)',
+                                type=str, required=True)
+    oParserESXiAmm.add_argument(
+        '-I', '--amm-ip', type=str, required=True,
+        help="Blade system service processor (AMM) interface IP or FQDN")
+    oParserESXiAmm.add_argument('-u', '--user', help="vCenter login", type=str, required=True)
+    oParserESXiAmm.add_argument('-p', '--password', help="vCenter password", type=str, required=True)
+    oParserESXiAmm.add_argument('-v', '--vcenter', help='vCenter FQDN or IP', type=str, required=True)
+    oParserESXiAmm.add_argument('-U', '--amm-user', help="Service processor login", type=str, required=True)
+    oParserESXiAmm.add_argument('-P', '--amm-password', help="Service processor password",
+                                type=str, required=False)
+    oParserESXiAmm.add_argument('-K', '--amm-key', help="SSH key to authenticate to AMM",
+                                type=str, required=False)
+    oParserESXiAmm.set_defaults(func=_PushESXnAMMInfo)
+
+    # Parser for ESXi host without SP, WBEM access only
+    oParserESXi.add_argument('-n', '--name', help='Server full domain name (FQDN)',
+                             type=str, required=True)
+    oParserESXi.add_argument('-u', '--user', help="vCenter login", type=str, required=True)
+    oParserESXi.add_argument('-p', '--password', help="vCenter password", type=str, required=True)
+    oParserESXi.add_argument('-v', '--vcenter', help='vCenter FQDN or IP', type=str, required=True)
+    oParserESXi.set_defaults(func=_PushESXInfo)
+
+    # Common arguments for all parsers
     oParser.add_argument('-r', '--redis', help="Redis database host:port or socket, default=localhost:6379",
                          default='localhost:6379', type=str, required=False)
     oParser.add_argument('--redis-ttl', help="TTL of Redis-cached data", type=int,
@@ -122,7 +209,13 @@ def _oGetCLIParser():
                          default='Admin', required=False)
     oParser.add_argument('--zabbixpassword', help="Zabbix server password",
                          default='zabbix', required=False)
-    return (oParser.parse_args())
+
+    oArgs = oParser.parse_args()
+    # connect to Redis database
+    oRedis = _oConnect2Redis(oArgs.redis)
+    # and call a function corresponding to server's type (from 'set_defaults')
+    oArgs.func(oArgs, oRedis)
+    return
 
 
 #
@@ -132,21 +225,18 @@ if __name__ == '__main__':
     logging.config.dictConfig(dLoggingConfig)
     oLog = logging.getLogger('Srv.Discovery')
     oLog.debug('Starting Discovery-info program')
-    # oLog.debug(" ".join(sys.argv))
-    oParser = _oGetCLIParser()
     sRet = "Not implemented yet"
     iRetCode = -1
     try:
-        oRedis = StrictRedis()
-        sRet = _sProcessArgs(oParser, oRedis)
-        print(sRet)
+        _Main()
         iRetCode = 0
     except RedisError:
         oLog.error('Cannot connect to Redis DB')
         iErrCode = 2
-#     except Exception as e:
-#         oLog.error("Exception at top-level {}".format(str(e)))
-#         iRetCode = 1
+    except Exception as e:
+        oLog.error("Exception at top-level {}".format(str(e)))
+        traceback.print_exc()
+        iRetCode = 1
     exit(iRetCode)
 
 # vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4 : autoindent

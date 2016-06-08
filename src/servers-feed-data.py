@@ -5,23 +5,24 @@ A pair to discovery_info: scheduled/daemon module to get connection info from Re
 fill in data fields and pass these fields to Zabbix via API
 """
 
-import redis
+# import redis
 import logging
 import json
 import argparse as ap
-import random
-import string
+# import random
+# import string
 # === host types ===
 import ibm_Power_AIX as aix
 import ibm_BladeCenter_AMM as amm
 # --- end of host types
 from inventoryLogger import dLoggingConfig
-from pathlib import Path
+# from pathlib import Path
 # from servers_discovery import SERVERS_SUPPORTED, OPERATIONS_SUPPORTED, REDIS_PREFIX
 from servers_discovery import REDIS_PREFIX
 from local import REDIS_ENCODING
 from pyzabbix.api import ZabbixAPI          # ZabbixAPIException
 from pyzabbix.sender import ZabbixSender    # ZabbixMetric
+from redis_utils import _oConnect2Redis
 
 # for debugging
 import traceback
@@ -30,48 +31,8 @@ import traceback
 
 # ZBX_CONNECT_PFX = ""
 # QUERY_PFX =       ""
-D_KEYS = {'ctrl-names':   'LIST_OF_CONTROLLER_NAMES',
-          'shelf-names':  'LIST OF DISK ENCLOSURE NAMES',
-          'disk-names':   'LIST OF DISK NAMES',
-          "node-names":   'LIST OF NODE NAMES',
-          "ups-names":    'LIST OF UPSes',
-          "dimm-names":   'LIST OF RAM MODULES',
-          "cf-names":     'LIST OF COMPACT FLASH MODULES',
-          "switch-names": 'LIST OF SWITCHES'}
-RANDOM_ID_CHARS = string.ascii_uppercase + string.ascii_lowercase + string.digits
 
 oLog = logging.getLogger(__name__)
-
-
-def _sRandomString(size=8, chars=RANDOM_ID_CHARS):
-    return ''.join(random.choice(chars) for x in range(size))
-
-
-def _oConnect2Redis(sConnInfo):
-    """
-    connect to Redis DB.
-    Parameters:
-    sConnInfo: a string, one of 2 variants: 'host:port' or '/path/to/socket'
-    returns: object of type redis:StrictRedis
-    """
-    bSocketConnect = False
-    if sConnInfo[0] == '/' and Path(sConnInfo).is_socket():
-        bSocketConnect = True
-    elif sConnInfo.find(':') > 0 and sConnInfo.split(':', maxsplit=1)[1].isnumeric():
-        sHost, sPort = sConnInfo.split(':', maxsplit=1)
-        iPort = int(sPort)
-    else:
-        oLog.error("_oConnect2Redis: Invalid Redis connection parameters")
-        oRedis = None
-        raise redis.RedisError
-
-    if bSocketConnect:
-        oRedis = redis.StrictRedis(unix_socket_path=sConnInfo)
-        oRedis.ping()
-    else:
-        oRedis = redis.StrictRedis(host=sHost, port=iPort)
-        oRedis.ping()
-    return oRedis
 
 
 def _dGetZabbixConnectionInfo(oRedis):
@@ -120,7 +81,7 @@ def _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAPI, oZbxSender):
     oZbxHost = None
     sSrvType = dSrvParams['type']
     oLog.debug("_oCollectInfoFromServer called for server {}, type {}".format(dSrvParams['srv-ip'], sSrvType))
-    if sSrvType == 'power_aix':
+    if sSrvType == 'aix_hmc':
         assert(dSrvParams['sp-type'] == 'HMC')
         oZbxHost = aix.PowerHostClass(sSrvName, IP=dSrvParams['srv-ip'],
                                       HMC_IP=dSrvParams['sp-ip'],
@@ -131,16 +92,24 @@ def _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAPI, oZbxSender):
                                       SP_Type=dSrvParams['sp-type']
                                       )
         # print(oZbxHost)
-    elif sSrvType == "xseries_amm":
+    elif sSrvType == "esxi_amm":
         assert(dSrvParams['sp-type'] == 'AMM')
-        oZbxHost = amm.BladeWithAMM(sSrvName, IP=dSrvParams['srv-ip'],
-                                    User=dSrvParams['user'],
-                                    Pass=dSrvParams['password'],
-                                    AMM_IP=dSrvParams['sp-ip'],
-                                    SP_User=dSrvParams['sp-user'],
-                                    SP_Pass=dSrvParams['sp-pass'],
-                                    SP_Type=dSrvParams['sp-type']
-                                    )
+        oZbxHost = amm.ESXiWithAMM(sSrvName, IP=dSrvParams['srv-ip'],
+                                   User=dSrvParams['user'],
+                                   Pass=dSrvParams['password'],
+                                   vCenter=dSrvParams['vcenter'],
+                                   AMM_IP=dSrvParams['sp-ip'],
+                                   SP_User=dSrvParams['sp-user'],
+                                   SP_Pass=dSrvParams['sp-pass'],
+                                   SP_Type=dSrvParams['sp-type']
+                                   )
+        print(oZbxHost)
+    elif sSrvType == "esxi":
+        oZbxHost = amm.ESXiHost(sSrvName, IP=dSrvParams['srv-ip'],
+                                User=dSrvParams['user'],
+                                Pass=dSrvParams['password'],
+                                vCenter=dSrvParams['vcenter']
+                                )
         print(oZbxHost)
     else:
         oLog.error("Host type is not supported yet!")

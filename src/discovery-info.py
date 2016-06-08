@@ -13,9 +13,10 @@
 import argparse as ap
 import logging
 import json
-from pathlib import Path
+# from pathlib import Path
 from inventoryLogger import dLoggingConfig
-from redis import StrictRedis, RedisError
+# from redis import StrictRedis, RedisError
+from redis_utils import _oConnect2Redis
 # from zabbixInterface import _sListOfStringsToJSON
 # from local import CACHE_TIME
 # import sys         #  <--- for debugging
@@ -47,30 +48,6 @@ D_KEYS = {'ctrl-names':   'LIST_OF_CONTROLLER_NAMES',
           "cf-names":     'LIST OF COMPACT FLASH MODULES',
           "switch-names": 'LIST OF SWITCHES'}
 REDIS_ENCODING = 'utf-8'
-
-
-def _oConnect2Redis(sConnInfo):
-    """connect to Redis DB.
-    Parameters: sConnInfo: a string, one of 2 variants: 'host:port' or '/path/to/socket'
-    returns: object of type redis:StrictRedis"""
-    bSocketConnect = False
-    if sConnInfo[0] == '/' and Path(sConnInfo).is_socket():
-        bSocketConnect = True
-    elif sConnInfo.find(':') > 0 and sConnInfo.split(':', maxsplit=1)[1].isnumeric():
-        sHost, sPort = sConnInfo.split(':', maxsplit=1)
-        iPort = int(sPort)
-    else:
-        oLog.error("_oConnect2Redis: Invalid Redis connection parameters")
-        oRedis = None
-        raise RedisError
-
-    if bSocketConnect:
-        oRedis = StrictRedis(unix_socket_path=sConnInfo)
-        oRedis.ping()
-    else:
-        oRedis = StrictRedis(host=sHost, port=iPort)
-        oRedis.ping()
-    return oRedis
 
 
 def _SendArrayInfo(oRedis, oArgs):

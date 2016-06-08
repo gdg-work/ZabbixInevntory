@@ -6,7 +6,7 @@ import itertools as it
 import logging
 import MySSH
 import zabbixInterface as zi
-import WBEM_disks as wd
+import WBEM_vmware as wd
 import re
 
 # Constants
@@ -21,6 +21,7 @@ RE_INFOCPU = re.compile(r'info -T system:[^:]+:cpu\[\d\]')
 RE_INFOMEM = re.compile(r'info -T system:[^:]+:memory\[\d{1,3}\]')
 RE_INFOEXP = re.compile(r'info -T system:[^:]+:exp\[\d{1,3}\]')
 RE_EMPTY = re.compile(r'^\w*$')
+RE_IBM_HOST_MODEL = re.compile(r'^\[(\w+)\]$')
 
 
 # Classes
@@ -51,9 +52,11 @@ oLog = logging.getLogger(__name__)
 
 
 class BladeWithAMM(inv.GenericServer):
-    def __init__(self, sName, **dParams):
-        """sName is a name of the server in AMM"""
-        super().__init__(sName, IP=dParams.get('IP', None))
+    def __init__(self, sFQDN, sAMM_Name, **dParams):
+        """sAMM_Name is a name of the server in AMM"""
+        super().__init__(sFQDN, IP=dParams.get('IP', None))
+        self.sAmmName = sAMM_Name
+        self.sVCenter = dParams.get('vCenter')
         self.sUser = dParams.get('User')
         self.sPass = dParams.get('Pass')
         self.sSpUser = dParams.get('SP_User')
@@ -83,13 +86,13 @@ class BladeWithAMM(inv.GenericServer):
             s = s.strip()
             if RE_WS.search(s) and RE_BLADE.search(s):
                 sDev, sName = RE_WS.split(s, maxsplit=1)
-                if self.sName == sName:
+                if self.sAmmName == sName:
                     self.sBladeNum = sDev
-                    oLog.debug("*DBG* Blade with name {} found, ID {}".format(
-                        self.sName, self.sBladeNum))
+                    oLog.debug("Blade with name {} found, ID {}".format(
+                        self.sAmmName, self.sBladeNum))
                     break
         if self.sBladeNum == '':
-            oLog.error('Blade {} is not found in the enclosure'.format(self.sName))
+            oLog.error('Blade {} is not found in the enclosure'.format(self.sAmmName))
             raise expAMM_Error('Unknown blade')
 
         lOut = oAmmConn.fsRunCmd("info -T system:{}".format(self.sBladeNum)).split('\n')
@@ -114,63 +117,63 @@ class BladeWithAMM(inv.GenericServer):
         self._ParseFillAMMComponents2(lComponents, oAmmConn, oAuth)
         return
 
-    def _ParseFillAMMComponents(self, lData, oConn, oAuth):
-        """Parameters: list of components, connection and auth info
-        Actions: groups lines of components by class and makes a list of
-        each component, runs a series of commands to discover components."""
-        self.dComps = {'cpu': [], 'exp': [], 'memory': []}
-
-        def _lsCollectLines(iterData, l):
-            """collects lines of iterData up to empty string in a list, returns that list.
-            2nd parameter is a first line to collect (from calling function)
-            """
-            lBuf = []
-            while not RE_EMPTY.match(l):
-                lBuf.append(l)
-                l = next(iterData).strip()
-            return lBuf
-
-        for s in lData:
-            oMG = RE_COMP.match(s)
-            if oMG:
-                sClass, sNum = oMG.groups()
-                if sClass in self.dComps:
-                    self.dComps[sClass].append(sNum)
-        self.iCPUs = len(self.dComps['cpu'])
-        self.iDIMMs = len(self.dComps['memory'])
-        self.iExps = len(self.dComps['exp'])
-        # make a list of commands for SSH and execute these commands
-        lCommands = []
-        for k in sorted(self.dComps.keys()):
-            for n in self.dComps[k]:
-                lCommands.append('info -T system:{}:{}[{}]'.format(self.sBladeNum, k, n))
-        # ==== disabled for debugging ====
-        lOutput = oConn._lsRunCommands2(lCommands)
-        # lOutput = open(",out.txt", "r").readlines()
-        # --- disabled for debugging ---
-        # print("Commands output: " + str(lOutput))
-        iterData = it.dropwhile(lambda x: not RE_INFOSTART.match(x), lOutput)
-        llCpus = []     # lists of lists (will contain groups of strings)
-        llMem = []
-        llExp = []
-        try:
-            while True:
-                l = next(iterData).strip()      # one of cpu, memory, expansion or unknown
-                if RE_INFOCPU.search(l):        # processing CPU data
-                    llCpus.append(_lsCollectLines(iterData, l))
-                elif RE_INFOMEM.search(l):      # processing memory data
-                    llMem.append(_lsCollectLines(iterData, l))
-                elif RE_INFOEXP.search(l):      # expansion card
-                    llExp.append(_lsCollectLines(iterData, l))
-                else:
-                    pass   # unknown line
-        except StopIteration:
-            pass        # end of output
-
-        self._FillCPUs(llCpus)
-        self._FillDIMMs(llMem)
-        self._FillEXPs(llExp)
-        return
+#    def _ParseFillAMMComponents(self, lData, oConn, oAuth):
+#        """Parameters: list of components, connection and auth info
+#        Actions: groups lines of components by class and makes a list of
+#        each component, runs a series of commands to discover components."""
+#        self.dComps = {'cpu': [], 'exp': [], 'memory': []}
+#
+#        def _lsCollectLines(iterData, l):
+#            """collects lines of iterData up to empty string in a list, returns that list.
+#            2nd parameter is a first line to collect (from calling function)
+#            """
+#            lBuf = []
+#            while not RE_EMPTY.match(l):
+#                lBuf.append(l)
+#                l = next(iterData).strip()
+#            return lBuf
+#
+#        for s in lData:
+#            oMG = RE_COMP.match(s)
+#            if oMG:
+#                sClass, sNum = oMG.groups()
+#                if sClass in self.dComps:
+#                    self.dComps[sClass].append(sNum)
+#        self.iCPUs = len(self.dComps['cpu'])
+#        self.iDIMMs = len(self.dComps['memory'])
+#        self.iExps = len(self.dComps['exp'])
+#        # make a list of commands for SSH and execute these commands
+#        lCommands = []
+#        for k in sorted(self.dComps.keys()):
+#            for n in self.dComps[k]:
+#                lCommands.append('info -T system:{}:{}[{}]'.format(self.sBladeNum, k, n))
+#        # ==== disabled for debugging ====
+#        lOutput = oConn._lsRunCommands2(lCommands)
+#        # lOutput = open(",out.txt", "r").readlines()
+#        # --- disabled for debugging ---
+#        # print("Commands output: " + str(lOutput))
+#        iterData = it.dropwhile(lambda x: not RE_INFOSTART.match(x), lOutput)
+#        llCpus = []     # lists of lists (will contain groups of strings)
+#        llMem = []
+#        llExp = []
+#        try:
+#            while True:
+#                l = next(iterData).strip()      # one of cpu, memory, expansion or unknown
+#                if RE_INFOCPU.search(l):        # processing CPU data
+#                    llCpus.append(_lsCollectLines(iterData, l))
+#                elif RE_INFOMEM.search(l):      # processing memory data
+#                    llMem.append(_lsCollectLines(iterData, l))
+#                elif RE_INFOEXP.search(l):      # expansion card
+#                    llExp.append(_lsCollectLines(iterData, l))
+#                else:
+#                    pass   # unknown line
+#        except StopIteration:
+#            pass        # end of output
+#
+#        self._FillCPUs(llCpus)
+#        self._FillDIMMs(llMem)
+#        self._FillEXPs(llExp)
+#        return
 
     def _ParseFillAMMComponents2(self, lData, oConn, oAuth):
         """Parameters: list of components, connection and auth info
@@ -281,7 +284,7 @@ class BladeWithAMM(inv.GenericServer):
     def _FillEXPs(self, llData):
         self.lExps = []
         for lsExpDesc in llData:
-            sName, sPN, sSN = ("", "", "")
+            sName, sPN, sSN, sType = ("", "", "", "")
             for s in lsExpDesc:
                 if s[:13] == 'Product Name:':
                     sType = s[14:]
@@ -354,12 +357,35 @@ class BladeWithAMM(inv.GenericServer):
         return
 
     def _FillDisksFromWBEM(self):
-        ldDicts = wd._ldConnectAndReportDisks(self.sHost, self.sUser, self.sPass, iPort=5989)
+        if self.sVCenter:
+            self.oWBEM_Disks = wd.WBEM_Disks(self.sName, self.sUser, self.sPass, sVCenter=self.sVCenter)
+        else:
+            self.oWBEM_Disks = wd.WBEM_Disks(self.sName, self.sUser, self.sPass)
+        ldDicts = self.oWBEM_Disks._ldReportDisks()
         for dDiskData in ldDicts:
-            iSizeGB = int(dDiskData['MaxMediaSize']) // 2**20   # WBEM returns size in KB
-            self.lDisks.append(
-                Blade_Disk(dDiskData['Name'], dDiskData['Model'], dDiskData['PartNumber'],
-                           dDiskData['SerialNumber'], iSizeGB))
+            try:
+                iSizeGB = int(dDiskData['MaxMediaSize']) // 2**20   # WBEM returns size in KB
+                self.lDisks.append(
+                    Blade_Disk(dDiskData['Name'], dDiskData['Model'], dDiskData['PartNumber'],
+                               dDiskData['SerialNumber'], iSizeGB))
+            except KeyError as e:
+                oLog.error('Error accessing disk data: {}'.format(e))
+                raise expWBEM_Error('Error accessing disk data: {}'.format(e))
+        return
+
+    def _FillSysFromWBEM(self):
+        # oSys = WBEM_System(sHostIP, sUser, sPass, sVCenter='vcenter.hostco.ru')
+        # print("\n".join([str(d) for d in oSys._dGetInfo().items()]))
+        if self.sVCenter:
+            self.oWBEM_Sys = wd.WBEM_System(self.sName, self.sUser, self.sPass, sVCenter=self.sVCenter)
+        else:
+            self.oWBEM_Sys = wd.WBEM_System(self.sName, self.sUser, self.sPass)
+        dDict = self.oWBEM_Sys._dGetInfo()
+        print("\n".join([str(d) for d in dDict.items()]))
+        oMatchModel = RE_IBM_HOST_MODEL.match(dDict.get('model'))
+        if oMatchModel:
+            sModel = oMatchModel.group(1)
+            oLog.debug("Server model: " + sModel)
         return
 
 
@@ -508,11 +534,14 @@ if __name__ == '__main__':
     oConHdr = logging.StreamHandler()
     oConHdr.setLevel(logging.DEBUG)
     oLog.addHandler(oConHdr)
-    # oAmm = BladeWithAMM('esxprod04', IP='127.0.0.1', SP_User='USERID',
-    #                     SP_Pass='PASSW0RD', AMM_IP='10.1.128.148')
-    oAmm = BladeWithAMM('vmsrv06', IP='vmsrv06.msk.protek.ru', User='zabbix', Pass='A3hHr88man01',
-                        SP_User='host', SP_Pass='host123', AMM_IP='10.0.22.61')
-    lOut = oAmm._lsFromAMM([])
+    oAmm = BladeWithAMM('2demohs21.hostco.ru', '2demohs21', IP='10.1.128.239', User='cimuser',
+                        Pass='123qweASD', vCenter='vcenter.hostco.ru', SP_User='USERID',
+                        SP_Pass='PASSW0RD', AMM_IP='10.1.128.148')
+    oAmm._FillSysFromWBEM()
+    # oAmm = BladeWithAMM(sAMM_Name='vmsrv04', sFQDN='vmsrv06.msk.protek.ru', User='zabbix',
+    #                     Pass='A3hHr88man01', SP_User='host', SP_Pass='host123',
+    #                     AMM_IP='10.0.22.61')
+    # lOut = oAmm._lsFromAMM([])
     # print("\n".join(lOut))
 
 # vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4 : autoindent

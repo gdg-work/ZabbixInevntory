@@ -158,13 +158,14 @@ def _sFindDisksNameSpace2(oWBEM_Conn):
     return sDiskNS
 
 
-def _ldGetDiskParametersFromWBEM(oConnection, sNS):
+def __ldGetDiskParametersFromWBEM__(oConnection, sNS):
     lsClasses = oConnection.EnumerateClassNames(namespace=sNS)
     if ('CIM_ManagedElement' not in lsClasses) or ('CIM_Component' not in lsClasses):
-        raise Exception
+        raise WBEM_Exception('No ManagedElement in class list, wrong server?')
     # check if we have some HDDs. A disk drive is an instance of class CIM_ManagedElement
     sDiskClass = ''
     sPhysDiskClass = ''
+    lOtherClasses = []
     loMEs = oConnection.EnumerateInstanceNames(namespace=sNS, ClassName='CIM_ManagedElement')
     for oCIM_Class in loMEs:
         sClassName = oCIM_Class.classname
@@ -175,32 +176,39 @@ def _ldGetDiskParametersFromWBEM(oConnection, sNS):
             sPhysDiskClass = sClassName
             oLog.debug('Phys class found: ' + sClassName)
         else:
+            # debug
+            lOtherClasses.append(sClassName)
             continue
-    lDDrives = oConnection.EnumerateInstances(namespace=sNS, ClassName=sDiskClass)
-    lPDisks = oConnection.EnumerateInstances(namespace=sNS, ClassName=sPhysDiskClass)
     ldDiskData = []
-    assert (len(lDDrives) == len(lPDisks))
-    for oDsk, oPhy in zip(lDDrives, lPDisks):
-        # check if Tags of both objects are the same
-        assert oDsk['Tag'] == oPhy['Tag']
-        dData = _dMergeDicts(_dFilterNone(dict(oDsk)), _dFilterNone(dict(oPhy)))
-        ldDiskData.append(dData)
+    # debug
+    if sDiskClass == '' and sPhysDiskClass == '':
+        oLog.debug("== No disk classes found, but I found some other: ==\n{}".format(
+            "\n".join(lOtherClasses)))
+    else:
+        lDDrives = oConnection.EnumerateInstances(namespace=sNS, ClassName=sDiskClass)
+        lPDisks = oConnection.EnumerateInstances(namespace=sNS, ClassName=sPhysDiskClass)
+        assert (len(lDDrives) == len(lPDisks))
+        for oDsk, oPhy in zip(lDDrives, lPDisks):
+            # check if Tags of both objects are the same
+            assert oDsk['Tag'] == oPhy['Tag']
+            dData = _dMergeDicts(_dFilterNone(dict(oDsk)), _dFilterNone(dict(oPhy)))
+            ldDiskData.append(dData)
     return ldDiskData
 
 
-def _ldConnectAndReportDisks(sHost, sUser, sPass, iPort=5989):
-    sUrl = 'https://{}:{}'.format(sHost, iPort)
-    try:
-        oConnection = pywbem.WBEMConnection(sUrl, creds=(sUser, sPass), no_verification=True)
-        sDiskNS = _sFindDisksNameSpace2(oConnection)
-        if sDiskNS[0:4] == 'lsi/':   # LSI Disk
-            ldParameters = _ldGetDiskParametersFromWBEM(oConnection, sDiskNS)
-        else:
-            ldParameters = []
-    except pywbem.ConnectionError:
-        ldParameters = []
-        raise WBEM_Disk_Exception('Cannot connect to WBEM on host {} and port {}'.format(sHost, iPort))
-    return ldParameters
+# def _ldConnectAndReportDisks(sHost, sUser, sPass, iPort=5989):
+#     sUrl = 'https://{}:{}'.format(sHost, iPort)
+#     try:
+#         oConnection = pywbem.WBEMConnection(sUrl, creds=(sUser, sPass), no_verification=True)
+#         sDiskNS = _sFindDisksNameSpace2(oConnection)
+#         if sDiskNS[0:4] == 'lsi/':   # LSI Disk
+#             ldParameters = _ldGetDiskParametersFromWBEM(oConnection, sDiskNS)
+#         else:
+#             ldParameters = []
+#     except pywbem.ConnectionError:
+#         ldParameters = []
+#         raise WBEM_Disk_Exception('Cannot connect to WBEM on host {} and port {}'.format(sHost, iPort))
+#     return ldParameters
 
 
 class WBEM_Info:
@@ -237,6 +245,27 @@ class WBEM_Info:
                     dOut[k] = v
             lData.append(dOut)
         return lData
+
+
+class WBEM_Disks(WBEM_Info):
+    def __init__(self, sHost, sUser, sPass, sVCenter='', iPort=5989):
+        try:
+            super().__init__(sHost, sUser, sPass, sVCenter, iPort)
+            self.sDiskNS = _sFindDisksNameSpace2(self.oConn)
+        except WBEM_Exception as e:
+            raise WBEM_Memory_Exception(e)
+        return
+
+    def _ldReportDisks(self):
+        try:
+            if self.sDiskNS[0:4] == 'lsi/':   # LSI Disk
+                ldParameters = __ldGetDiskParametersFromWBEM__(self.oConn, self.sDiskNS)
+            else:
+                ldParameters = []
+                raise WBEM_Disk_Exception('Unknown disk controller')
+        except WBEM_Exception as e:
+            raise WBEM_Disk_Exception(e)
+        return ldParameters
 
 
 class WBEM_Memory(WBEM_Info):
@@ -310,20 +339,23 @@ if __name__ == "__main__":
     oConHdr.setLevel(logging.DEBUG)
     oLog.addHandler(oConHdr)
 
-    sHostIP = '10.1.128.229'    # vmsrv06.msk.protek.local'
-    sUser = 'root'          # 'zabbix'
-    sPass = 'password'      # 'A3hHr88man01'
+    sHostIP = '2demohs21.hostco.ru'    # vmsrv06.msk.protek.local'
+    sUser = 'cimuser'          # 'zabbix'
+    sPass = '123qweASD'      # 'A3hHr88man01'
     iPort = 5989
 
-    # ld = _ldConnectAndReportDisks(sHostIP, sUser, sPass)
     # for d in ld:
     #     print("\n".join([str(t) for t in d.items()]))
     # oMem = WBEM_Memory(sHostIP, sUser, sPass, iPort)
     # print("\n".join([str(d.items()) for d in oMem._ldGetInfo()]))
-    oProc = WBEM_CPU(sHostIP, sUser, sPass)
+    oProc = WBEM_CPU(sHostIP, sUser, sPass, sVCenter='vcenter.hostco.ru')
     print("\n".join([str(d.items()) for d in oProc._ldGetInfo()]))
 
-    oSys = WBEM_System(sHostIP, sUser, sPass)
+    # sTicket = _sGet_CIM_Ticket('vcenter.hostco.ru', 'cimuser', '123qweASD', '2demohs21.hostco.ru')
+    oDsks = WBEM_Disks(sHostIP, sUser, sPass, sVCenter='vcenter.hostco.ru')
+    print("\n".join([str(d.items()) for d in oDsks._ldReportDisks()]))
+
+    oSys = WBEM_System(sHostIP, sUser, sPass, sVCenter='vcenter.hostco.ru')
     print("\n".join([str(d) for d in oSys._dGetInfo().items()]))
 
 
