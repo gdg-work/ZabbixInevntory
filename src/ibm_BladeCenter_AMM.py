@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 """ A module for IBM Blade Servers using AMM as a OS-independent control """
 import inventoryObjects as inv
 import itertools as it
@@ -331,16 +331,16 @@ class BladeWithAMM(inv.GenericServer):
             # Host information
             oVendorItem = self.oZbxHost._oAddItem(
                 'System Vendor', sAppName='System',
-                dParams={'key': '{}_Vendor'.format(self.sName), 'value_type': 2})
+                dParams={'key': '{}_Vendor'.format(self.sName), 'value_type': 1})
             oMTM_Item = self.oZbxHost._oAddItem(
                 'System Model', sAppName='System',
-                dParams={'key': '{}_MTM'.format(self.sName), 'value_type': 2})
+                dParams={'key': '{}_MTM'.format(self.sName), 'value_type': 1})
             oPN_Item = self.oZbxHost._oAddItem(
                 'System Part Number', sAppName='System',
-                dParams={'key': '{}_PartNo'.format(self.sName), 'value_type': 2})
+                dParams={'key': '{}_PartNo'.format(self.sName), 'value_type': 1})
             oSN_Item = self.oZbxHost._oAddItem(
                 'System Serial Number', sAppName='System',
-                dParams={'key': '{}_SerNo'.format(self.sName), 'value_type': 2})
+                dParams={'key': '{}_SerNo'.format(self.sName), 'value_type': 1})
 
             oVendorItem._SendValue(self.sVendor, self.oZbxSender)
             oMTM_Item._SendValue(self.sTypeMod, self.oZbxSender)
@@ -405,7 +405,7 @@ class Blade_CPU(inv.ComponentClass):
         oTypeItem = oZbxHost._oAddItem(
             self.sName + " Type", sAppName=self.sName,
             dParams={'key': "{}_{}_Type".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 2})
+                     'value_type': 1})
         oCoresItem = oZbxHost._oAddItem(
             self.sName + " # Cores", sAppName=self.sName,
             dParams={'key': "{}_{}_Cores".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
@@ -413,7 +413,7 @@ class Blade_CPU(inv.ComponentClass):
         oSpeedItem = oZbxHost._oAddItem(
             self.sName + " Speed", sAppName=self.sName,
             dParams={'key': "{}_{}_Speed".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 2})
+                     'value_type': 1})
 
         oTypeItem._SendValue(self.dData['family'], oZbxSender)
         oCoresItem._SendValue(self.dData['cores'], oZbxSender)
@@ -437,15 +437,15 @@ class Blade_DIMM(inv.ComponentClass):
         oTypeItem = oZbxHost._oAddItem(
             self.sName + " Type", sAppName=self.sName,
             dParams={'key': "{}_{}_Type".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 2})
+                     'value_type': 1})
         oPN_Item = oZbxHost._oAddItem(
             self.sName + " Part Number", sAppName=self.sName,
             dParams={'key': "{}_{}_PN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 2})
+                     'value_type': 1})
         oSN_Item = oZbxHost._oAddItem(
             self.sName + " Serial Number", sAppName=self.sName,
             dParams={'key': "{}_{}_SN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 2})
+                     'value_type': 1})
         oSize_Item = oZbxHost._oAddItem(
             self.sName + " Size", sAppName=self.sName,
             dParams={'key': "{}_{}_SizeGB".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
@@ -473,15 +473,15 @@ class Blade_EXP(inv.ComponentClass):
         oTypeItem = oZbxHost._oAddItem(
             self.sName + " Type", sAppName=self.sName,
             dParams={'key': "{}_{}_Type".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 2})
+                     'value_type': 1})
         oPN_Item = oZbxHost._oAddItem(
             self.sName + " Part Number", sAppName=self.sName,
             dParams={'key': "{}_{}_PN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 2})
+                     'value_type': 1})
         oSN_Item = oZbxHost._oAddItem(
             self.sName + " Serial Number", sAppName=self.sName,
             dParams={'key': "{}_{}_SN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 2})
+                     'value_type': 1})
         oTypeItem._SendValue(self.dData['type'], oZbxSender)
         oPN_Item._SendValue(self.dData['pn'], oZbxSender)
         oSN_Item._SendValue(self.dData['sn'], oZbxSender)
@@ -508,15 +508,15 @@ class Blade_Disk(inv.ComponentClass):
         oModelItem = oZbxHost._oAddItem(
             self.sName + " Model", sAppName=self.sName,
             dParams={'key': "{}_{}_Model".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 2})
+                     'value_type': 1})
         oPN_Item = oZbxHost._oAddItem(
             self.sName + " Part Number", sAppName=self.sName,
             dParams={'key': "{}_{}_PN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 2})
+                     'value_type': 1})
         oSN_Item = oZbxHost._oAddItem(
             self.sName + " Serial Number", sAppName=self.sName,
             dParams={'key': "{}_{}_SN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 2})
+                     'value_type': 1})
         oSize_Item = oZbxHost._oAddItem(
             self.sName + " Size", sAppName=self.sName,
             dParams={'key': "{}_{}_Size".format(oZbxHost._sName(), self.sName).replace(' ', '_'),

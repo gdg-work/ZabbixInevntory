@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 """
 Utilities for working with Redis in-memory database. Moved to separate module for
 elimination of replicated code

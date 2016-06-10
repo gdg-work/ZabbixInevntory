@@ -14,6 +14,7 @@ import argparse as ap
 # === host types ===
 import ibm_Power_AIX as aix
 import ibm_BladeCenter_AMM as amm
+import ESXi_WBEMM_host as esxi
 # --- end of host types
 from inventoryLogger import dLoggingConfig
 # from pathlib import Path
@@ -105,11 +106,12 @@ def _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAPI, oZbxSender):
                                    )
         print(oZbxHost)
     elif sSrvType == "esxi":
-        oZbxHost = amm.ESXiHost(sSrvName, IP=dSrvParams['srv-ip'],
-                                User=dSrvParams['user'],
-                                Pass=dSrvParams['password'],
-                                vCenter=dSrvParams['vcenter']
-                                )
+        oZbxHost = esxi.ESXi_WBEM_Host(
+            sFQDN=sSrvName,
+            sUser=dSrvParams['user'],
+            sPass=dSrvParams['password'],
+            sVCenter=dSrvParams['vcenter'],
+            IP=dSrvParams['srv-ip'])
         print(oZbxHost)
     else:
         oLog.error("Host type is not supported yet!")

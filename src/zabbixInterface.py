@@ -780,6 +780,7 @@ class ZabbixItem:
             self.iUpdType = int(dDict.get('type', 2))
             self.sKey = dDict.get('key') or dDict.get('key_')    # unique key
             self.iDelay = int(dDict.get('delay', 0))
+            self.sDescription = dDict.get('description', '')
         else:
             # fill some fields
             self.sUnits = ''
@@ -814,7 +815,9 @@ class ZabbixItem:
                     'type': self.iUpdType,
                     'value_type': self.iValType,
                     'delay': self.iDelay,
-                    'units': self.sUnits
+                    'units': self.sUnits,
+                    # optional fields
+                    'description': self.sDescription
                     }
         try:
             dRes = self.oHost.oAPI.do_request('item.create', dNewItem)

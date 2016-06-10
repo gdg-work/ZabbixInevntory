@@ -1,0 +1,61 @@
+# Inventory with Zabbix server
+# Copyright (C) 2016 HOST group
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+# , fuzzy
+msgid   ""
+msgstr  "Project-Id-Version: PACKAGE VERSION\n"
+        "Report-Msgid-Bugs-To: \n"
+        "POT-Creation-Date: 2016-06-09 20:41+0500\n"
+        "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+        "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+        "Language-Team: LANGUAGE <LL@li.org>\n"
+        "Language: \n"
+        "MIME-Version: 1.0\n"
+        "Content-Type: text/plain; charset=UTF-8\n"
+        "Content-Transfer-Encoding: 8bit\n"
+
+#: ,test-gettext.py:6 ,test-gettext.py:12
+msgid   "This message will hopefully be translated"
+msgstr  "Это сообщение будет переведено (надеюсь)"
+
+#: ESXi_WBEMM_host.py:151 ESXi_WBEMM_host.py:157 ESXi_WBEMM_host.py:175
+msgid   "Position in the host"
+msgstr  "Положение в машине"
+
+#: ESXi_WBEMM_host.py:156 ESXi_WBEMM_host.py:162 ESXi_WBEMM_host.py:180
+msgid   "Size of memory unit in GiB"
+msgstr  "Объём модуля памяти в ГиБ"
+
+#: ESXi_WBEMM_host.py:93 ESXi_WBEMM_host.py:111
+msgid   "Total memory size in GB"
+msgstr  "Общий объём памяти в ГиБ"
+
+#: ESXi_WBEMM_host.py:98 ESXi_WBEMM_host.py:116
+msgid   "Manufacturer of the system"
+msgstr  "Изготовитель системы"
+
+#: ESXi_WBEMM_host.py:102 ESXi_WBEMM_host.py:120
+msgid   "Number of processors in the system"
+msgstr  "Количество процессоров в системе"
+
+#: ESXi_WBEMM_host.py:114 ESXi_WBEMM_host.py:132
+msgid   "Model of the system"
+msgstr  "Модель системы"
+
+#: ESXi_WBEMM_host.py:121 ESXi_WBEMM_host.py:139
+msgid   "Serial number of system"
+msgstr  "Серийный номер системы"
+
+#: ESXi_WBEMM_host.py:202
+msgid   "Processor type"
+msgstr  "Тип процессора"
+
+#: ESXi_WBEMM_host.py:207
+msgid   "Number of cores"
+msgstr  "Число ядер процессора"
+
+#: ESXi_WBEMM_host.py:212 ESXi_WBEMM_host.py:215
+msgid   "CPU Clock speed"
+msgstr  "Тактовая частота процессора"

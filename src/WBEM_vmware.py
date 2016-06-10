@@ -222,6 +222,7 @@ class WBEM_Info:
             # get a ticket from VCenter
             try:
                 sTicket = _sGet_CIM_Ticket(sVCenter, sUser, sPass, sHost)
+                oLog.info('Got vCenter ticket {}'.format(sTicket))
                 tsCreds = (sTicket, sTicket)
             except exVCenterError as e:
                 oLog.error("Error requesting ticket from vCenter" + str(e))
@@ -259,6 +260,7 @@ class WBEM_Disks(WBEM_Info):
     def _ldReportDisks(self):
         try:
             if self.sDiskNS[0:4] == 'lsi/':   # LSI Disk
+                oLog.debug('LSI controller found')
                 ldParameters = __ldGetDiskParametersFromWBEM__(self.oConn, self.sDiskNS)
             else:
                 ldParameters = []
@@ -327,6 +329,8 @@ class WBEM_System(WBEM_Info):
             dRet['model'] = sModel
         for dSys in ldSpec:
             # we need a serial number, not UUID.
+            if 'vendor' not in dRet and 'Manufacturer' in dSys:
+                dRet['vendor'] = dSys.get('Manufacturer')
             if 'UUID' not in dSys['SerialNumber']:
                 oLog.debug("Confirmation S/N: " + dSys['SerialNumber'])
                 dRet['sn'] = dSys['SerialNumber']
