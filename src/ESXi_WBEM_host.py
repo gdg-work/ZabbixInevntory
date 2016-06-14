@@ -106,6 +106,15 @@ class ESXi_WBEM_Host(inv.GenericServer):
         oLog.debug(str(self.lDisks))
         return
 
+    def _AdaptersFromWBEM(self):
+        self.oAdaptersWBEM = wbem.WBEM_PCI_Adapters(
+            self.sName, self.sUser,
+            self.sPass, sVCenter=self.sVCenter)
+        ldAdapters = self.oAdaptersWBEM._ldReportAdapters()
+        for dAdapter in ldAdapters:
+            self.lPCI_Adapters.append(PCI_Adapter(dAdapter['Name']))
+        return
+
     def _Connect2Zabbix(self, oAPI, oSender):
         self.oZbxAPI = oAPI
         self.oZbxSender = oSender
@@ -269,6 +278,23 @@ class DASD(inv.ComponentClass):
         oPN_Item._SendValue(self.dData['pn'], oZbxSender)
         oSN_Item._SendValue(self.dData['sn'], oZbxSender)
         oSize_Item._SendValue(self.dData['size'], oZbxSender)
+        return
+
+
+class PCI_Adapter(inv.ComponentClass):
+    def __init__(self, sName, sPosition, sVendorID, sDeviceID, **dOther):
+        """vendor and device IDs are integers, but used as a strings here"""
+        self.sIDs = "{}:{}".format(sVendorID, sDeviceID)
+        self.sName = sName
+        self.dData = {'ids': self.sIDs, 'pos': sPosition}
+        self.dData.extend(dOther)
+        return
+
+    def __repr__(self):
+        sRet =  "PCI adapter {}\n".format(self.sName)
+        sRet += "Vendor/device Identifiers are {}\n".format(self.sIDs)
+        sRet += "Bus position: {}\n".format(self.dData.get('pos'))
+        sRet += "Other data:\n========\n{}\n---------\n".format(str(self.dData))
         return
 
 if __name__ == "__main__":

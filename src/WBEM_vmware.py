@@ -302,6 +302,42 @@ class WBEM_CPU(WBEM_Info):
         return ldData
 
 
+class WBEM_PCI_Adapters(WBEM_Info):
+    sMyNS = 'root/cimv2'
+    myClassNames = {'gen': 'OMC_Card', 'pci': 'VMware_PCIDevice',
+                    'fc': 'IODM_FCAdapter', 'eth': 'VMware_EthernetPort'}
+
+    def __init__(self, sHost, sUser, sPass, sVCenter='', iPort=5989):
+        try:
+            super().__init__(sHost, sUser, sPass, sVCenter, iPort)
+        except WBEM_Exception as e:
+            raise WBEM_CPU_Exception(e)
+        return
+
+    def _ldGetInfo(self):
+        ldPCIData = self.__ldGetInfoFromWBEM__(self.sMyNS, self.myClassNames['pci'])
+        oLog.debug("\n".join([str(d) for d in ldPCIData]))
+        dAdaptersBySlot = {}
+        # filter only devices on additional boards
+        for dAdapter in ldPCIData:
+            iSlotNo = dAdapter['PhysicalSlot']
+            sDevID = dAdapter.get('DeviceID')
+            if iSlotNo == 255:
+                continue     # onboard adapter, not interesting
+            else:
+                dAdaptersBySlot[sDevID] = dAdapter
+        # check FC adapters
+        ldFCAdapters = self.__ldGetInfoFromWBEM__(self.sMyNS, self.myClassNames['fc'])
+        oLog.debug('======== FC Adapters =======')
+        oLog.debug("\n".join([str(d) for d in ldFCAdapters]))
+        oLog.debug("======= PCI cards =======")
+        oLog.debug("\n".join([str(d) for d in dAdaptersBySlot.values()]))
+        oLog.debug('----------------------------')
+        # now we have a dictionary of adapters by device ID with onboard adapters excluded.
+        # let's form a list of dictionaries to return
+        return dAdaptersBySlot.values()
+
+
 class WBEM_System(WBEM_Info):
     sMyNS = 'root/cimv2'
     dMyClassNames = {'gen': 'OMC_UnitaryComputerSystem', 'spec': 'OMC_Chassis'}
@@ -352,15 +388,15 @@ if __name__ == "__main__":
     #     print("\n".join([str(t) for t in d.items()]))
     # oMem = WBEM_Memory(sHostIP, sUser, sPass, iPort)
     # print("\n".join([str(d.items()) for d in oMem._ldGetInfo()]))
-    oProc = WBEM_CPU(sHostIP, sUser, sPass, sVCenter='vcenter.hostco.ru')
-    print("\n".join([str(d.items()) for d in oProc._ldGetInfo()]))
+
+    # oProc = WBEM_CPU(sHostIP, sUser, sPass, sVCenter='vcenter.hostco.ru')
+    # print("\n".join([str(d.items()) for d in oProc._ldGetInfo()]))
 
     # sTicket = _sGet_CIM_Ticket('vcenter.hostco.ru', 'cimuser', '123qweASD', '2demohs21.hostco.ru')
-    oDsks = WBEM_Disks(sHostIP, sUser, sPass, sVCenter='vcenter.hostco.ru')
-    print("\n".join([str(d.items()) for d in oDsks._ldReportDisks()]))
+    oAdapters = WBEM_PCI_Adapters(sHostIP, sUser, sPass, sVCenter='vcenter.hostco.ru')
+    print("\n".join([str(d.items()) for d in oAdapters._ldGetInfo()]))
 
-    oSys = WBEM_System(sHostIP, sUser, sPass, sVCenter='vcenter.hostco.ru')
-    print("\n".join([str(d) for d in oSys._dGetInfo().items()]))
-
+    # oSys = WBEM_System(sHostIP, sUser, sPass, sVCenter='vcenter.hostco.ru')
+    # print("\n".join([str(d) for d in oSys._dGetInfo().items()]))
 
 # vim: expandtab:tabstop=4:softtabstop=4:shiftwidth=4
