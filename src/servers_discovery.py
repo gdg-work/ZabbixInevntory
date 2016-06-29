@@ -67,12 +67,13 @@ def _PushConnectionInfo(oParser, oRedis):
     elif oParser.type == "esxi_amm":
         assert oParser.vcenter is not None
         dConnectionInfo = {'type': oParser.server_type,
+                           'srv-name': oParser.server_name,
                            'sp-type': 'AMM',
                            'user': oParser.user,
+                           'amm-name': oParser.amm_name,
                            'password': oParser.password,
                            'sp-user': oParser.sp_user,
                            'sp-pass': oParser.sp_password,
-                           'srv-name': oParser.server_name,
                            'sp-ip': oParser.sp_ip}
     else:
         oLog.error('Unsupported type of server')
@@ -105,7 +106,7 @@ def _PushConnectionInfo2(dConnInfo, oParser, oRedis):
 
 
 def _PushAIX_Info(oParser, oRedis):
-    print(str(oParser))
+    # print(str(oParser))
     dConnectionInfo = {'type': oParser.server_type,
                        'sp-type': 'HMC',
                        'user': oParser.user,
@@ -120,7 +121,7 @@ def _PushAIX_Info(oParser, oRedis):
 
 
 def _PushESXnAMMInfo(oParser, oRedis):
-    print(str(oParser))
+    # print(str(oParser))
     dConnectionInfo = {'type': oParser.server_type,
                        'sp-type': 'AMM',
                        'user': oParser.user,
@@ -129,13 +130,14 @@ def _PushESXnAMMInfo(oParser, oRedis):
                        'sp-user': oParser.amm_user,
                        'sp-pass': oParser.amm_password,
                        'srv-name': oParser.name,
+                       'amm_name': oParser.amm_name,
                        'sp-ip': oParser.amm_ip}
     _PushConnectionInfo2(dConnectionInfo, oParser, oRedis)
     return
 
 
 def _PushESXInfo(oParser, oRedis):
-    print(str(oParser))
+    # print(str(oParser))
     dConnectionInfo = {'type': 'esxi',
                        'user': oParser.user,
                        'password': oParser.password,
@@ -181,6 +183,7 @@ def _Main():
     oParserESXiAmm.add_argument('-u', '--user', help="vCenter login", type=str, required=True)
     oParserESXiAmm.add_argument('-p', '--password', help="vCenter password", type=str, required=True)
     oParserESXiAmm.add_argument('-v', '--vcenter', help='vCenter FQDN or IP', type=str, required=True)
+    oParserESXiAmm.add_argument('-N', '--amm-name', help="Name of blade in AMM", type=str, required=True)
     oParserESXiAmm.add_argument('-U', '--amm-user', help="Service processor login", type=str, required=True)
     oParserESXiAmm.add_argument('-P', '--amm-password', help="Service processor password",
                                 type=str, required=False)

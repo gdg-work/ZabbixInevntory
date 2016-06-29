@@ -11,7 +11,6 @@ place given for this component in the system.  For example: "1:Disk:2:10".
 """
 
 import inventoryObjects as inv
-from collections import OrderedDict
 from local import XCLI_PATH, REDIS_ENCODING
 from subprocess import check_output, CalledProcessError, STDOUT
 # from redis import StrictRedis
@@ -658,10 +657,13 @@ class XIV_IB_Switch(XIV_Component):
 # Testing section
 # --------------------------------------------
 if __name__ == '__main__':
+    # access to test system
+    from access import IBM_XIV as tsys
+
     # print(str(oXiv.oNodesList))
     import redis
     oRedis = redis.StrictRedis()
-    oXiv = IBM_XIV_Storage('10.44.0.63', 'zabbix', 'AmtZ204sx6', oRedis, 'IBM_XIV_1')
+    oXiv = IBM_XIV_Storage(tsys.sIP, tsys.sUser, tsys.sPass, oRedis, tsys.sName)
     print(oXiv.dQueries["node-names"]())
     print(oXiv.dQueries["switch-names"]())
     # print(oXiv._ldGetSwitchesAsDicts())

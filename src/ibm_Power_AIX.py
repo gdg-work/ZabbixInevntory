@@ -8,6 +8,8 @@ import logging
 import csv    # because commands output use quoted fields
 import zabbixInterface as zi
 import itertools as it
+from i18n import _
+
 import re
 
 oLog = logging.getLogger(__name__)
@@ -291,30 +293,39 @@ class PowerHostClass(inv.GenericServer):
             # Add items
             oMemItem = self.oZbxHost._oAddItem(
                 "System Memory", sAppName='System',
-                dParams={'key': "Host_{}_Memory".format(self.sName), 'units': 'GB', 'value_type': 3})
+                dParams={'key': "Host_{}_Memory".format(self.sName), 'units': 'GB', 'value_type': 3,
+                         'description': _('Total memory size in GB')})
             oMemItem._SendValue(self.iMemGBs, self.oZbxSender)
             oCPUItem = self.oZbxHost._oAddItem(
                 "System Total Cores", sAppName='System',
-                dParams={'key': "Host_{}_Cores".format(self.sName), 'value_type': 3})
+                dParams={'key': "Host_{}_Cores".format(self.sName), 'value_type': 3,
+                         'description': _('Total amount of cores in all CPUs')})
             oCPUItem._SendValue(self.iTotalCores, self.oZbxSender)
             # self.sType, self.sModel
             oTypeItem = self.oZbxHost._oAddItem(
-                "System Type", sAppName='System', dParams={'key': "Host_{}_Type".format(self.sName)})
+                "System Type", sAppName='System',
+                dParams={'key': "Host_{}_Type".format(self.sName),
+                         'description': _('Type of system (4-symbol code)')})
             oTypeItem._SendValue(self.sType, self.oZbxSender)
             oModelItem = self.oZbxHost._oAddItem(
-                "System Model", sAppName='System', dParams={'key': "Host_{}_Model".format(self.sName)})
+                "System Model", sAppName='System',
+                dParams={'key': "Host_{}_Model".format(self.sName),
+                         'description': _('Model of the system')})
             oModelItem._SendValue(self.sModel, self.oZbxSender)
             oSN_Item = self.oZbxHost._oAddItem(
                 "System Serial Number", sAppName='System',
-                dParams={'key': "Host_{}_Serial".format(self.sName)})
+                dParams={'key': "Host_{}_Serial".format(self.sName),
+                         'description': _('Serial number of system')})
             oSN_Item._SendValue(self.sSerialNum, self.oZbxSender)
             oTotPS_Item = self.oZbxHost._oAddItem(
                 "System Pwr Supplies", sAppName='System',
-                dParams={'key': "Host_{}_NPwrSupplies".format(self.sName), 'value_type': 3})
+                dParams={'key': "Host_{}_NPwrSupplies".format(self.sName), 'value_type': 3,
+                         'description': _('Number of power supplies')})
             oTotPS_Item._SendValue(self.iPwrSupplies, self.oZbxSender)
             oTotDIMMs_Item = self.oZbxHost._oAddItem(
                 "System DIMMs #", sAppName='System',
-                dParams={'key': "Host_{}_NDIMMs".format(self.sName), 'value_type': 3})
+                dParams={'key': "Host_{}_NDIMMs".format(self.sName), 'value_type': 3,
+                         'description': _('Number of memory modules')})
             oTotDIMMs_Item._SendValue(self.iDIMMs, self.oZbxSender)
             # Adapters, disks, PS, etc.
             for oObj in (list(self.oAdapters.values()) + self.lDisks + self.lPwrSupplies + self.lDIMMs):
@@ -350,11 +361,13 @@ class IBM_Power_Adapter(inv.ComponentClass):
         oZbxHost._oAddApp(sAppName)
         oNameItem = oZbxHost._oAddItem(
             sAppName + " Type", sAppName,
-            dParams={'key': "Adapter_{}_of_{}_Type".format(self.sBusID, oZbxHost._sName())})
+            dParams={'key': "Adapter_{}_of_{}_Type".format(self.sBusID, oZbxHost._sName()),
+                     'description': _('Type of adapter')})
         oNameItem._SendValue(self.sName, oZbxSender)
         oPosItem = oZbxHost._oAddItem(
             sAppName + " Position", sAppName,
-            dParams={'key': "Adapter_{}_of_{}_Pos".format(self.sBusID, oZbxHost._sName())})
+            dParams={'key': "Adapter_{}_of_{}_Pos".format(self.sBusID, oZbxHost._sName()),
+                     'description': _('Position of adapter in the machine')})
         oPosItem._SendValue(self.sLocation, oZbxSender)
         return
 
@@ -377,13 +390,18 @@ class IBM_Power_Disk(inv.ComponentClass):
             # oLog.debug('Parameter name:{}, value:{}'.format(sN, sV))
             sItemName = sAppName + ' ' + sN
             sItemKey = 'Disk_{}_of_{}_{}'.format(self.sName, oZbxHost._sName(), sN).replace(' ', '_')
-            oItem = oZbxHost._oAddItem(sItemName, sAppName, dParams={'key': sItemKey})
-            # oLog.debug('IBM_Power_Disk._MakeAppsItems: created item is ' + str(oItem))
+            oItem = oZbxHost._oAddItem(sItemName, sAppName,
+                                       dParams={'key': sItemKey, 'description': _('Disk {}'.format(sN))})
             oItem._SendValue(sV, oZbxSender)
         return
 
 
 class IBM_Power_Supply(inv.ComponentClass):
+    dDescriptions = {
+        'Part Number': _('Power supply part number'),
+        'Serial Number': _('Power supply serial number'),
+        'HW Location': _('Power supply location')}
+
     def __init__(self, sName, sPN, sSN, sHWLoc):
         self.sName = sName
         self.dData = {'Part Number': sPN,
@@ -400,13 +418,19 @@ class IBM_Power_Supply(inv.ComponentClass):
             sItemName = sAppName + ' ' + sN
             sItemKey = '{}_of_{}_{}'.format(
                 sAppName, oZbxHost._sName(), sN).replace(' ', '_')
-            oItem = oZbxHost._oAddItem(sItemName, sAppName, dParams={'key': sItemKey})
+            oItem = oZbxHost._oAddItem(sItemName, sAppName,
+                                       dParams={'key': sItemKey, 'description': self.dDescriptions[sN]})
             # oLog.debug('IBM_Power_Supply._MakeAppsItems: created item is ' + str(oItem))
             oItem._SendValue(sV, oZbxSender)
         return
 
 
 class IBM_DIMM_Module(inv.ComponentClass):
+    dDescriptions = {
+        'Part Number': _('DIMM part number'),
+        'Serial Number': _('DIMM serial number'),
+        'HW Location': _('DIMM location')}
+
     def __init__(self, sName, sPN, sSN, sHWLoc, iSize):
         self.sName = 'RAM module ' + sName
         self.dStrData = {'Part Number': sPN,
@@ -428,7 +452,9 @@ class IBM_DIMM_Module(inv.ComponentClass):
             sItemName = sAppName + ' ' + sN
             sItemKey = '{}_of_{}_{}'.format(
                 sAppName, oZbxHost._sName(), sN).replace(' ', '_')
-            oItem = oZbxHost._oAddItem(sItemName, sAppName, dParams={'key': sItemKey})
+            oItem = oZbxHost._oAddItem(
+                sItemName, sAppName,
+                dParams={'key': sItemKey, 'description': self.dDescriptions[sN]})
             # oLog.debug('IBM_DIMM_Module._MakeAppsItems: created item is ' + str(oItem))
             oItem._SendValue(sV, oZbxSender)
         # and integer item: size

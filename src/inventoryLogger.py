@@ -70,6 +70,9 @@ dLoggingConfig = yaml.load("""
         MySSH:
             level: DEBUG
             handlers: [ console, logfile ]
+        WBEM_vmware:
+            level: DEBUG
+            hadnlers: [console, logfile ]
     """)
 
 

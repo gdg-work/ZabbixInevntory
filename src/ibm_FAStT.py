@@ -439,6 +439,8 @@ class IBM_DS_Drive(invobj.DASD_Class):
 
 
 if __name__ == "__main__":
+    # access information (IP for this module)
+    from access import IBM_Fast as tsrv
     # test section: logging set-up
     oLog.setLevel(logging.DEBUG)
     oConHdr = logging.StreamHandler()
@@ -448,7 +450,7 @@ if __name__ == "__main__":
     lLines = []
     # for l in open(",ibmds8k.out", "r"):
     #     lLines.append(l)
-    oDS = IBM_DS("10.44.1.18")
+    oDS = IBM_DS(tsrv.sIP)
     oDS.__FillGeneral__()
     oDS.__FillControllers__()
     oDS.__FillEnclosures__()

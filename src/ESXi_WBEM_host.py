@@ -37,6 +37,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
         self.oDisksWBEM = None
         self.oCardsWBEM = None
         self.oProcWBEM = None
+        self.oAdaptersWBEM = None
         # receive information
         self.__fillData__()
         return
@@ -100,8 +101,9 @@ class ESXi_WBEM_Host(inv.GenericServer):
         for dDisk in ldDisks:
             print(str(dDisk))
             iDisks += 1
+            iDiskSize = int(dDisk.get('MaxMediaSize', 0)) // 2**20
             self.lDisks.append(DASD(dDisk['Name'], dDisk['Model'], dDisk['PartNumber'],
-                                    dDisk.get('SerialNumber')))
+                                    dDisk.get('SerialNumber'), iDiskSize))
         self.iDisksAmount = iDisks
         oLog.debug(str(self.lDisks))
         return
@@ -253,8 +255,8 @@ class DASD(inv.ComponentClass):
 
     def __repr__(self):
         sFmt = "HDD {0}: model {1}, p/n {2}, s/n {3}, size {4} GiB"
-        return sFmt.format(self.sName, self.dDiskData['Model'], self.dDiskData['PN'],
-                           self.dDiskData['SN'], self.dDiskData['Size'])
+        return sFmt.format(self.sName, self.dDiskData['model'], self.dDiskData['pn'],
+                           self.dDiskData['sn'], self.dDiskData['size'])
 
     def _MakeAppsItems(self, oZbxHost, oZbxSender):
         oZbxHost._oAddApp(self.sName)     # Disk Drive_65535_0
@@ -300,6 +302,7 @@ class PCI_Adapter(inv.ComponentClass):
 if __name__ == "__main__":
     from pyzabbix.api import ZabbixAPI
     from pyzabbix.sender import ZabbixSender
+    from access import demohs21_host as tsrv
     ZABBIX_IP = "127.0.0.1"
     ZABBIX_PORT = 10051
     ZABBIX_SERVER = 'http://10.1.96.163/zabbix/'
@@ -310,13 +313,10 @@ if __name__ == "__main__":
     oConHdr.setLevel(logging.DEBUG)
     oLog.addHandler(oConHdr)
 
-    sHostName = '2demohs21.hostco.ru'    # vmsrv06.msk.protek.local'
-    sUser = 'cimuser'          # 'zabbix'
-    sPass = '123qweASD'      # 'A3hHr88man01'
     iPort = 5989
 
-    oTestHost = ESXi_WBEM_Host(sHostName, sUser, sPass, sVCenter='vcenter.hostco.ru')
-    oZbxAPI = ZabbixAPI(url=ZABBIX_SERVER, user='Admin', password='zabbix')
+    oTestHost = ESXi_WBEM_Host(tsrv.sHostLong, tsrv.sUser, tsrv.sPass, tsrv.sVCenter)
+    oZbxAPI = ZabbixAPI(url=ZABBIX_SERVER, user=tsrv.sZbxUser, password=tsrv.sZbxPass)
     oZbxSender = ZabbixSender(zabbix_server='127.0.0.1', zabbix_port=ZABBIX_PORT)
     oTestHost._Connect2Zabbix(oZbxAPI, oZbxSender)
     oTestHost._MakeAppsItems()

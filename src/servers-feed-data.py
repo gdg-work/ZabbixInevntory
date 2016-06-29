@@ -6,6 +6,7 @@ fill in data fields and pass these fields to Zabbix via API
 """
 
 # import redis
+import i18n
 import logging
 import json
 import argparse as ap
@@ -14,7 +15,7 @@ import argparse as ap
 # === host types ===
 import ibm_Power_AIX as aix
 import ibm_BladeCenter_AMM as amm
-import ESXi_WBEMM_host as esxi
+import ESXi_WBEM_host as esxi
 # --- end of host types
 from inventoryLogger import dLoggingConfig
 # from pathlib import Path
@@ -81,10 +82,11 @@ def _dGetServersInfo(oRedis):
 def _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAPI, oZbxSender):
     oZbxHost = None
     sSrvType = dSrvParams['type']
-    oLog.debug("_oCollectInfoFromServer called for server {}, type {}".format(dSrvParams['srv-ip'], sSrvType))
+    sSrvIP = dSrvParams.get('srv-ip', sSrvName)
+    oLog.debug("_oCollectInfoFromServer called for server {}, type {}".format(sSrvIP, sSrvType))
     if sSrvType == 'aix_hmc':
         assert(dSrvParams['sp-type'] == 'HMC')
-        oZbxHost = aix.PowerHostClass(sSrvName, IP=dSrvParams['srv-ip'],
+        oZbxHost = aix.PowerHostClass(sSrvName, IP=sSrvIP,
                                       HMC_IP=dSrvParams['sp-ip'],
                                       User=dSrvParams['user'],
                                       Pass=dSrvParams['password'],
@@ -95,15 +97,16 @@ def _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAPI, oZbxSender):
         # print(oZbxHost)
     elif sSrvType == "esxi_amm":
         assert(dSrvParams['sp-type'] == 'AMM')
-        oZbxHost = amm.ESXiWithAMM(sSrvName, IP=dSrvParams['srv-ip'],
-                                   User=dSrvParams['user'],
-                                   Pass=dSrvParams['password'],
-                                   vCenter=dSrvParams['vcenter'],
-                                   AMM_IP=dSrvParams['sp-ip'],
-                                   SP_User=dSrvParams['sp-user'],
-                                   SP_Pass=dSrvParams['sp-pass'],
-                                   SP_Type=dSrvParams['sp-type']
-                                   )
+        oZbxHost = amm.BladeWithAMM(sSrvName, IP=sSrvIP,
+                                    sAMM_Name=dSrvParams.get('amm_name', sSrvName),
+                                    User=dSrvParams['user'],
+                                    Pass=dSrvParams['password'],
+                                    vCenter=dSrvParams['vcenter'],
+                                    AMM_IP=dSrvParams['sp-ip'],
+                                    SP_User=dSrvParams['sp-user'],
+                                    SP_Pass=dSrvParams['sp-pass'],
+                                    SP_Type=dSrvParams['sp-type']
+                                    )
         print(oZbxHost)
     elif sSrvType == "esxi":
         oZbxHost = esxi.ESXi_WBEM_Host(
@@ -111,7 +114,7 @@ def _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAPI, oZbxSender):
             sUser=dSrvParams['user'],
             sPass=dSrvParams['password'],
             sVCenter=dSrvParams['vcenter'],
-            IP=dSrvParams['srv-ip'])
+            IP=sSrvIP)
         print(oZbxHost)
     else:
         oLog.error("Host type is not supported yet!")
@@ -156,9 +159,10 @@ def _oGetCLIParser():
 
 if __name__ == "__main__":
     iRetCode = 0
+    logging.config.dictConfig(dLoggingConfig)
+    oLog = logging.getLogger('Servers_Feed_Data')
+
     try:
-        logging.config.dictConfig(dLoggingConfig)
-        oLog = logging.getLogger('Servers_Feed_Data')
         oLog.info('Starting Servers information Feeder program')
         oParser = _oGetCLIParser()
         _ProcessArgs(oParser, oLog)

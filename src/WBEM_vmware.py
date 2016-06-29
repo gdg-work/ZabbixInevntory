@@ -374,15 +374,14 @@ class WBEM_System(WBEM_Info):
 
 
 if __name__ == "__main__":
+    # access for a test system
+    from access import demohs21 as tsys
+
+    # logging setup
     oLog.setLevel(logging.DEBUG)
     oConHdr = logging.StreamHandler()
     oConHdr.setLevel(logging.DEBUG)
     oLog.addHandler(oConHdr)
-
-    sHostIP = '2demohs21.hostco.ru'    # vmsrv06.msk.protek.local'
-    sUser = 'cimuser'          # 'zabbix'
-    sPass = '123qweASD'      # 'A3hHr88man01'
-    iPort = 5989
 
     # for d in ld:
     #     print("\n".join([str(t) for t in d.items()]))
@@ -393,7 +392,7 @@ if __name__ == "__main__":
     # print("\n".join([str(d.items()) for d in oProc._ldGetInfo()]))
 
     # sTicket = _sGet_CIM_Ticket('vcenter.hostco.ru', 'cimuser', '123qweASD', '2demohs21.hostco.ru')
-    oAdapters = WBEM_PCI_Adapters(sHostIP, sUser, sPass, sVCenter='vcenter.hostco.ru')
+    oAdapters = WBEM_PCI_Adapters(tsys.sFQDN, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
     print("\n".join([str(d.items()) for d in oAdapters._ldGetInfo()]))
 
     # oSys = WBEM_System(sHostIP, sUser, sPass, sVCenter='vcenter.hostco.ru')

@@ -7,6 +7,7 @@ import logging
 import MySSH
 import zabbixInterface as zi
 import WBEM_vmware as wd
+from i18n import _
 import re
 
 # Constants
@@ -72,7 +73,8 @@ class BladeWithAMM(inv.GenericServer):
         self.lExps = []
         self.lDisks = []
         self._FillFromAMM()
-        self._FillDisksFromWBEM()
+        # Disabled due to WBEM debugging
+        # self._FillDisksFromWBEM()
         return
 
     def _FillFromAMM(self):
@@ -316,31 +318,38 @@ class BladeWithAMM(inv.GenericServer):
             # Add items
             oMemItem = self.oZbxHost._oAddItem(
                 "System Memory", sAppName='System',
-                dParams={'key': "Host_{}_Memory".format(self.sName), 'units': 'GB', 'value_type': 3})
+                dParams={'key': "Host_{}_Memory".format(self.sName), 'units': 'GB', 'value_type': 3,
+                         'description': _('Total memory size in GB')})
             oMemItem._SendValue(self.iTotalRAMgb, self.oZbxSender)
             oCPUItem = self.oZbxHost._oAddItem(
                 "System CPUs #", sAppName='System',
-                dParams={'key': "Host_{}_CPUs".format(self.sName), 'value_type': 3})
+                dParams={'key': "Host_{}_CPUs".format(self.sName), 'value_type': 3,
+                         'description': _('Host CPU count')})
             oCPUItem._SendValue(len(self.lCPUs), self.oZbxSender)
             oCoresItem = self.oZbxHost._oAddItem(
                 "System Cores #", sAppName='System',
-                dParams={'key': "Host_{}_Cores".format(self.sName), 'value_type': 3})
+                dParams={'key': "Host_{}_Cores".format(self.sName), 'value_type': 3,
+                         'description': _('Total number of cores in the system')})
             # number of cores in all CPUs
             oCoresItem._SendValue(self.iTotalCores, self.oZbxSender)
 
             # Host information
             oVendorItem = self.oZbxHost._oAddItem(
                 'System Vendor', sAppName='System',
-                dParams={'key': '{}_Vendor'.format(self.sName), 'value_type': 1})
+                dParams={'key': '{}_Vendor'.format(self.sName), 'value_type': 1,
+                         'description': _('Manufacturer of the system')})
             oMTM_Item = self.oZbxHost._oAddItem(
                 'System Model', sAppName='System',
-                dParams={'key': '{}_MTM'.format(self.sName), 'value_type': 1})
+                dParams={'key': '{}_MTM'.format(self.sName), 'value_type': 1,
+                         'description': _('Machine type and model as TYPE-MDL')})
             oPN_Item = self.oZbxHost._oAddItem(
                 'System Part Number', sAppName='System',
-                dParams={'key': '{}_PartNo'.format(self.sName), 'value_type': 1})
+                dParams={'key': '{}_PartNo'.format(self.sName), 'value_type': 1,
+                         'description': _('Part Number of the system')})
             oSN_Item = self.oZbxHost._oAddItem(
                 'System Serial Number', sAppName='System',
-                dParams={'key': '{}_SerNo'.format(self.sName), 'value_type': 1})
+                dParams={'key': '{}_SerNo'.format(self.sName), 'value_type': 1,
+                         'description': _('Serial number of system')})
 
             oVendorItem._SendValue(self.sVendor, self.oZbxSender)
             oMTM_Item._SendValue(self.sTypeMod, self.oZbxSender)
@@ -374,8 +383,6 @@ class BladeWithAMM(inv.GenericServer):
         return
 
     def _FillSysFromWBEM(self):
-        # oSys = WBEM_System(sHostIP, sUser, sPass, sVCenter='vcenter.hostco.ru')
-        # print("\n".join([str(d) for d in oSys._dGetInfo().items()]))
         if self.sVCenter:
             self.oWBEM_Sys = wd.WBEM_System(self.sName, self.sUser, self.sPass, sVCenter=self.sVCenter)
         else:
@@ -405,15 +412,15 @@ class Blade_CPU(inv.ComponentClass):
         oTypeItem = oZbxHost._oAddItem(
             self.sName + " Type", sAppName=self.sName,
             dParams={'key': "{}_{}_Type".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 1})
+                     'value_type': 1, 'description': _('Type of the processor')})
         oCoresItem = oZbxHost._oAddItem(
             self.sName + " # Cores", sAppName=self.sName,
             dParams={'key': "{}_{}_Cores".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 3})
+                     'value_type': 3, 'description': _('Number of cores')})
         oSpeedItem = oZbxHost._oAddItem(
             self.sName + " Speed", sAppName=self.sName,
             dParams={'key': "{}_{}_Speed".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 1})
+                     'value_type': 1, 'description': _('CPU Clock speed')})
 
         oTypeItem._SendValue(self.dData['family'], oZbxSender)
         oCoresItem._SendValue(self.dData['cores'], oZbxSender)
@@ -437,19 +444,19 @@ class Blade_DIMM(inv.ComponentClass):
         oTypeItem = oZbxHost._oAddItem(
             self.sName + " Type", sAppName=self.sName,
             dParams={'key': "{}_{}_Type".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 1})
+                     'value_type': 1, 'description': _('Memory module type')})
         oPN_Item = oZbxHost._oAddItem(
             self.sName + " Part Number", sAppName=self.sName,
             dParams={'key': "{}_{}_PN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 1})
+                     'value_type': 1, 'description': _('DIMM part number')})
         oSN_Item = oZbxHost._oAddItem(
             self.sName + " Serial Number", sAppName=self.sName,
             dParams={'key': "{}_{}_SN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 1})
+                     'value_type': 1, 'description': _('DIMM serial number')})
         oSize_Item = oZbxHost._oAddItem(
             self.sName + " Size", sAppName=self.sName,
             dParams={'key': "{}_{}_SizeGB".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 3, 'units': 'GB'})
+                     'value_type': 3, 'units': 'GB', 'description': _('DIMM size in GB')})
         oTypeItem._SendValue(self.dData['type'], oZbxSender)
         oPN_Item._SendValue(self.dData['pn'], oZbxSender)
         oSN_Item._SendValue(self.dData['sn'], oZbxSender)
@@ -473,15 +480,15 @@ class Blade_EXP(inv.ComponentClass):
         oTypeItem = oZbxHost._oAddItem(
             self.sName + " Type", sAppName=self.sName,
             dParams={'key': "{}_{}_Type".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 1})
+                     'value_type': 1, 'description': _('Adapter card type')})
         oPN_Item = oZbxHost._oAddItem(
             self.sName + " Part Number", sAppName=self.sName,
             dParams={'key': "{}_{}_PN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 1})
+                     'value_type': 1, 'description': _('Adapter card part number')})
         oSN_Item = oZbxHost._oAddItem(
             self.sName + " Serial Number", sAppName=self.sName,
             dParams={'key': "{}_{}_SN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 1})
+                     'value_type': 1, 'description': _('Adapter card serial number')})
         oTypeItem._SendValue(self.dData['type'], oZbxSender)
         oPN_Item._SendValue(self.dData['pn'], oZbxSender)
         oSN_Item._SendValue(self.dData['sn'], oZbxSender)
@@ -508,19 +515,19 @@ class Blade_Disk(inv.ComponentClass):
         oModelItem = oZbxHost._oAddItem(
             self.sName + " Model", sAppName=self.sName,
             dParams={'key': "{}_{}_Model".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 1})
+                     'value_type': 1, 'description': _('Disk model')})
         oPN_Item = oZbxHost._oAddItem(
             self.sName + " Part Number", sAppName=self.sName,
             dParams={'key': "{}_{}_PN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 1})
+                     'value_type': 1, 'description': _('Disk part number')})
         oSN_Item = oZbxHost._oAddItem(
             self.sName + " Serial Number", sAppName=self.sName,
             dParams={'key': "{}_{}_SN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 1})
+                     'value_type': 1, 'description': _('Disk serial number')})
         oSize_Item = oZbxHost._oAddItem(
             self.sName + " Size", sAppName=self.sName,
             dParams={'key': "{}_{}_Size".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 3, 'units': 'GB'})
+                     'value_type': 3, 'units': 'GB', 'description': _('Disk capacity in GB')})
         oModelItem._SendValue(self.dData['model'], oZbxSender)
         oPN_Item._SendValue(self.dData['pn'], oZbxSender)
         oSN_Item._SendValue(self.dData['sn'], oZbxSender)
@@ -530,17 +537,16 @@ class Blade_Disk(inv.ComponentClass):
 
 if __name__ == '__main__':
     """testing section"""
+    from access import vmsrv04 as srv
+
     oLog.setLevel(logging.DEBUG)
     oConHdr = logging.StreamHandler()
     oConHdr.setLevel(logging.DEBUG)
     oLog.addHandler(oConHdr)
-    oAmm = BladeWithAMM('2demohs21.hostco.ru', '2demohs21', IP='10.1.128.239', User='cimuser',
-                        Pass='123qweASD', vCenter='vcenter.hostco.ru', SP_User='USERID',
-                        SP_Pass='PASSW0RD', AMM_IP='10.1.128.148')
-    oAmm._FillSysFromWBEM()
-    # oAmm = BladeWithAMM(sAMM_Name='vmsrv04', sFQDN='vmsrv06.msk.protek.ru', User='zabbix',
-    #                     Pass='A3hHr88man01', SP_User='host', SP_Pass='host123',
-    #                     AMM_IP='10.0.22.61')
+    oAmm = BladeWithAMM(srv.sHostLong, srv.sHostShort, IP=srv.sHostLong, User=srv.sUser,
+                        Pass=srv.sPass, vCenter=srv.sVCenter, SP_User=srv.sSPUser,
+                        SP_Pass=srv.sSPPass, AMM_IP=srv.sSPIP)
+    # oAmm._FillSysFromWBEM()
     # lOut = oAmm._lsFromAMM([])
     # print("\n".join(lOut))
 

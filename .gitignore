@@ -3,5 +3,6 @@
 __pycache__
 tox.ini
 *.pyc
+src/access.py
 info.txt
 tags

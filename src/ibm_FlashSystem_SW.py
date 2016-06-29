@@ -511,6 +511,8 @@ class IBMFlashCard(inv.DASD_Class):
 
 if __name__ == '__main__':
     print("This is a library, not an executable")
+    # access information
+    from access import IBM_FS as tsys
     # test section: logging set-up
     oLog.setLevel(logging.DEBUG)
     oConHdr = logging.StreamHandler()
@@ -518,8 +520,8 @@ if __name__ == '__main__':
     oLog.addHandler(oConHdr)
     # testing
     oRedisConn = StrictRedis()
-    oAuth = MySSH.AuthData('monitor', bUseKey=False, sPasswd='monitor')
-    oFS = IBMFlashSystem('10.44.1.51', oAuth, 'FS01', oRedisConn)
+    oAuth = MySSH.AuthData(tsys.sUser, tsys.bUseKey, sPasswd=tsys.sPass)
+    oFS = IBMFlashSystem(tsys.sIP, oAuth, tsys.sSysName, oRedisConn)
     # print("Array parameters: {}".format(oFS._dGetArrayInfoAsDict(oFS.dQueries.keys())))
     print("==== Array parameters =====")
     print(str(oFS._dGetArrayInfoAsDict(oFS.dQueries.keys())))

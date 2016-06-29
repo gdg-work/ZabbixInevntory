@@ -569,14 +569,16 @@ class RAM_Module:
 
 # ============================================================
 if __name__ == '__main__':
+    # import access information
+    from access import TriPar_protek as tsrv
     # set up logging
     oLog.setLevel(logging.DEBUG)
     oConHdr = logging.StreamHandler()
     oConHdr.setLevel(logging.DEBUG)
     oLog.addHandler(oConHdr)
     oRedis = redis.StrictRedis()
-    oAuth = MySSH.AuthData('zabbix', bUseKey=False, sPasswd='G47ufNDybz')
-    my3Par = HP3Par('10.44.0.171', oAuth, 'hp3par02', oRedis)
+    oAuth = MySSH.AuthData(tsrv.sUser, bUseKey=False, sPasswd=tsrv.sPass)
+    my3Par = HP3Par(tsrv.sHostIP, oAuth, tsrv.sArrName, oRedis)
     print(my3Par.dQueries['shelf-names']())
     print(my3Par.dQueries['ctrl-names']())
     print(my3Par.dQueries['disk-names']())
