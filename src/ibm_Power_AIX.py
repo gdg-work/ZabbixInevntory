@@ -373,6 +373,13 @@ class IBM_Power_Adapter(inv.ComponentClass):
 
 
 class IBM_Power_Disk(inv.ComponentClass):
+    dDescriptions = {
+        'Type':           _('Disk type'),
+        'Model':          _('Disk model'),
+        'Part Number':    _('Disk part number'),
+        'Serial Number':  _('Disk serial number'),
+        'Location':       _('Disk location')}
+
     def __init__(self, sName, sType, sModel, sPN, sSN, sLoc):
         self.sName = sName
         self.dData = {'Type':           sType,      # keys must contain only valid chars for Zabbix key
@@ -390,8 +397,9 @@ class IBM_Power_Disk(inv.ComponentClass):
             # oLog.debug('Parameter name:{}, value:{}'.format(sN, sV))
             sItemName = sAppName + ' ' + sN
             sItemKey = 'Disk_{}_of_{}_{}'.format(self.sName, oZbxHost._sName(), sN).replace(' ', '_')
-            oItem = oZbxHost._oAddItem(sItemName, sAppName,
-                                       dParams={'key': sItemKey, 'description': _('Disk {}'.format(sN))})
+            oItem = oZbxHost._oAddItem(
+                sItemName, sAppName,
+                dParams={'key': sItemKey, 'description': self.dDescriptions[sN]})
             oItem._SendValue(sV, oZbxSender)
         return
 

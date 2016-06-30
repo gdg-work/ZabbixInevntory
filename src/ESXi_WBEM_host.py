@@ -6,11 +6,18 @@ import WBEM_vmware as wbem
 import inventoryObjects as inv
 import zabbixInterface as zi
 import logging
-import gettext
+from i18n import _
 
 oLog = logging.getLogger(__name__)
-gettext.install('inventory-Zabbix', localedir='locale')
-_ = gettext.lgettext
+
+
+def _sMkKey_(*args):
+    """Utility function: make string suitable for key"""
+    sPreKey = "_".join(args)
+    if ' ' in sPreKey:
+        return sPreKey.replace(' ', '_')
+    else:
+        return sPreKey
 
 
 class ESXi_WBEM_Host(inv.GenericServer):
@@ -25,12 +32,14 @@ class ESXi_WBEM_Host(inv.GenericServer):
         self.sProdNum = ''
         self.sVendor = ''
         self.iTotalRAMgb = 0
+        self.iTotalCores = 0
         self.iDIMMs = 0
         self.iCPUs = 0
         self.lDIMMs = []
         self.lCPUs = []
         self.lExps = []
         self.lDisks = []
+        self.lPCI_Adapters = []
         self.dHostInfo = {}
         self.oHostWBEM = None
         self.oMemWBEM = None
@@ -47,6 +56,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
         self._MemFromWBEM()
         self._CpuFromWBEM()
         self._DisksFromWBEM()
+        self._HBAs_from_WBEM()
         return
 
     def __repr__(self):
@@ -99,7 +109,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
         ldDisks = self.oDisksWBEM._ldReportDisks()
         iDisks = 0
         for dDisk in ldDisks:
-            print(str(dDisk))
+            # print(str(dDisk))
             iDisks += 1
             iDiskSize = int(dDisk.get('MaxMediaSize', 0)) // 2**20
             self.lDisks.append(DASD(dDisk['Name'], dDisk['Model'], dDisk['PartNumber'],
@@ -115,6 +125,27 @@ class ESXi_WBEM_Host(inv.GenericServer):
         ldAdapters = self.oAdaptersWBEM._ldReportAdapters()
         for dAdapter in ldAdapters:
             self.lPCI_Adapters.append(PCI_Adapter(dAdapter['Name']))
+        return
+
+    def _HBAs_from_WBEM(self):
+        self.oHBAs = wbem.WBEM_HBAs(
+            self.sName, self.sUser,
+            self.sPass, sVCenter=self.sVCenter)
+        # print(self.oHBAs)
+        ldHBAs = self.oHBAs._ldReportAdapters()
+        # print('*DBG* Found {} HBAs'.format(len(ldHBAs)))
+        # print("\n".join([str(o) for o in ldHBAs]))
+        for dHBA_Data in ldHBAs:
+            print(dHBA_Data)
+            oPCIAdapter = HBA_Class(
+                dHBA_Data['id'], sPosition=dHBA_Data['pos'], sVendorID='', sDeviceID='',
+                model=dHBA_Data['model'])
+            oPCIAdapter.sPartNum = dHBA_Data.get('pn')
+            oPCIAdapter.sSerNum = dHBA_Data.get('sn')
+            oPCIAdapter.sWWN = dHBA_Data.get('wwn')
+            print(oPCIAdapter)
+            self.lPCI_Adapters.append(oPCIAdapter)
+        oLog.info('PCI Adapters list:\n{}'.format(str(self.lPCI_Adapters)))
         return
 
     def _Connect2Zabbix(self, oAPI, oSender):
@@ -143,11 +174,13 @@ class ESXi_WBEM_Host(inv.GenericServer):
                 dParams={'key': "Host_{}_CPUs".format(self.sName), 'value_type': 3,
                          'description': _('Number of processors in the system')})
             oCPUItem._SendValue(len(self.lCPUs), self.oZbxSender)
-            #    oCoresItem = self.oZbxHost._oAddItem(
-            #        "System Cores #", sAppName='System',
-            #        dParams={'key': "Host_{}_Cores".format(self.sName), 'value_type': 3})
-            #    # number of cores in all CPUs
-            #    oCoresItem._SendValue(self.iTotalCores, self.oZbxSender)
+            if self.iTotalCores > 0:
+                oCoresItem = self.oZbxHost._oAddItem(
+                    "System Cores #", sAppName='System',
+                    dParams={'key': "Host_{}_Cores".format(self.sName), 'value_type': 3,
+                             'description': _('Total number of cores in the system')})
+                # number of cores in all CPUs
+                oCoresItem._SendValue(self.iTotalCores, self.oZbxSender)
 
             # Host information
             oMTM_Item = self.oZbxHost._oAddItem(
@@ -156,7 +189,8 @@ class ESXi_WBEM_Host(inv.GenericServer):
                          'description': _('Model of the system')})
             oPN_Item = self.oZbxHost._oAddItem(
                 'System Part Number', sAppName='System',
-                dParams={'key': '{}_PartNo'.format(self.sName), 'value_type': 1})
+                dParams={'key': '{}_PartNo'.format(self.sName), 'value_type': 1,
+                         'description': _('Part Number of the system')})
             oSN_Item = self.oZbxHost._oAddItem(
                 'System Serial Number', sAppName='System',
                 dParams={'key': '{}_SerNo'.format(self.sName), 'value_type': 1,
@@ -168,7 +202,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
             oSN_Item._SendValue(self.sSerialNum, self.oZbxSender)
 
             # send components' items to Zabbix
-            lComps = self.lCPUs + self.lDIMMs + self.lDisks + self.lExps
+            lComps = self.lCPUs + self.lDIMMs + self.lDisks + self.lPCI_Adapters
             for o in lComps:
                 o._MakeAppsItems(self.oZbxHost, self.oZbxSender)
         else:
@@ -263,23 +297,23 @@ class DASD(inv.ComponentClass):
         oModelItem = oZbxHost._oAddItem(
             self.sName + " Model", sAppName=self.sName,
             dParams={'key': "{}_{}_Model".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 1})
+                     'value_type': 1, 'description': _('Disk model')})
         oPN_Item = oZbxHost._oAddItem(
             self.sName + " Part Number", sAppName=self.sName,
             dParams={'key': "{}_{}_PN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 1})
+                     'value_type': 1, 'description': _('Disk part number')})
         oSN_Item = oZbxHost._oAddItem(
             self.sName + " Serial Number", sAppName=self.sName,
             dParams={'key': "{}_{}_SN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 1})
+                     'value_type': 1, 'description': _('Disk serial number')})
         oSize_Item = oZbxHost._oAddItem(
             self.sName + " Size", sAppName=self.sName,
             dParams={'key': "{}_{}_Size".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 3, 'units': 'GB'})
-        oModelItem._SendValue(self.dData['model'], oZbxSender)
-        oPN_Item._SendValue(self.dData['pn'], oZbxSender)
-        oSN_Item._SendValue(self.dData['sn'], oZbxSender)
-        oSize_Item._SendValue(self.dData['size'], oZbxSender)
+                     'value_type': 3, 'units': 'GB', 'description': _('Disk capacity in GB')})
+        oModelItem._SendValue(self.dDiskData['model'], oZbxSender)
+        oPN_Item._SendValue(self.dDiskData['pn'], oZbxSender)
+        oSN_Item._SendValue(self.dDiskData['sn'], oZbxSender)
+        oSize_Item._SendValue(self.dDiskData['size'], oZbxSender)
         return
 
 
@@ -289,25 +323,112 @@ class PCI_Adapter(inv.ComponentClass):
         self.sIDs = "{}:{}".format(sVendorID, sDeviceID)
         self.sName = sName
         self.dData = {'ids': self.sIDs, 'pos': sPosition}
-        self.dData.extend(dOther)
+        self.dData.update(dOther)
+        self.sPartNum = ''
+        self.sSerNum = ''
         return
+
+    @property
+    def sPartNum(self):
+        return self.dData.get('pn')
+
+    @property
+    def sSerNum(self):
+        return self.dData.get('sn')
+
+    @sPartNum.setter
+    def sPartNum(self, sPN):
+        self.dData['pn'] = sPN
+
+    @sSerNum.setter
+    def sSerNum(self, sSN):
+        self.dData['sn'] = sSN
 
     def __repr__(self):
         sRet =  "PCI adapter {}\n".format(self.sName)
         sRet += "Vendor/device Identifiers are {}\n".format(self.sIDs)
         sRet += "Bus position: {}\n".format(self.dData.get('pos'))
         sRet += "Other data:\n========\n{}\n---------\n".format(str(self.dData))
+        return sRet
+
+    def _MakeAppsItems(self, oZbxHost, oZbxSender, sApp=''):
+
+        if sApp == '':
+            sAppName = "PCI Device {}".format(self.sName)
+        else:
+            sAppName = sApp
+        oZbxHost._oAddApp(sAppName)     # PCI device: vmhba2
+        if self.sIDs != ':':
+            oIDs_item = oZbxHost._oAddItem(
+                sAppName + ' IDs', sAppName=sAppName,
+                dParams={'key': _sMkKey_(sAppName, "IDs"), 'value_type': 1,
+                         'description': _('PCI vendor:device identifiers')})
+            oIDs_item._SendValue(self.sIDs, oZbxSender)
+        oPosItem = oZbxHost._oAddItem(
+            sAppName + ' Position', sAppName=sAppName,
+            dParams={'key': _sMkKey_(sAppName, 'Pos'), 'value_type': 1,
+                     'description': _('PCI device logical position (bus/slot/function)')})
+        oPosItem._SendValue(self.dData['pos'], oZbxSender)
+        if 'sn' in self.dData:
+            oSNItem = oZbxHost._oAddItem(
+                sAppName + ' Serial', sAppName=sAppName,
+                dParams={'key': _sMkKey_(sAppName, 'SN'), 'value_type': 1,
+                         'description': _('Device serial number')})
+            oSNItem._SendValue(self.dData['sn'], oZbxSender)
+        if 'pn' in self.dData:
+            oPN_Item = oZbxHost._oAddItem(
+                sAppName + ' Part Number', sAppName=sAppName,
+                dParams={'key': _sMkKey_(sAppName, 'PN'), 'value_type': 1,
+                         'description': _('Device part number')})
+            oPN_Item._SendValue(self.dData['pn'], oZbxSender)
+        if 'model' in self.dData:
+            oModelItem = oZbxHost._oAddItem(
+                sAppName + ' Model', sAppName=sAppName,
+                dParams={'key': _sMkKey_(sAppName, 'Model'), 'value_type': 1,
+                         'description': _('Device model')})
+            oModelItem._SendValue(self.dData['model'], oZbxSender)
         return
 
+
+class HBA_Class(PCI_Adapter):
+    def __init__(self, sName, sPosition, sVendorID, sDeviceID, **dOther):
+        super().__init__(sName, sPosition, sVendorID, sDeviceID, **dOther)
+
+    @property
+    def sWWN(self):
+        return self.dData.get('wwn', '')
+
+    @sWWN.setter
+    def sWWN(self, sID):
+        self.dData['wwn'] = sID
+
+    def __repr__(self):
+        return super().__repr__() + "\nWWN: " + self.dData.get('wwn', '')
+
+    def _MakeAppsItems(self, oZbxHost, oZbxSender):
+        sAppName = "Host Bus Adapter {}".format(self.sName)
+        oZbxHost._oAddApp(sAppName)     # HBA vmhba2
+        super()._MakeAppsItems(oZbxHost, oZbxSender, sApp=sAppName)
+        if 'wwn' in self.dData:
+            oModelItem = oZbxHost._oAddItem(
+                sAppName + ' WWN', sAppName=sAppName,
+                dParams={'key': _sMkKey_(sAppName, 'WWN'), 'value_type': 1,
+                         'description': _('HBA World-Wide-Name (WWN)')})
+            oModelItem._SendValue(self.dData['wwn'], oZbxSender)
+        return
+
+
 if __name__ == "__main__":
+    # host for testing
+    from access import demohs21_host as tsrv
+
+    # Zabbix functionality
     from pyzabbix.api import ZabbixAPI
     from pyzabbix.sender import ZabbixSender
-    from access import demohs21_host as tsrv
     ZABBIX_IP = "127.0.0.1"
     ZABBIX_PORT = 10051
     ZABBIX_SERVER = 'http://10.1.96.163/zabbix/'
 
-    gettext.install('zabbix-Inventory', localedir='locale')
     oLog.setLevel(logging.DEBUG)
     oConHdr = logging.StreamHandler()
     oConHdr.setLevel(logging.DEBUG)

@@ -247,6 +247,10 @@ class WBEM_Info:
             lData.append(dOut)
         return lData
 
+    def __loGetInstances__(self, sNS, sClass):
+        """wrapper over pywbem.WBEMConnection.EnumerateInstances"""
+        return self.oConn.EnumerateInstances(namespace=sNS, ClassName=sClass)
+
 
 class WBEM_Disks(WBEM_Info):
     def __init__(self, sHost, sUser, sPass, sVCenter='', iPort=5989):
@@ -338,6 +342,42 @@ class WBEM_PCI_Adapters(WBEM_Info):
         return dAdaptersBySlot.values()
 
 
+class WBEM_HBAs(WBEM_Info):
+    sMyNS = 'root/cimv2'
+    sMyClass = 'IODM_FCAdapter'
+    dAttrsToRet = {
+        'SerialNumber': 'sn',
+        'HostNodeName': 'wwn',
+        'ModelDescription': 'type',
+        'Vendor': 'vendor',
+        'DeviceID': 'id',
+        'Model': 'model'}
+
+    def __init__(self, sHost, sUser, sPass, sVCenter='', iPort=5989):
+        try:
+            super().__init__(sHost, sUser, sPass, sVCenter, iPort)
+        except WBEM_Exception as e:
+            oLog.error('Error scanning HBAs: ' + str(e))
+            raise WBEM_Exception
+
+    def __repr__(self):
+        return "VMware HBA info access class: host={}".format(str(self.oConn))
+
+    def _ldReportAdapters(self):
+        ldRet = []
+        loFCADaptersData = self.__ldGetInfoFromWBEM__(self.sMyNS, self.sMyClass)
+        # return only the relevant information
+        for oHBAData in loFCADaptersData:
+            dRet = {}
+            for k, v in self.dAttrsToRet.items():
+                dRet[v] = oHBAData.get(k)
+            # PCI position is a special case
+            dRet['pos'] = "PCI: {0}/{1}/{2}".format(
+                oHBAData.get('PciBus'), oHBAData.get('PciSlot'), oHBAData.get('PciFunction'))
+            ldRet.append(dRet)
+        return ldRet
+
+
 class WBEM_System(WBEM_Info):
     sMyNS = 'root/cimv2'
     dMyClassNames = {'gen': 'OMC_UnitaryComputerSystem', 'spec': 'OMC_Chassis'}
@@ -375,7 +415,7 @@ class WBEM_System(WBEM_Info):
 
 if __name__ == "__main__":
     # access for a test system
-    from access import demohs21 as tsys
+    from access import demohs21_host as tsys
 
     # logging setup
     oLog.setLevel(logging.DEBUG)
@@ -391,8 +431,8 @@ if __name__ == "__main__":
     # oProc = WBEM_CPU(sHostIP, sUser, sPass, sVCenter='vcenter.hostco.ru')
     # print("\n".join([str(d.items()) for d in oProc._ldGetInfo()]))
 
-    # sTicket = _sGet_CIM_Ticket('vcenter.hostco.ru', 'cimuser', '123qweASD', '2demohs21.hostco.ru')
-    oAdapters = WBEM_PCI_Adapters(tsys.sFQDN, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
+    # oAdapters = WBEM_PCI_Adapters(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
+    oAdapters = WBEM_HBAs(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
     print("\n".join([str(d.items()) for d in oAdapters._ldGetInfo()]))
 
     # oSys = WBEM_System(sHostIP, sUser, sPass, sVCenter='vcenter.hostco.ru')
