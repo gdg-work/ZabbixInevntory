@@ -521,6 +521,10 @@ class HP_EVA_Class(ClassicArrayClass):
                     sId = str(oDiskBay.diskwwn.string)
                     if sId in self.dDiskByID:
                         self.dDiskByShelfPos[sPosition] = sId
+                    elif sId == '0000-0000-0000-0000-0000-0000-0000-0000':
+                        # Empty slot has UID of all zeroes
+                        oLog.debug('Empty slot {}'.format(sPosition))
+                        pass
                     else:
                         oLog.info(
                             "There is a slot {0} with strange disk ID {1} that is not cataloged!".format(

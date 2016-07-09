@@ -128,20 +128,29 @@ class enCtrl(enum.Enum):
     SMARTARRAY = 4
 
 
-def _sFindDisksNameSpace2(oWBEM_Conn):
+def _sFindDisksNameSpace(oWBEM_Conn):
     """ Returns a namespace with disk controller's data """
     dDiskControllerREs = {enCtrl.LSI: re.compile(r'^lsi/')}
-    lElems = oWBEM_Conn.EnumerateInstanceNames(namespace='root/interop', ClassName='CIM_RegisteredProfile')
     enController = None
     sDiskNS = ''
+    try:
+        lElems = oWBEM_Conn.EnumerateInstanceNames(ClassName='CIM_RegisteredProfile',
+                                                   namespace='root/interop',)
+    except pywbem.cim_operations.CIMError as e:
+        # cannot enumerate registered profiles, something is really wrong
+        sDiskNS = ''
+        oLog.error('CIM error trying to find disk namespace')
+        raise WBEM_Disk_Exception(e)
+
     for oEl in lElems:
-        # ищем диск, узнаём имя контроллера
+        # search for controller name
         if RE_DISK.search(oEl['InstanceID']):
             sKeyString = str(oEl.values()[0]).split(':')[0]   # returned value is a LIST with one element
             if sKeyString == 'LSIESG':
                 enController = enCtrl.LSI
-
                 # пока не знаю других контроллеров
+            else:
+                oLog.info('Unknown disk controller, class=' + oEl.values()[0])
     if enController is enCtrl.LSI:
         # working with LSI controller
         for oNameSpace in oWBEM_Conn.EnumerateInstanceNames(ClassName='CIM_Namespace',
@@ -153,12 +162,12 @@ def _sFindDisksNameSpace2(oWBEM_Conn):
         oLog.debug('Final namespace name: ' + sDiskNS)
     else:
         # unknown controller
-        oLog.debug("*ERR* Unknown disk controller")
+        oLog.info("*ERR* Unknown disk controller")
         sDiskNS = None
     return sDiskNS
 
 
-def __ldGetDiskParametersFromWBEM__(oConnection, sNS):
+def _ldGetDiskParametersFromWBEM(oConnection, sNS):
     lsClasses = oConnection.EnumerateClassNames(namespace=sNS)
     if ('CIM_ManagedElement' not in lsClasses) or ('CIM_Component' not in lsClasses):
         raise WBEM_Exception('No ManagedElement in class list, wrong server?')
@@ -196,21 +205,6 @@ def __ldGetDiskParametersFromWBEM__(oConnection, sNS):
     return ldDiskData
 
 
-# def _ldConnectAndReportDisks(sHost, sUser, sPass, iPort=5989):
-#     sUrl = 'https://{}:{}'.format(sHost, iPort)
-#     try:
-#         oConnection = pywbem.WBEMConnection(sUrl, creds=(sUser, sPass), no_verification=True)
-#         sDiskNS = _sFindDisksNameSpace2(oConnection)
-#         if sDiskNS[0:4] == 'lsi/':   # LSI Disk
-#             ldParameters = _ldGetDiskParametersFromWBEM(oConnection, sDiskNS)
-#         else:
-#             ldParameters = []
-#     except pywbem.ConnectionError:
-#         ldParameters = []
-#         raise WBEM_Disk_Exception('Cannot connect to WBEM on host {} and port {}'.format(sHost, iPort))
-#     return ldParameters
-
-
 class WBEM_Info:
     """super-class for WBEM connections and information collection"""
     def __init__(self, sHost, sUser, sPass, sVCenter='', iPort=5989):
@@ -236,7 +230,7 @@ class WBEM_Info:
                 'Cannot connect to WBEM server {} with credentials supplied!'.format(sHost))
         return
 
-    def __ldGetInfoFromWBEM__(self, sNS, sClass):
+    def _ldGetInfoFromWBEM(self, sNS, sClass):
         """returns WBEM instances as a list of dictionaries with 'None'-valued keys removed"""
         lData = []
         for oInstance in self.oConn.EnumerateInstances(namespace=sNS, ClassName=sClass):
@@ -247,30 +241,43 @@ class WBEM_Info:
             lData.append(dOut)
         return lData
 
-    def __loGetInstances__(self, sNS, sClass):
+    def _loGetInstanceNames(self, sNS, sClass):
+        """wrapper over pywbem.WBEMConnection.EnumerateInstances"""
+        return self.oConn.EnumerateInstanceNames(namespace=sNS, ClassName=sClass)
+
+    def _loGetInstances(self, sNS, sClass):
         """wrapper over pywbem.WBEMConnection.EnumerateInstances"""
         return self.oConn.EnumerateInstances(namespace=sNS, ClassName=sClass)
+
+    def _logGetClassNames(self, sNS='root/interop', sClassName=None):
+        if sClassName:
+            return self.oConn.EnumerateClassNames(sNS, sClassName)
+        else:
+            return self.oConn.EnumerateClassNames(sNS)
 
 
 class WBEM_Disks(WBEM_Info):
     def __init__(self, sHost, sUser, sPass, sVCenter='', iPort=5989):
         try:
             super().__init__(sHost, sUser, sPass, sVCenter, iPort)
-            self.sDiskNS = _sFindDisksNameSpace2(self.oConn)
+            self.sDiskNS = _sFindDisksNameSpace(self.oConn)
         except WBEM_Exception as e:
-            raise WBEM_Memory_Exception(e)
+            raise WBEM_Disk_Exception(e)
         return
 
     def _ldReportDisks(self):
-        try:
-            if self.sDiskNS[0:4] == 'lsi/':   # LSI Disk
-                oLog.debug('LSI controller found')
-                ldParameters = __ldGetDiskParametersFromWBEM__(self.oConn, self.sDiskNS)
-            else:
-                ldParameters = []
-                raise WBEM_Disk_Exception('Unknown disk controller')
-        except WBEM_Exception as e:
-            raise WBEM_Disk_Exception(e)
+        if self.sDiskNS is not None:
+            try:
+                if self.sDiskNS[0:4] == 'lsi/':   # LSI Disk
+                    oLog.debug('LSI controller found')
+                    ldParameters = _ldGetDiskParametersFromWBEM(self.oConn, self.sDiskNS)
+                else:
+                    ldParameters = []
+                    raise WBEM_Disk_Exception('Unknown disk controller')
+            except WBEM_Exception as e:
+                raise WBEM_Disk_Exception(e)
+        else:
+            ldParameters = []
         return ldParameters
 
 
@@ -286,7 +293,7 @@ class WBEM_Memory(WBEM_Info):
         return
 
     def _ldGetInfo(self):
-        ldData = self.__ldGetInfoFromWBEM__(self.sMemNS, self.MemClassName)
+        ldData = self._ldGetInfoFromWBEM(self.sMemNS, self.MemClassName)
         return ldData
 
 
@@ -302,7 +309,7 @@ class WBEM_CPU(WBEM_Info):
         return
 
     def _ldGetInfo(self):
-        ldData = self.__ldGetInfoFromWBEM__(self.sMyNS, self.MyClassName)
+        ldData = self._ldGetInfoFromWBEM(self.sMyNS, self.MyClassName)
         return ldData
 
 
@@ -319,7 +326,7 @@ class WBEM_PCI_Adapters(WBEM_Info):
         return
 
     def _ldGetInfo(self):
-        ldPCIData = self.__ldGetInfoFromWBEM__(self.sMyNS, self.myClassNames['pci'])
+        ldPCIData = self._ldGetInfoFromWBEM(self.sMyNS, self.myClassNames['pci'])
         oLog.debug("\n".join([str(d) for d in ldPCIData]))
         dAdaptersBySlot = {}
         # filter only devices on additional boards
@@ -331,7 +338,7 @@ class WBEM_PCI_Adapters(WBEM_Info):
             else:
                 dAdaptersBySlot[sDevID] = dAdapter
         # check FC adapters
-        ldFCAdapters = self.__ldGetInfoFromWBEM__(self.sMyNS, self.myClassNames['fc'])
+        ldFCAdapters = self._ldGetInfoFromWBEM(self.sMyNS, self.myClassNames['fc'])
         oLog.debug('======== FC Adapters =======')
         oLog.debug("\n".join([str(d) for d in ldFCAdapters]))
         oLog.debug("======= PCI cards =======")
@@ -365,7 +372,7 @@ class WBEM_HBAs(WBEM_Info):
 
     def _ldReportAdapters(self):
         ldRet = []
-        loFCADaptersData = self.__ldGetInfoFromWBEM__(self.sMyNS, self.sMyClass)
+        loFCADaptersData = self._ldGetInfoFromWBEM(self.sMyNS, self.sMyClass)
         # return only the relevant information
         for oHBAData in loFCADaptersData:
             dRet = {}
@@ -391,8 +398,8 @@ class WBEM_System(WBEM_Info):
 
     def _dGetInfo(self):
         dRet = {}
-        ldGen = self.__ldGetInfoFromWBEM__(self.sMyNS, self.dMyClassNames['gen'])
-        ldSpec = self.__ldGetInfoFromWBEM__(self.sMyNS, self.dMyClassNames['spec'])
+        ldGen = self._ldGetInfoFromWBEM(self.sMyNS, self.dMyClassNames['gen'])
+        ldSpec = self._ldGetInfoFromWBEM(self.sMyNS, self.dMyClassNames['spec'])
         # list ldGen usually have 1 element, and ldSpec two, we are interested in [0].
         for dSys in ldGen:
             assert(dSys['CreationClassName'] == 'OMC_UnitaryComputerSystem')
@@ -412,10 +419,141 @@ class WBEM_System(WBEM_Info):
                 dRet['sn'] = dSys['SerialNumber']
         return dRet
 
+    def _ssGetNameSpaces(self):
+        """return a list of namespaces for this host"""
+        sMyNS = 'root/interop'
+        sMyClass = 'CIM_Namespace'
+        sRet = set()
+        loNS_Instances = self._loGetInstanceNames(sMyNS, sMyClass)
+        for oInst in loNS_Instances:
+            sRet.add(oInst['Name'])
+        return list(sRet)
+
+    def _sGetHBANameSpace(self):
+        lNSs = self._ssGetNameSpaces()
+        sHBA_NS = ''
+        for sNSName in lNSs:
+            if sNSName == 'root/cimv2':
+                # we know that no HBAs ever exist in this namespace, and this NS is very large
+                continue
+            try:
+                loInstNames = self._loGetInstanceNames(sNSName, 'CIM_PhysicalPackage')
+                if loInstNames:
+                    for oIN in loInstNames:
+                        print('\n--------- Instance Name: {} ---------'.format(oIN.classname))
+                        # print(oIN)
+                        lAssocNames = (self.oConn.AssociatorNames(
+                            oIN,
+                            ResultClass='CIM_PortController'))
+                        for oAN in lAssocNames:
+                            if 'HBA' in oAN.classname:
+                                print(self.oConn.GetInstance(oAN))
+                                sHBA_NS = sNSName
+                                print(self.oConn.AssociatorNames(oAN))
+            except pywbem.cim_operations.CIMError as e:
+                # probably there is no such class
+                pass
+        return sHBA_NS
+
+    def _loGetHBAInstances(self):
+        """Return a list of HBA instances (subclass of class CIM_PhysicalPackage)"""
+        lNSs = self._ssGetNameSpaces()
+        lHBAs = list()
+        for sNSName in lNSs:
+            if sNSName == 'root/cimv2':
+                # we know that no HBAs ever exist in this namespace, and this NS is very large
+                continue
+            try:
+                loInstNames = self._loGetInstanceNames(sNSName, 'CIM_PhysicalPackage')
+                for oIN in loInstNames:
+                    # print(oIN)
+                    lAssocNames = (self.oConn.AssociatorNames(
+                        oIN, ResultClass='CIM_PortController'))
+                    # oLog.debug('\n--------- Instance Name: {} ---------'.format(oIN.classname))
+                    for oAN in lAssocNames:
+                        lAssoc = self.oConn.AssociatorNames(
+                            oAN, ResultClass='CIM_ProtocolControllerForDevice')
+
+                        # oLog.debug("\n".join([o.__repr__() for o in lAssoc]))
+                        bPortFound, bSysFound, bPkgFound = (False, False, False)
+                        for oAssoc2Name in lAssoc:
+                            bPortFound = bPortFound or 'FCPort' in oAssoc2Name.classname
+                            bSysFound =  bSysFound  or 'ComputerSystem' in oAssoc2Name.classname
+                            bPkgFound =  bPkgFound  or 'PhysicalPackage' in oAssoc2Name.classname
+                        if bPkgFound and bSysFound and bPortFound:
+                            oInstance = self.oConn.GetInstance(oIN)
+                            lHBAs.append(oInstance)
+            except pywbem.cim_operations.CIMError as e:
+                # probably there is no such class
+                pass
+        return list(lHBAs)
+
+    def _loGetIntegratedDiskControllers(self):
+        """return a list of integrated disk controllers instances"""
+        lNSs = self._ssGetNameSpaces()
+        lRCs = []
+        for sNSName in lNSs:
+            if sNSName == 'root/cimv2':
+                # we know that no HBAs ever exist in this namespace, and this NS is very large
+                continue
+            try:
+                loInstNames = self._loGetInstanceNames(sNSName, 'CIM_PhysicalPackage')
+                for oIN in loInstNames:
+                    print(str(oIN))
+                    # search for IntegratedRAIDChip class between results
+
+            except pywbem.cim_operations.CIMError as e:
+                # probably there is no such class
+                pass
+        return list(lRCs)
+
+
+class WBEM_PowerSupplySet(WBEM_Info):
+    """Set of one or more power supplies. Often this is a redundant set of PS for a server"""
+    sMyNS = 'root/cimv2'
+    sProfileClassName = 'OMC_RegisteredPowerSupplyProfile'
+    sPwrSupplyClassName = 'OMC_PowerSupply'
+    lMyClassNames = ['OMC_PowerSupplyRedundancySet',
+                     'OMC_MemberOfPowerSupplyRedundancySet',
+                     'OMC_PowerSupply']
+
+    def __init__(self, sHost, sUser, sPass, sVCenter='', iPort=5989):
+        try:
+            super().__init__(sHost, sUser, sPass, sVCenter, iPort)
+        except WBEM_Exception as e:
+            raise WBEM_System_Exception(e)
+        return
+
+    def __lGetPwrSupplyNames(self):
+        """internal function, returns list of Power Supply names"""
+        lRet = []
+        try:
+            lPSProfiles = self._loGetInstanceNames(sClass=self.sProfileClassName, sNS='root/interop')
+        except Exception as e:
+            oLog.error('Cannot enumerate Power Supplies class, something is really wrong')
+            raise WBEM_System_Exception('Cannot enumerate PS class')
+        # print(lPSProfiles)
+        for oProfName in lPSProfiles:
+            lPSs = self.oConn.AssociatorNames(oProfName, ResultClass=self.sPwrSupplyClassName)
+            lRet += lPSs
+        return lRet
+
+    def _lGetPoweSupplies(self):
+        """Returns a list of CIM instances corresponding to power supply profile"""
+        lRet = []
+        lPSNames = self.__lGetPwrSupplyNames()
+        for oPSInstanceName in lPSNames:
+            lRet.append(self.oConn.GetInstance(oPSInstanceName))
+        return lRet
+
+    def _iGetPwrSuppliesAmount(self):
+        """returns amount of power supplies in this system"""
+        return len(self.__lGetPwrSupplyNames())
 
 if __name__ == "__main__":
     # access for a test system
     from access import demohs21_host as tsys
+    # from access import demobl460_host as tsys
 
     # logging setup
     oLog.setLevel(logging.DEBUG)
@@ -432,10 +570,20 @@ if __name__ == "__main__":
     # print("\n".join([str(d.items()) for d in oProc._ldGetInfo()]))
 
     # oAdapters = WBEM_PCI_Adapters(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
-    oAdapters = WBEM_HBAs(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
-    print("\n".join([str(d.items()) for d in oAdapters._ldGetInfo()]))
+    # oAdapters = WBEM_HBAs(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
+    # print("\n".join([str(d.items()) for d in oAdapters._ldGetInfo()]))
 
-    # oSys = WBEM_System(sHostIP, sUser, sPass, sVCenter='vcenter.hostco.ru')
-    # print("\n".join([str(d) for d in oSys._dGetInfo().items()]))
+    # oAdapters = WBEM_HBAs(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
+    oSys = WBEM_System(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
+    # oSys = WBEM_System(tsys.sHostIP, tsys.sUser, tsys.sPass)
+    # print("\n".join(oSys._ssGetNameSpaces()))
+    # print(oSys._sGetHBANameSpace())
+    for i in oSys._loGetHBAInstances():
+        print("\n".join([str(k) + "=" + str(v) for k, v in i.items()]))
+
+    print(oSys._loGetIntegratedDiskControllers())
+
+    oPS = WBEM_PowerSupplySet(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
+    print(oPS._iGetPwrSuppliesAmount())
 
 # vim: expandtab:tabstop=4:softtabstop=4:shiftwidth=4

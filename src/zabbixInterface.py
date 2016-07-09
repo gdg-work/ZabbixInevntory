@@ -837,9 +837,14 @@ class ZabbixItem:
         elif self.iValType == 3:      # unsigned int
             oValue = int(oValue)
         oData2Send = ZabbixMetric(host=self.oHost._sName(), key=self.sKey, value=oValue)
-        if not oZabSender.send([oData2Send]):
-            # unsuccessful data sending
-            oLog.error('Zabbix Sender failed')
+        try:
+            if not oZabSender.send([oData2Send]):
+                # unsuccessful data sending
+                oLog.error('Zabbix Sender failed')
+        except ConnectionRefusedError:
+            oLog.error('Cannot send data to Zabbix server: connection refused')
+            oLog.info('Host: {} item name: {}, value: {}'.format(self.oHost._sName(), self.sName, oValue))
+            # and just pass
         return
 
     def __repr__(self):

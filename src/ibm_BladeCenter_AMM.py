@@ -74,7 +74,11 @@ class BladeWithAMM(inv.GenericServer):
         self.lDisks = []
         self._FillFromAMM()
         # Disabled due to WBEM debugging
-        # self._FillDisksFromWBEM()
+        try:
+            self.loAvailableNameSpaces = self._loListCIM_Namespaces()
+            self._FillDisksFromWBEM()
+        except wd.WBEM_Exception:
+            oLog.error('CIM error trying to collect information from server ' + sAMM_Name)
         return
 
     def _FillFromAMM(self):
@@ -116,68 +120,10 @@ class BladeWithAMM(inv.GenericServer):
         lOut = oAmmConn.fsRunCmd('list -l 2 -T system:{}'.format(self.sBladeNum)).split('\n')
         lComponents = [l.strip() for l in lOut]
         # print("\n".join(lComponents))
-        self._ParseFillAMMComponents2(lComponents, oAmmConn, oAuth)
+        self._ParseFillAMMComponents(lComponents, oAmmConn, oAuth)
         return
 
-#    def _ParseFillAMMComponents(self, lData, oConn, oAuth):
-#        """Parameters: list of components, connection and auth info
-#        Actions: groups lines of components by class and makes a list of
-#        each component, runs a series of commands to discover components."""
-#        self.dComps = {'cpu': [], 'exp': [], 'memory': []}
-#
-#        def _lsCollectLines(iterData, l):
-#            """collects lines of iterData up to empty string in a list, returns that list.
-#            2nd parameter is a first line to collect (from calling function)
-#            """
-#            lBuf = []
-#            while not RE_EMPTY.match(l):
-#                lBuf.append(l)
-#                l = next(iterData).strip()
-#            return lBuf
-#
-#        for s in lData:
-#            oMG = RE_COMP.match(s)
-#            if oMG:
-#                sClass, sNum = oMG.groups()
-#                if sClass in self.dComps:
-#                    self.dComps[sClass].append(sNum)
-#        self.iCPUs = len(self.dComps['cpu'])
-#        self.iDIMMs = len(self.dComps['memory'])
-#        self.iExps = len(self.dComps['exp'])
-#        # make a list of commands for SSH and execute these commands
-#        lCommands = []
-#        for k in sorted(self.dComps.keys()):
-#            for n in self.dComps[k]:
-#                lCommands.append('info -T system:{}:{}[{}]'.format(self.sBladeNum, k, n))
-#        # ==== disabled for debugging ====
-#        lOutput = oConn._lsRunCommands2(lCommands)
-#        # lOutput = open(",out.txt", "r").readlines()
-#        # --- disabled for debugging ---
-#        # print("Commands output: " + str(lOutput))
-#        iterData = it.dropwhile(lambda x: not RE_INFOSTART.match(x), lOutput)
-#        llCpus = []     # lists of lists (will contain groups of strings)
-#        llMem = []
-#        llExp = []
-#        try:
-#            while True:
-#                l = next(iterData).strip()      # one of cpu, memory, expansion or unknown
-#                if RE_INFOCPU.search(l):        # processing CPU data
-#                    llCpus.append(_lsCollectLines(iterData, l))
-#                elif RE_INFOMEM.search(l):      # processing memory data
-#                    llMem.append(_lsCollectLines(iterData, l))
-#                elif RE_INFOEXP.search(l):      # expansion card
-#                    llExp.append(_lsCollectLines(iterData, l))
-#                else:
-#                    pass   # unknown line
-#        except StopIteration:
-#            pass        # end of output
-#
-#        self._FillCPUs(llCpus)
-#        self._FillDIMMs(llMem)
-#        self._FillEXPs(llExp)
-#        return
-
-    def _ParseFillAMMComponents2(self, lData, oConn, oAuth):
+    def _ParseFillAMMComponents(self, lData, oConn, oAuth):
         """Parameters: list of components, connection and auth info
         Actions: groups lines of components by class and makes a list of
         each component, runs a series of commands to discover components."""
@@ -364,6 +310,11 @@ class BladeWithAMM(inv.GenericServer):
             oLog.error("Zabbix interface isn't initialized yet")
             raise expAMM_Error("Zabbix isn't connected yet")
         return
+
+    def _loListCIM_Namespaces(self):
+        """Retrieve list of available namespaces from the server with WBEM"""
+        lRet = []
+        return lRet
 
     def _FillDisksFromWBEM(self):
         if self.sVCenter:

@@ -6,6 +6,7 @@ import WBEM_vmware as wbem
 import inventoryObjects as inv
 import zabbixInterface as zi
 import logging
+import pywbem
 from i18n import _
 
 oLog = logging.getLogger(__name__)
@@ -47,8 +48,9 @@ class ESXi_WBEM_Host(inv.GenericServer):
         self.oCardsWBEM = None
         self.oProcWBEM = None
         self.oAdaptersWBEM = None
+        self.iPSAmount = 0
         # receive information
-        self.__fillData__()
+        self.__fillData2__()
         return
 
     def __fillData__(self):
@@ -59,6 +61,27 @@ class ESXi_WBEM_Host(inv.GenericServer):
         self._HBAs_from_WBEM()
         return
 
+    def __fillData2__(self):
+        for fun in [self._HostInfoFromWBEM,
+                    self._MemFromWBEM,
+                    self._CpuFromWBEM,
+                    self._DisksFromWBEM,
+                    self._HBAs_from_WBEM,
+                    self._PwrSuppliesFromWBEM]:
+            try:
+                fun()
+            except pywbem.cim_http.AuthError as e:
+                oLog.error('Authentication error trying to access WBEM')
+                oLog.error(str(e))
+                raise e
+            except pywbem.cim_operations.CIMError as e:
+                oLog.error("CIM error in function " + str(fun))
+                continue
+            except Exception as e:
+                oLog.error("Unhandled exception in __fillData2__")
+                oLog.error(str(e))
+        return
+
     def __repr__(self):
         """for debugging output"""
         sRet = "ESXi server {} manufactured by {}\n ".format(self.sName, self.sVendor)
@@ -67,6 +90,11 @@ class ESXi_WBEM_Host(inv.GenericServer):
         sRet += "Numbers: product {}, serial {}\n".format(self.sProdNum, self.sSerialNum)
         sRet += "Memory amount: {} GB\n".format(self.iMemGB)
         return sRet
+
+    def _PwrSuppliesFromWBEM(self):
+        oPS_Wbem = wbem.WBEM_PowerSupplySet(self.sName, self.sUser, self.sPass, sVCenter=self.sVCenter)
+        self.iPSAmount = oPS_Wbem._iGetPwrSuppliesAmount()
+        return
 
     def _HostInfoFromWBEM(self):
         self.oHostWBEM = wbem.WBEM_System(self.sName, self.sUser, self.sPass, sVCenter=self.sVCenter)
@@ -105,7 +133,12 @@ class ESXi_WBEM_Host(inv.GenericServer):
         return
 
     def _DisksFromWBEM(self):
-        self.oDisksWBEM = wbem.WBEM_Disks(self.sName, self.sUser, self.sPass, sVCenter=self.sVCenter)
+        try:
+            self.oDisksWBEM = wbem.WBEM_Disks(self.sName, self.sUser, self.sPass, sVCenter=self.sVCenter)
+        except wbem.WBEM_Disk_Exception as e:
+            oLog.error("_sDiskFromWBEM: cannot retrieve controller's namespace")
+            raise e
+
         ldDisks = self.oDisksWBEM._ldReportDisks()
         iDisks = 0
         for dDisk in ldDisks:
@@ -136,15 +169,14 @@ class ESXi_WBEM_Host(inv.GenericServer):
         # print('*DBG* Found {} HBAs'.format(len(ldHBAs)))
         # print("\n".join([str(o) for o in ldHBAs]))
         for dHBA_Data in ldHBAs:
-            print(dHBA_Data)
-            oPCIAdapter = HBA_Class(
+            oHBA = HBA_Class(
                 dHBA_Data['id'], sPosition=dHBA_Data['pos'], sVendorID='', sDeviceID='',
                 model=dHBA_Data['model'])
-            oPCIAdapter.sPartNum = dHBA_Data.get('pn')
-            oPCIAdapter.sSerNum = dHBA_Data.get('sn')
-            oPCIAdapter.sWWN = dHBA_Data.get('wwn')
-            print(oPCIAdapter)
-            self.lPCI_Adapters.append(oPCIAdapter)
+            oHBA.sPartNum = dHBA_Data.get('pn')
+            oHBA.sSerNum = dHBA_Data.get('sn')
+            oHBA.sWWN = dHBA_Data.get('wwn')
+            # print(oHBA)
+            self.lPCI_Adapters.append(oHBA)
         oLog.info('PCI Adapters list:\n{}'.format(str(self.lPCI_Adapters)))
         return
 
@@ -195,11 +227,15 @@ class ESXi_WBEM_Host(inv.GenericServer):
                 'System Serial Number', sAppName='System',
                 dParams={'key': '{}_SerNo'.format(self.sName), 'value_type': 1,
                          'description': _('Serial number of system')})
-
+            oPS_Item = self.oZbxHost._oAddItem(
+                'System Pwr.Sup. #', sAppName='System',
+                dParams={'key': 'Pwr_Supplies_Count', 'value_type': 3,
+                         'description': _('Number of power supplies')})
             oVendorItem._SendValue(self.sVendor, self.oZbxSender)
             oMTM_Item._SendValue(self.sType, self.oZbxSender)
             oPN_Item._SendValue(self.sProdNum, self.oZbxSender)
             oSN_Item._SendValue(self.sSerialNum, self.oZbxSender)
+            oPS_Item._SendValue(self.iPSAmount, self.oZbxSender)
 
             # send components' items to Zabbix
             lComps = self.lCPUs + self.lDIMMs + self.lDisks + self.lPCI_Adapters
