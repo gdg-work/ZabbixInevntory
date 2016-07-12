@@ -6,7 +6,10 @@ from subprocess import check_output, CalledProcessError, STDOUT
 from string import printable
 from enum import Enum
 import logging
-from local import IPMI_TOOL
+
+# from local import IPMI_TOOL
+
+IPMI_TOOL = '/usr/bin/ipmitool'
 
 oLog = logging.getLogger(__name__)
 
@@ -36,18 +39,32 @@ class IPMIhost:
         self.sCmdTemplate = "{0} -H {1} -U {2} -P {3} -L USER ".format(IPMI_TOOL, sBmcHost, sUser, sPass)
         self.sCmdTemplate += "{}"
         lFruCmd = self.sCmdTemplate.format("fru").split(' ')
-        print(lFruCmd)
+        # print(lFruCmd)
 
         try:
-            pass
-            # sData = check_output(lFruCmd, stderr=STDOUT, universal_newlines=True, shell=False)
+            sData = ''
+            sData = check_output(lFruCmd, stderr=STDOUT, universal_newlines=True, shell=False)
         except CalledProcessError as e:
-            oLog.error("Error calling IPMIutil")
-            raise e
+            if sData:
+                oLog.debug("Standart output: " + sData)
+            else:
+                # oLog.error("Command output: " + e.output)
+                sOut = e.output
+                if "Address lookup for" in sOut and "failed" in sOut:
+                    oLog.error("Error calling IPMIutil ({})".format(str(e)))
+                    oLog.error("Command output: " + e.output)
+                    raise e
+                elif "FRU" in sOut:
+                    oLog.info("Non-zero return status from IPMItool")
+                    sData = e.output
+                else:
+                    oLog.error("Error calling IPMIutil ({})".format(str(e)))
+                    oLog.error("Command output: " + e.output)
+                    raise e
 
         # ========== debug
-        with open('/tmp/fru.out', 'r') as fIn:
-            sData = fIn.read()
+        # with open('/tmp/fru.out', 'r') as fIn:
+        #     sData = fIn.read()
         # ---------- end debug
 
         lDeviceDescriptions = sData.split("\n\n")
@@ -134,7 +151,7 @@ class IpmiMemoryFRU(IpmiFRU):
             # this is a RAM module
             self.dAttrs['type'] = self.dData.get('Memory Type')
             self.dAttrs['capacity'] = self.dData.get('Memory size')
-        print(self.dAttrs)
+        # print(self.dAttrs)
         return
 
     @property
@@ -142,7 +159,15 @@ class IpmiMemoryFRU(IpmiFRU):
         return self.dAttrs.get('capacity')
 
 
+# -- test section --
 if __name__ == '__main__':
-    oTest = IPMIhost('127.0.0.1', 'abc', 'abcd')
+    # logging setup
+    oLog.setLevel(logging.DEBUG)
+    oConHdr = logging.StreamHandler()
+    oConHdr.setLevel(logging.DEBUG)
+    oLog.addHandler(oConHdr)
+
+    from access import vmexch02mgt as tsrv
+    oTest = IPMIhost(tsrv.ip, tsrv.user, tsrv.pwd)
     for sAttr in ['pn', 'sn', 'type', 'capacity']:
         print([a.dAttrs[sAttr] for a in oTest._loFruList()])
