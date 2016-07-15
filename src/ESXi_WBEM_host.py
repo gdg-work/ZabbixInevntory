@@ -7,6 +7,7 @@ import inventoryObjects as inv
 import zabbixInterface as zi
 import logging
 import pywbem
+import IPMIhost as ipmi
 from i18n import _
 
 oLog = logging.getLogger(__name__)
@@ -28,6 +29,12 @@ class ESXi_WBEM_Host(inv.GenericServer):
         self.sVCenter = sVCenter
         self.sUser = sUser
         self.sPass = sPass
+        # IPMI information from dParams dictionary
+        self.dIPMIaccess = {}
+        if dParams.get('sMgtIP', None) is not None:
+            self.dIPMIaccess = {'ip':   dParams.get('sMgtIP', None),
+                                'user': dParams.get('sMgtUser', None),
+                                'pass': dParams.get('sMgtPass', None)}
         # data fields
         self.sSerialNum = ''
         self.sProdNum = ''
@@ -50,18 +57,14 @@ class ESXi_WBEM_Host(inv.GenericServer):
         self.oAdaptersWBEM = None
         self.iPSAmount = 0
         # receive information
-        self.__fillData2__()
+        self.__fillData()
+        # receive info from IPMI
+        if len(self.dIPMIaccess) > 0:
+            self.__fillFromIPMI(self.dIPMIaccess)
+            self._ClarifyMemFromIPMI()
         return
 
-    def __fillData__(self):
-        self._HostInfoFromWBEM()
-        self._MemFromWBEM()
-        self._CpuFromWBEM()
-        self._DisksFromWBEM()
-        self._HBAs_from_WBEM()
-        return
-
-    def __fillData2__(self):
+    def __fillData(self):
         for fun in [self._HostInfoFromWBEM,
                     self._MemFromWBEM,
                     self._CpuFromWBEM,
@@ -74,11 +77,14 @@ class ESXi_WBEM_Host(inv.GenericServer):
                 oLog.error('Authentication error trying to access WBEM')
                 oLog.error(str(e))
                 raise e
+            except wbem.WBEM_Disk_Exception as e:
+                oLog.error("WBEM disk interface exception in {}".format(str(fun)))
+                continue
             except pywbem.cim_operations.CIMError as e:
                 oLog.error("CIM error in function " + str(fun))
                 continue
             except Exception as e:
-                oLog.error("Unhandled exception in __fillData2__")
+                oLog.error("Unhandled exception in __fillData")
                 oLog.error(str(e))
         return
 
@@ -90,6 +96,28 @@ class ESXi_WBEM_Host(inv.GenericServer):
         sRet += "Numbers: product {}, serial {}\n".format(self.sProdNum, self.sSerialNum)
         sRet += "Memory amount: {} GB\n".format(self.iMemGB)
         return sRet
+
+    def __fillFromIPMI(self, dIPMIaccess):
+        """ create IPMI object in this host, fill in data for that object"""
+        self.oIPMI_Interface = ipmi.IPMIhost(dIPMIaccess['ip'], dIPMIaccess['user'], dIPMIaccess['pass'])
+        self.lFruList = self.oIPMI_Interface._loFruList()
+        return
+
+    def _ClarifyMemFromIPMI(self):
+        """Add additional information to DIMM records based on IPMI FRU list"""
+        if len(self.lFruList) > 0:    # are there any information ?
+            for oFru in self.lFruList:
+                if oFru.name[0:4] == 'DIMM':
+                    for oDimm in self.lDIMMs:
+                        if int(oFru.name[5:7]) == int(oDimm.name[4:]):
+                            oDimm.sn = oFru.sn
+                            oDimm.pn = oFru.pn
+                            break
+                else:
+                    pass   # this FRU is not a DIMM
+        else:
+            pass   # no FRU list
+        return
 
     def _PwrSuppliesFromWBEM(self):
         oPS_Wbem = wbem.WBEM_PowerSupplySet(self.sName, self.sUser, self.sPass, sVCenter=self.sVCenter)
@@ -255,6 +283,34 @@ class Memory_DIMM(inv.ComponentClass):
         self.dData = {'pos': sPosition, 'size_gb': iSizeGB}
         return
 
+    @property
+    def name(self):
+        return self.sName
+
+    @property
+    def pn(self):
+        return self.dData.get('pn', None)
+
+    @pn.setter
+    def pn(self, x):
+        self.dData['pn'] = x
+
+    @property
+    def sn(self):
+        return self.dData.get('sn', None)
+
+    @sn.setter
+    def sn(self, x):
+        self.dData['sn'] = x
+
+    @property
+    def vendor(self):
+        return self.dData.get('vendor', None)
+
+    @vendor.setter
+    def vendor(self, x):
+        self.dData['vendor'] = x
+
     def __repr__(self):
         return ("{0}: {1}-GB Module in position {2}".format(
             self.sName, self.dData['size_gb'], self.dData['pos']))
@@ -274,6 +330,20 @@ class Memory_DIMM(inv.ComponentClass):
                      'description': _('Size of memory unit in GiB')})
         oPosItem._SendValue(self.dData['pos'], oZbxSender)
         oSize_Item._SendValue(self.dData['size_gb'], oZbxSender)
+        if 'pn' in self.dData:
+            oPNItem = oZbxHost._oAddItem(
+                self.sName + " Part Number", sAppName=self.sName,
+                dParams={'key': _sMkKey_(self.sName, 'PN'),
+                         'value_type': 2,
+                         'description': _("DIMM part number")})
+            oPNItem._SendValue(self.dData['pn'], oZbxSender)
+        if 'sn' in self.dData:
+            oSNItem = oZbxHost._oAddItem(
+                self.sName + " Serial Number", sAppName=self.sName,
+                dParams={'key': _sMkKey_(self.sName, 'SN'),
+                         'value_type': 2,
+                         'description': _("DIMM serial number")})
+            oSNItem._SendValue(self.dData['sn'], oZbxSender)
         return
 
 

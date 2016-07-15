@@ -6,7 +6,7 @@ fill in data fields and pass these fields to Zabbix via API
 """
 
 # import redis
-import i18n
+# import i18n
 import logging
 import json
 import argparse as ap
@@ -114,6 +114,9 @@ def _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAPI, oZbxSender):
             sUser=dSrvParams['user'],
             sPass=dSrvParams['password'],
             sVCenter=dSrvParams['vcenter'],
+            sMgtIP=dSrvParams.get('ipmi.ip', None),
+            sMgtUser=dSrvParams.get('ipmi.user', None),
+            sMgtPass=dSrvParams.get('ipmi.pass', None),
             IP=sSrvIP)
         print(oZbxHost)
     else:

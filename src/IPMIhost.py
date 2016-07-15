@@ -30,6 +30,10 @@ class FruTypeEnum(Enum):
     POWER = 5
 
 
+def _oIpmiHostFromDict(dData):
+    return IPMIhost(dData['ip'], dData['user'], dData['pass'])
+
+
 class IPMIhost:
     """main class for the module"""
 

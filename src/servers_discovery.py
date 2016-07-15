@@ -48,44 +48,44 @@ def _sGetServerData(oRedis, oArgs):
     return sRet
 
 
-def _PushConnectionInfo(oParser, oRedis):
-    ACCESS_PFX = REDIS_PREFIX + "ServersAccess"
-    ZABBIX_PFX = REDIS_PREFIX + "ZabbixAccess"
-    dZabbixAccess = {'zabbix_user': oParser.zabbixuser,
-                     'zabbix_passwd': oParser.zabbixpassword,
-                     'zabbix_IP': oParser.zabbixip,
-                     'zabbix_port': oParser.zabbixport}
-    if oParser.type == "power_aix":
-        dConnectionInfo = {'type': oParser.server_type,
-                           'sp-type': 'HMC',
-                           'user': oParser.user,
-                           'password': oParser.password,
-                           'sp-user': oParser.sp_user,
-                           'sp-pass': oParser.sp_password,
-                           'srv-ip': oParser.server_ip,
-                           'sp-ip': oParser.sp_ip}
-    elif oParser.type == "esxi_amm":
-        assert oParser.vcenter is not None
-        dConnectionInfo = {'type': oParser.server_type,
-                           'srv-name': oParser.server_name,
-                           'sp-type': 'AMM',
-                           'user': oParser.user,
-                           'amm-name': oParser.amm_name,
-                           'password': oParser.password,
-                           'sp-user': oParser.sp_user,
-                           'sp-pass': oParser.sp_password,
-                           'sp-ip': oParser.sp_ip}
-    else:
-        oLog.error('Unsupported type of server')
-        raise(IncorrectServerType)
-    try:
-        oRedis.set(ZABBIX_PFX, json.dumps(dZabbixAccess), oParser.redis_ttl)
-        oRedis.hset(ACCESS_PFX, oParser.name, json.dumps(dConnectionInfo))
-        oRedis.expire(ACCESS_PFX, oParser.redis_ttl)
-    except RedisError:
-        oLog.error('Cannot connect to Redis and set information')
-        raise RedisError
-    return
+# def _PushConnectionInfo(oParser, oRedis):
+#     ACCESS_PFX = REDIS_PREFIX + "ServersAccess"
+#     ZABBIX_PFX = REDIS_PREFIX + "ZabbixAccess"
+#     dZabbixAccess = {'zabbix_user': oParser.zabbixuser,
+#                      'zabbix_passwd': oParser.zabbixpassword,
+#                      'zabbix_IP': oParser.zabbixip,
+#                      'zabbix_port': oParser.zabbixport}
+#     if oParser.type == "power_aix":
+#         dConnectionInfo = {'type': oParser.server_type,
+#                            'sp-type': 'HMC',
+#                            'user': oParser.user,
+#                            'password': oParser.password,
+#                            'sp-user': oParser.sp_user,
+#                            'sp-pass': oParser.sp_password,
+#                            'srv-ip': oParser.server_ip,
+#                            'sp-ip': oParser.sp_ip}
+#     elif oParser.type == "esxi_amm":
+#         assert oParser.vcenter is not None
+#         dConnectionInfo = {'type': oParser.server_type,
+#                            'srv-name': oParser.server_name,
+#                            'sp-type': 'AMM',
+#                            'user': oParser.user,
+#                            'amm-name': oParser.amm_name,
+#                            'password': oParser.password,
+#                            'sp-user': oParser.sp_user,
+#                            'sp-pass': oParser.sp_password,
+#                            'sp-ip': oParser.sp_ip}
+#     else:
+#         oLog.error('Unsupported type of server')
+#         raise(IncorrectServerType)
+#     try:
+#         oRedis.set(ZABBIX_PFX, json.dumps(dZabbixAccess), oParser.redis_ttl)
+#         oRedis.hset(ACCESS_PFX, oParser.name, json.dumps(dConnectionInfo))
+#         oRedis.expire(ACCESS_PFX, oParser.redis_ttl)
+#     except RedisError:
+#         oLog.error('Cannot connect to Redis and set information')
+#         raise RedisError
+#     return
 
 
 def _PushConnectionInfo2(dConnInfo, oParser, oRedis):
@@ -143,8 +143,67 @@ def _PushESXInfo(oParser, oRedis):
                        'password': oParser.password,
                        'vcenter': oParser.vcenter,
                        'srv-name': oParser.name}
+    if oParser.ipmi_ip:
+        dIPMIaccess = {'ipmi.ip': oParser.ipmi_ip,
+                       'ipmi.user': oParser.ipmi_user,
+                       'ipmi.pass': oParser.ipmi_pwd}
+        dConnectionInfo.update(dIPMIaccess)
     _PushConnectionInfo2(dConnectionInfo, oParser, oRedis)
     return
+
+
+def _ConfigureAIXParser(oParser):
+    # construct parser for AIX options group
+    oParser.add_argument('-n', '--name', help='Server name on HMC', type=str, required=True)
+
+    oParser.add_argument('-i', '--server-ip', help="Server interface IP or FQDN", type=str, required=True)
+    oParser.add_argument('-I', '--hmc-ip', help="Service processor (HMC) interface IP or FQDN",
+                         type=str, required=True)
+    oParser.add_argument('-u', '--user', help="Host login", type=str, required=True)
+    oParser.add_argument('-p', '--password', help="Host password", type=str, required=False)
+    oParser.add_argument('-U', '--hmc-user', help="Service processor login", type=str, required=True)
+    oParser.add_argument('-P', '--hmc-password', help="Service processor password",
+                         type=str, required=False)
+    oParser.add_argument('-k', '--key', help="SSH key to authenticate to host", type=str, required=False)
+    oParser.add_argument('-K', '--hmc-key', help="SSH key to authenticate to SP",
+                         type=str, required=False)
+    oParser.set_defaults(func=_PushAIX_Info)
+    return oParser
+
+
+def _oConfigireESXi_AMM_Parser(oParser):
+    """configures CLI parser for ESXi hosts with AMM/CMM service processor (blades)"""
+    # Parser for ESXi host with AMM service processor
+    oParser.add_argument('-n', '--name', help='Server full domain name (FQDN)',
+                         type=str, required=True)
+    oParser.add_argument(
+        '-I', '--amm-ip', type=str, required=True,
+        help="Blade system service processor (AMM) interface IP or FQDN")
+    oParser.add_argument('-u', '--user', help="vCenter login", type=str, required=True)
+    oParser.add_argument('-p', '--password', help="vCenter password", type=str, required=True)
+    oParser.add_argument('-v', '--vcenter', help='vCenter FQDN or IP', type=str, required=True)
+    oParser.add_argument('-N', '--amm-name', help="Name of blade in AMM", type=str, required=True)
+    oParser.add_argument('-U', '--amm-user', help="Service processor login", type=str, required=True)
+    oParser.add_argument('-P', '--amm-password', help="Service processor password",
+                         type=str, required=False)
+    oParser.add_argument('-K', '--amm-key', help="SSH key to authenticate to AMM",
+                         type=str, required=False)
+    oParser.set_defaults(func=_PushESXnAMMInfo)
+    return oParser
+
+
+def _oConfigureESXiParser(oParser):
+    oParser.add_argument('-n', '--name', help='Server full domain name (FQDN)',
+                         type=str, required=True)
+    oParser.add_argument('-u', '--user', help="vcenter login", type=str, required=True)
+    oParser.add_argument('-p', '--password',   help="vcenter password", type=str, required=True)
+    oParser.add_argument('-v', '--vcenter',   help='vcenter fqdn or ip', type=str, required=True)
+    oParser.add_argument('-I', '--ipmi-ip',
+                         help="IP of IPMI (management) interface", type=str, required=False)
+    oParser.add_argument('-U', '--ipmi-user', help="User for IPMI access", type=str, required=False)
+    oParser.add_argument('-P', '--ipmi-pwd',  help="Password for IPMI access", type=str, required=False)
+    oParser.set_defaults(func=_PushESXInfo)
+    return oParser
 
 
 def _Main():
@@ -155,49 +214,11 @@ def _Main():
                                          description='Supported server types',
                                          help='<server type>[_<service processor type>]')
     oParserAIX = oSubParsers.add_parser('aix_hmc')
+    oParserAIX = _ConfigureAIXParser(oParserAIX)
     oParserESXiAmm = oSubParsers.add_parser('esxi_amm')
+    oParserESXiAmm = _oConfigireESXi_AMM_Parser(oParserESXiAmm)
     oParserESXi = oSubParsers.add_parser('esxi')
-
-    # construct parser for AIX options group
-    oParserAIX.add_argument('-n', '--name', help='Server name on HMC', type=str, required=True)
-
-    oParserAIX.add_argument('-i', '--server-ip', help="Server interface IP or FQDN", type=str, required=True)
-    oParserAIX.add_argument('-I', '--hmc-ip', help="Service processor (HMC) interface IP or FQDN",
-                            type=str, required=True)
-    oParserAIX.add_argument('-u', '--user', help="Host login", type=str, required=True)
-    oParserAIX.add_argument('-p', '--password', help="Host password", type=str, required=False)
-    oParserAIX.add_argument('-U', '--hmc-user', help="Service processor login", type=str, required=True)
-    oParserAIX.add_argument('-P', '--hmc-password', help="Service processor password",
-                            type=str, required=False)
-    oParserAIX.add_argument('-k', '--key', help="SSH key to authenticate to host", type=str, required=False)
-    oParserAIX.add_argument('-K', '--hmc-key', help="SSH key to authenticate to SP",
-                            type=str, required=False)
-    oParserAIX.set_defaults(func=_PushAIX_Info)
-
-    # Parser for ESXi host with AMM service processor
-    oParserESXiAmm.add_argument('-n', '--name', help='Server full domain name (FQDN)',
-                                type=str, required=True)
-    oParserESXiAmm.add_argument(
-        '-I', '--amm-ip', type=str, required=True,
-        help="Blade system service processor (AMM) interface IP or FQDN")
-    oParserESXiAmm.add_argument('-u', '--user', help="vCenter login", type=str, required=True)
-    oParserESXiAmm.add_argument('-p', '--password', help="vCenter password", type=str, required=True)
-    oParserESXiAmm.add_argument('-v', '--vcenter', help='vCenter FQDN or IP', type=str, required=True)
-    oParserESXiAmm.add_argument('-N', '--amm-name', help="Name of blade in AMM", type=str, required=True)
-    oParserESXiAmm.add_argument('-U', '--amm-user', help="Service processor login", type=str, required=True)
-    oParserESXiAmm.add_argument('-P', '--amm-password', help="Service processor password",
-                                type=str, required=False)
-    oParserESXiAmm.add_argument('-K', '--amm-key', help="SSH key to authenticate to AMM",
-                                type=str, required=False)
-    oParserESXiAmm.set_defaults(func=_PushESXnAMMInfo)
-
-    # Parser for ESXi host without SP, WBEM access only
-    oParserESXi.add_argument('-n', '--name', help='Server full domain name (FQDN)',
-                             type=str, required=True)
-    oParserESXi.add_argument('-u', '--user', help="vCenter login", type=str, required=True)
-    oParserESXi.add_argument('-p', '--password', help="vCenter password", type=str, required=True)
-    oParserESXi.add_argument('-v', '--vcenter', help='vCenter FQDN or IP', type=str, required=True)
-    oParserESXi.set_defaults(func=_PushESXInfo)
+    oParserESXi = _oConfigureESXiParser(oParserESXi)
 
     # Common arguments for all parsers
     oParser.add_argument('-r', '--redis', help="Redis database host:port or socket, default=localhost:6379",
