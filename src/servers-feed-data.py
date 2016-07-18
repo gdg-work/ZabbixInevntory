@@ -5,21 +5,16 @@ A pair to discovery_info: scheduled/daemon module to get connection info from Re
 fill in data fields and pass these fields to Zabbix via API
 """
 
-# import redis
-# import i18n
 import logging
 import json
 import argparse as ap
-# import random
-# import string
 # === host types ===
 import ibm_Power_AIX as aix
 import ibm_BladeCenter_AMM as amm
 import ESXi_WBEM_host as esxi
+import zabbixInterface as zi
 # --- end of host types
 from inventoryLogger import dLoggingConfig
-# from pathlib import Path
-# from servers_discovery import SERVERS_SUPPORTED, OPERATIONS_SUPPORTED, REDIS_PREFIX
 from servers_discovery import REDIS_PREFIX
 from local import REDIS_ENCODING
 from pyzabbix.api import ZabbixAPI          # ZabbixAPIException
@@ -79,7 +74,7 @@ def _dGetServersInfo(oRedis):
     return lRet
 
 
-def _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAPI, oZbxSender):
+def _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAPI, oZbxSender, oTrigFactory):
     oZbxHost = None
     sSrvType = dSrvParams['type']
     sSrvIP = dSrvParams.get('srv-ip', sSrvName)
@@ -122,12 +117,13 @@ def _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAPI, oZbxSender):
     else:
         oLog.error("Host type is not supported yet!")
     # connect to server, retrieve information from it
+    oZbxHost._ConnectTriggerFactory(oTrigFactory)
     oZbxHost._Connect2Zabbix(oZbxAPI, oZbxSender)
     oZbxHost._MakeAppsItems()
     return oZbxHost
 
 
-def _ProcessArgs(oArgs, oLog):
+def _ProcessArgs(oArgs, oLog, oTrigFactory):
     """ Process the CLI arguments and connect to Redis """
     oRedis = _oConnect2Redis(oArgs.redis)
     oRedis.cacheTime = oArgs.redis_ttl
@@ -141,7 +137,7 @@ def _ProcessArgs(oArgs, oLog):
         try:
             # 'zabbix_user', 'zabbix_passwd':, 'zabbix_IP':, 'zabbix_port'
             oLog.info("Processing server {}".format(sSrvName))
-            _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAPI, oZbxSender)
+            _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAPI, oZbxSender, oTrigFactory)
             # oZbxInterface._SendDataToZabbix(oServer)
         except Exception as e:
             oLog.error('Exception when processing server: ' + sSrvName)
@@ -164,11 +160,12 @@ if __name__ == "__main__":
     iRetCode = 0
     logging.config.dictConfig(dLoggingConfig)
     oLog = logging.getLogger('Servers_Feed_Data')
+    oTriggerFactory = zi.TriggerFactory()
 
     try:
         oLog.info('Starting Servers information Feeder program')
         oParser = _oGetCLIParser()
-        _ProcessArgs(oParser, oLog)
+        _ProcessArgs(oParser, oLog, oTriggerFactory)
     except Exception as e:
         oLog.error("Fatal error: {}".format(str(e)))
         traceback.print_exc()

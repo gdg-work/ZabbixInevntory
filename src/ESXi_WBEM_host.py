@@ -49,6 +49,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
         self.lDisks = []
         self.lPCI_Adapters = []
         self.dHostInfo = {}
+        self.oTriggers = None
         self.oHostWBEM = None
         self.oMemWBEM = None
         self.oDisksWBEM = None
@@ -62,6 +63,10 @@ class ESXi_WBEM_Host(inv.GenericServer):
         if len(self.dIPMIaccess) > 0:
             self.__fillFromIPMI(self.dIPMIaccess)
             self._ClarifyMemFromIPMI()
+        return
+
+    def _ConnectTriggerFactory(self, oTriggersFactory):
+        self.oTriggers = oTriggersFactory
         return
 
     def __fillData(self):

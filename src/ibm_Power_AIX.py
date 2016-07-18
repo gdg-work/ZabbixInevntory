@@ -61,6 +61,7 @@ class PowerHostClass(inv.GenericServer):
         self.sSpUser = dFields.get('SP_User')
         self.sSpPass = dFields.get('SP_Pass')
         self.sHmcIP = dFields.get('HMC_IP')
+        self.oTriggers = None
         self.sSerialNum = ''
         self.oAdapters = inv.AdaptersList()
         self.lDisks = []
@@ -70,6 +71,10 @@ class PowerHostClass(inv.GenericServer):
         self._Fill_HMC_Data()
         self._FillFromAIX()
         # print(self)
+        return
+
+    def _ConnectTriggerFactory(self, oTriggersFactory):
+        self.oTriggers = oTriggersFactory
         return
 
     def _sFromHMC(self, sCommand):
@@ -296,6 +301,7 @@ class PowerHostClass(inv.GenericServer):
                 dParams={'key': "Host_{}_Memory".format(self.sName), 'units': 'GB', 'value_type': 3,
                          'description': _('Total memory size in GB')})
             oMemItem._SendValue(self.iMemGBs, self.oZbxSender)
+            self.oTriggers._AddChangeTrigger(oMemItem, _('Memory size changed'), 'warning')
             oCPUItem = self.oZbxHost._oAddItem(
                 "System Total Cores", sAppName='System',
                 dParams={'key': "Host_{}_Cores".format(self.sName), 'value_type': 3,
@@ -317,16 +323,20 @@ class PowerHostClass(inv.GenericServer):
                 dParams={'key': "Host_{}_Serial".format(self.sName),
                          'description': _('Serial number of system')})
             oSN_Item._SendValue(self.sSerialNum, self.oZbxSender)
+            self.oTriggers._AddChangeTrigger(oSN_Item, _('System SN changed'), 'error')
+            self.oTriggers._AddNoDataTrigger(oSN_Item, _('Cannot receive system SN in 2 days'), 'error', 48)
             oTotPS_Item = self.oZbxHost._oAddItem(
                 "System Pwr Supplies", sAppName='System',
                 dParams={'key': "Host_{}_NPwrSupplies".format(self.sName), 'value_type': 3,
                          'description': _('Number of power supplies')})
             oTotPS_Item._SendValue(self.iPwrSupplies, self.oZbxSender)
+            self.oTriggers._AddChangeTrigger(oTotPS_Item, _('Number of Power Supplies changed'), 'warning')
             oTotDIMMs_Item = self.oZbxHost._oAddItem(
                 "System DIMMs #", sAppName='System',
                 dParams={'key': "Host_{}_NDIMMs".format(self.sName), 'value_type': 3,
                          'description': _('Number of memory modules')})
             oTotDIMMs_Item._SendValue(self.iDIMMs, self.oZbxSender)
+            self.oTriggers._AddChangeTrigger(oTotDIMMs_Item, _('Number of Memory DIMMs changed'), 'warning')
             # Adapters, disks, PS, etc.
             for oObj in (list(self.oAdapters.values()) + self.lDisks + self.lPwrSupplies + self.lDIMMs):
                 oObj._MakeAppsItems(self.oZbxHost, self.oZbxSender)

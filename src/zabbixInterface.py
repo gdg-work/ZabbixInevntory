@@ -3,7 +3,9 @@
 from logging import getLogger
 from pyzabbix.api import ZabbixAPI, ZabbixAPIException
 from pyzabbix.sender import ZabbixSender, ZabbixMetric
+from enum import Enum
 from uuid import uuid4
+from copy import copy   # copy of Python objects
 import re
 import json
 
@@ -697,8 +699,16 @@ class ZabbixHost:
         sRet += "\n".join([a.__repr__() for a in self.dApps.values() if a is not None])
         return sRet
 
+    @property
+    def id(self):
+        return self.iHostID
+
     def _iGetHostID(self):
         return self.iHostID
+
+    @property
+    def name(self):
+        return self.sName
 
     def _sName(self):
         return self.sName
@@ -763,12 +773,40 @@ class ZabbixApplication:
         return list(self.lRelatedItems)
 
 
+class TriggerSeverity(Enum):
+    NotClass = 0
+    INFO = 1
+    WARNING = 2
+    AVERAGE = 3
+    HIGH = 4
+    DISASTER = 5
+
+
+def _enStrToSeverity(sSev=''):
+    sSev = sSev.strip().casefold()
+    if sSev == '':
+        return TriggerSeverity.NotClass
+    elif sSev == 'info':
+        return TriggerSeverity.INFO
+    elif sSev == 'warning':
+        return TriggerSeverity.WARNING
+    elif sSev == 'average':
+        return TriggerSeverity.AVERAGE
+    elif sSev == 'high':
+        return TriggerSeverity.HIGH
+    elif sSev == 'disaster':
+        return TriggerSeverity.DISASTER
+    else:
+        return TriggerSeverity.NotClass
+
+
 class ZabbixItem:
     def __init__(self, sName, oHost, dDict=None):
         self.sName = sName
         self.oHost = oHost
         self.iHostID = oHost._iGetHostID()
         self.lRelatedApps = []
+        self.lTriggers = []
         self.sKey = None
         if dDict is not None:
             self.iID = int(dDict.get('itemid', 0))
@@ -793,6 +831,22 @@ class ZabbixItem:
 
     def _bExists(self, oHost):
         return oHost._bHasItem(self.sName)
+
+    @property
+    def name(self):
+        return self.sName
+
+    @property
+    def id(self):
+        return self.iID
+
+    @property
+    def host(self):
+        return copy(self.oHost)
+
+    @property
+    def key(self):
+        return self.sKey
 
     def _sGetName(self):
         return self.sName
@@ -826,6 +880,7 @@ class ZabbixItem:
             raise MyZabbixException('_NewZbxItem: Cannot create an item, error {}'.format(e))
         oLog.debug("_NewZbxItem: operation result is \n{}".format(
             ["{}{}\n".format(str(k), str(v)) for k, v in dRes.items()]))
+        self.iID = dRes.get('itemid')
         return
 
     def _SendValue(self, oValue, oZabSender):
@@ -849,6 +904,121 @@ class ZabbixItem:
 
     def __repr__(self):
         return ("Item: name {0}, key {1}, update type: {2}".format(self.sName, self.sKey, self.iUpdType))
+
+    def _AddTrigger(self, sTriggerName):
+        self.lTriggers.append(sTriggerName)
+        return
+
+
+class TriggerFactory:
+    """Factory of triggers. Check the presence and construct the Zabbix trigger"""
+
+    def __init__(self):
+        self.ddTriggersList = {}   # Global array of triggers
+        # Global array of triggers is a 2-level dictionary where 1st level keys are hostnames,
+        # and 2nd level keys are items' keys.  Values are list of triggers  linked with these
+        # hosts and keys
+        return
+
+    def _bTriggerExist(self, oHost, oItem, sTrigName):
+        """check if trigger with given name alredy exists on given host and item"""
+        bResult = False
+        oLog.debug("*DBG* ddTriggersList is {}".format(str(self.ddTriggersList)))
+        if sTrigName in self.ddTriggersList.get(oHost.name, {}).get(oItem.key, []):
+            oLog.debug("*DBG* Trigger named {1} exist on host {0}".format(oHost.name, sTrigName))
+            bResult = True
+        else:
+            dParams = {'host': oHost.sName, 'itemids': [oItem.id]}
+            dRes = oHost.oAPI.do_request('trigger.get', dParams)
+            oLog.debug('_bTriggerExist: Result of trigger.get: ' + str(dRes))
+            for dOneRes in dRes['result']:
+                bResult = bResult or ('triggerid' in dOneRes)
+                # there should be not much results, so no 'continue' optimization here
+            if bResult:
+                self._RegisterTrigger(oHost, oItem, sTrigName)
+        return bResult
+
+    def _RegisterTrigger(self, oHost, oItem, sTrigName):
+        """Add a trigger name to list value of self.ddTriggersList[host][item]
+        Parameters:
+        1) Host object
+        2) Item object
+        3) Trigger name
+        """
+        if not (oHost.name in self.ddTriggersList):
+            oLog.debug("*DBG* _RegisterTrigger: unknown host {}".format(oHost.name))
+            self.ddTriggersList[oHost.name] = {}
+        if oItem.key not in self.ddTriggersList[oHost.name]:
+            oLog.debug("*DBG* _RegisterTrigger: unknown item {}".format(oItem.name))
+            self.ddTriggersList[oHost.name][oItem.key] = []
+        oLog.debug("*DBG* Registered trigger named {0} for host {1} and item {2}".format(
+            sTrigName, oHost.name, oItem.name))
+        self.ddTriggersList[oHost.name][oItem.key].append(sTrigName)
+        oItem._AddTrigger(sTrigName)
+        return
+
+    def _AddChangeTrigger(self, oItem, sTriggerName='', sSeverity='warning'):
+        if sTriggerName == '':
+            sTriggerName = oItem.name + " Changed"
+        if not self._bTriggerExist(oItem.host, oItem, sTriggerName):
+            sHostName = oItem.host.name
+            sExpr = '{' + "{}:{}".format(sHostName, oItem.key) + '.diff()}=1'
+            oLog.debug('Expression: ' + sExpr)
+            enSeverity = _enStrToSeverity(sSeverity)
+            dNewTrigger = {'hostid': oItem.host.id,
+                           'description': sTriggerName,
+                           'expression': sExpr,
+                           'priority': enSeverity.value,
+                           'status': 0,  # enabled
+                           }
+            dRes = {}
+            try:
+                dRes = oItem.host.oAPI.do_request('trigger.create', dNewTrigger)
+                oLog.debug("_AddChangeTrigger: operation result is \n{}".format(
+                    ["{}{}\n".format(str(k), str(v)) for k, v in dRes.items()]))
+                self._RegisterTrigger(oItem.host, oItem, sTriggerName)
+            except ZabbixAPIException as e:
+                raise MyZabbixException('_AddChangeTrigger: Cannot create an trigger, error {}'.format(e))
+        else:
+            oLog.debug('Trigger {} already exists on host {} and itemid {}'.format(
+                sTriggerName, oItem.host.name, oItem.id))
+        return
+
+    def _AddNoDataTrigger(self, oItem, sTriggerName, sSeverity='warning', iPeriod=24):
+        """This trigger fires when no data is received over the given time period. Parameters:
+        1) Zabbix item (object of ZabbixItem class)
+        2) Trigger Name
+        3) Desired severity (object of TriggerSeverity class)
+        4) Time period to check data presence for (HOURS)
+        Returns nothing, raises MyZabbixException on error
+        """
+        if sTriggerName == '':
+            sTriggerName = self.sName + "No data received"
+        if not self._bTriggerExist(oItem.host, oItem, sTriggerName):
+            iSec = int(iPeriod * 3600)   # from hours to seconds
+            sExpr = '{' + '{0}:{1}.nodata({2})'.format(oItem.host.name, oItem.key, iSec) + '}=1'
+            oLog.debug("NoData trigger expression:  " + sExpr)
+
+            oLog.debug('_AddNoDataTrigger: Expression: ' + sExpr)
+            enSeverity = _enStrToSeverity(sSeverity)
+            dNewTrigger = {'hostid': oItem.host.id,
+                           'description': sTriggerName,
+                           'expression': sExpr,
+                           'priority': enSeverity.value,
+                           'status': 0,  # enabled
+                           }
+            dRes = {}
+            try:
+                dRes = oItem.host.oAPI.do_request('trigger.create', dNewTrigger)
+                oLog.debug("_AddNoDataTrigger: operation result is \n{}".format(
+                    ["{}{}\n".format(str(k), str(v)) for k, v in dRes.items()]))
+                self._RegisterTrigger(oItem.host, oItem, sTriggerName)
+            except ZabbixAPIException as e:
+                raise MyZabbixException('_AddChangeTrigger: Cannot create an trigger, error {}'.format(e))
+        else:
+            oLog.debug('Trigger {} already exists on host {} and itemid {}'.format(
+                sTriggerName, oItem.host.name, oItem.id))
+        return
 
 # --
 

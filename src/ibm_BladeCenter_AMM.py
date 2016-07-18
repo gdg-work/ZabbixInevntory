@@ -63,6 +63,7 @@ class BladeWithAMM(inv.GenericServer):
         self.sSpUser = dParams.get('SP_User')
         self.sSpPass = dParams.get('SP_Pass')
         self.sSpIP = dParams.get('AMM_IP')
+        self.oTriggers = None
         self.sSerialNum = ''
         self.sBladeNum = ''
         self.iTotalRAMgb = 0
@@ -79,6 +80,10 @@ class BladeWithAMM(inv.GenericServer):
             self._FillDisksFromWBEM()
         except wd.WBEM_Exception:
             oLog.error('CIM error trying to collect information from server ' + sAMM_Name)
+        return
+
+    def _ConnectTriggerFactory(self, oTriggersFactory):
+        self.oTriggers = oTriggersFactory
         return
 
     def _FillFromAMM(self):
