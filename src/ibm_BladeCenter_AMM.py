@@ -73,13 +73,19 @@ class BladeWithAMM(inv.GenericServer):
         self.lCPUs = []
         self.lExps = []
         self.lDisks = []
+        return
+
+    def _FillData(self):
+        """Fill inventory data from all the sources.
+        WBEM has problems so fill WBEM last and trap exceptions
+        """
         self._FillFromAMM()
         # Disabled due to WBEM debugging
         try:
             self.loAvailableNameSpaces = self._loListCIM_Namespaces()
             self._FillDisksFromWBEM()
         except wd.WBEM_Exception:
-            oLog.error('CIM error trying to collect information from server ' + sAMM_Name)
+            oLog.error('CIM error trying to collect information from server ' + self.sAmmName)
         return
 
     def _ConnectTriggerFactory(self, oTriggersFactory):
@@ -263,18 +269,20 @@ class BladeWithAMM(inv.GenericServer):
 
     def _MakeAppsItems(self):
         """Creates applications and items on Zabbix server and sends data to Zabbix"""
+        # collect data
+        self._FillData()
         if self.oZbxHost:
             # zabbix interface is defined
             self.oZbxHost._oAddApp('System')
             # Add items
             oMemItem = self.oZbxHost._oAddItem(
                 "System Memory", sAppName='System',
-                dParams={'key': "Host_{}_Memory".format(self.sName), 'units': 'GB', 'value_type': 3,
+                dParams={'key': zi._sMkKey("Host", self.sName, "Memory"), 'units': 'GB', 'value_type': 3,
                          'description': _('Total memory size in GB')})
             oMemItem._SendValue(self.iTotalRAMgb, self.oZbxSender)
             oCPUItem = self.oZbxHost._oAddItem(
                 "System CPUs #", sAppName='System',
-                dParams={'key': "Host_{}_CPUs".format(self.sName), 'value_type': 3,
+                dParams={'key': zi._sMkKey("Host", self.sName, "CPUs"), 'value_type': 3,
                          'description': _('Host CPU count')})
             oCPUItem._SendValue(len(self.lCPUs), self.oZbxSender)
             oCoresItem = self.oZbxHost._oAddItem(
@@ -306,6 +314,13 @@ class BladeWithAMM(inv.GenericServer):
             oMTM_Item._SendValue(self.sTypeMod, self.oZbxSender)
             oPN_Item._SendValue(self.sPN, self.oZbxSender)
             oSN_Item._SendValue(self.sSN, self.oZbxSender)
+
+            # set up triggers if triggerFactory object exists
+            if self.oTriggers is not None:
+                self.oTriggers._AddChangeTrigger(oMemItem, _('Memory size changed'), 'warning')
+                self.oTriggers._AddChangeTrigger(oCPUItem, _('Number of CPUs changed'), 'warning')
+                self.oTriggers._AddChangeTrigger(oSN_Item, _('System SN changed'), 'average')
+                self.oTriggers._AddNoDataTrigger(oSN_Item, _('Cannot receive system SN in 2 days'), 'average')
 
             # send components' items to Zabbix
             lComps = self.lCPUs + self.lDIMMs + self.lExps
@@ -367,15 +382,15 @@ class Blade_CPU(inv.ComponentClass):
         oZbxHost._oAddApp(self.sName)     # CPU #
         oTypeItem = oZbxHost._oAddItem(
             self.sName + " Type", sAppName=self.sName,
-            dParams={'key': "{}_{}_Type".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, 'Type'),
                      'value_type': 1, 'description': _('Type of the processor')})
         oCoresItem = oZbxHost._oAddItem(
             self.sName + " # Cores", sAppName=self.sName,
-            dParams={'key': "{}_{}_Cores".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "Cores"),
                      'value_type': 3, 'description': _('Number of cores')})
         oSpeedItem = oZbxHost._oAddItem(
             self.sName + " Speed", sAppName=self.sName,
-            dParams={'key': "{}_{}_Speed".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "Speed"),
                      'value_type': 1, 'description': _('CPU Clock speed')})
 
         oTypeItem._SendValue(self.dData['family'], oZbxSender)

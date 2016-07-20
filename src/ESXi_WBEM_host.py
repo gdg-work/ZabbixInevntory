@@ -12,14 +12,7 @@ from i18n import _
 
 oLog = logging.getLogger(__name__)
 
-
-def _sMkKey_(*args):
-    """Utility function: make string suitable for key"""
-    sPreKey = "_".join(args)
-    if ' ' in sPreKey:
-        return sPreKey.replace(' ', '_')
-    else:
-        return sPreKey
+# _sMkKey_ = zi._sMkKey
 
 
 class ESXi_WBEM_Host(inv.GenericServer):
@@ -58,7 +51,6 @@ class ESXi_WBEM_Host(inv.GenericServer):
         self.oAdaptersWBEM = None
         self.iPSAmount = 0
         # receive information
-        self.__fillData()
         # receive info from IPMI
         if len(self.dIPMIaccess) > 0:
             self.__fillFromIPMI(self.dIPMIaccess)
@@ -99,7 +91,10 @@ class ESXi_WBEM_Host(inv.GenericServer):
         sRet += "Under the management of vCenter: {}\n".format(self.sVCenter)
         sRet += "Access: user {}, password {}.\n".format(self.sUser, self.sPass)
         sRet += "Numbers: product {}, serial {}\n".format(self.sProdNum, self.sSerialNum)
-        sRet += "Memory amount: {} GB\n".format(self.iMemGB)
+        try:
+            sRet += "Memory amount: {} GB\n".format(self.iMemGB)
+        except AttributeError:
+            pass
         return sRet
 
     def __fillFromIPMI(self, dIPMIaccess):
@@ -221,6 +216,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
 
     def _MakeAppsItems(self):
         """Creates applications and items on Zabbix server and sends data to Zabbix"""
+        self.__fillData()    # receive information from WBEM
         if self.oZbxHost:
             # zabbix interface is defined
             self.oZbxHost._oAddApp('System')
@@ -270,9 +266,17 @@ class ESXi_WBEM_Host(inv.GenericServer):
             oSN_Item._SendValue(self.sSerialNum, self.oZbxSender)
             oPS_Item._SendValue(self.iPSAmount, self.oZbxSender)
 
+            # Add some triggers
+            if self.oTriggers is not None:
+                self.oTriggers._AddChangeTrigger(oMemItem, _('Memory size changed'), 'warning')
+                self.oTriggers._AddChangeTrigger(oCPUItem, _('Number of CPUs changed'), 'warning')
+                self.oTriggers._AddChangeTrigger(oSN_Item, _('System SN changed'), 'average')
+                self.oTriggers._AddNoDataTrigger(oSN_Item, _('Cannot receive system SN in 2 days'), 'average')
+
             # send components' items to Zabbix
             lComps = self.lCPUs + self.lDIMMs + self.lDisks + self.lPCI_Adapters
             for o in lComps:
+                o._ConnectTriggerFactory(self.oTriggers)
                 o._MakeAppsItems(self.oZbxHost, self.oZbxSender)
         else:
             oLog.error("Zabbix interface isn't initialized yet")
@@ -286,6 +290,10 @@ class Memory_DIMM(inv.ComponentClass):
     def __init__(self, sName, sPosition, iSizeGB):
         self.sName = sName
         self.dData = {'pos': sPosition, 'size_gb': iSizeGB}
+        return
+
+    def _ConnectTriggerFactory(self, oTriggersFactory):
+        self.oTriggers = oTriggersFactory
         return
 
     @property
@@ -325,30 +333,37 @@ class Memory_DIMM(inv.ComponentClass):
         oZbxHost._oAddApp(self.sName)     # DIMM #
         oPosItem = oZbxHost._oAddItem(
             self.sName + " Position", sAppName=self.sName,
-            dParams={'key': "{}_{}_Pos".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "Pos"),
                      'value_type': 2,
                      'description': _("Position in the host")})
         oSize_Item = oZbxHost._oAddItem(
             self.sName + " Size", sAppName=self.sName,
-            dParams={'key': "{}_{}_SizeGB".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "SizeGB"),
                      'value_type': 3, 'units': 'GB',
                      'description': _('Size of memory unit in GiB')})
         oPosItem._SendValue(self.dData['pos'], oZbxSender)
         oSize_Item._SendValue(self.dData['size_gb'], oZbxSender)
+        if self.oTriggers:
+            self.oTriggers._AddNoDataTrigger(oPosItem, _('Cannot determine DIMM position in 48h'),
+                                             'average', 48)
+            self.oTriggers._AddChangeTrigger(oSize_Item, _('DIMM size changed'), 'warning')
+
         if 'pn' in self.dData:
             oPNItem = oZbxHost._oAddItem(
                 self.sName + " Part Number", sAppName=self.sName,
-                dParams={'key': _sMkKey_(self.sName, 'PN'),
+                dParams={'key': zi._sMkKey(self.sName, 'PN'),
                          'value_type': 2,
                          'description': _("DIMM part number")})
             oPNItem._SendValue(self.dData['pn'], oZbxSender)
         if 'sn' in self.dData:
             oSNItem = oZbxHost._oAddItem(
                 self.sName + " Serial Number", sAppName=self.sName,
-                dParams={'key': _sMkKey_(self.sName, 'SN'),
+                dParams={'key': zi._sMkKey(self.sName, 'SN'),
                          'value_type': 2,
                          'description': _("DIMM serial number")})
             oSNItem._SendValue(self.dData['sn'], oZbxSender)
+            if self.oTriggers:
+                self.oTriggers._AddChangeTrigger(oSNItem, _('DIMM serial number is changed'), 'warning')
         return
 
 
@@ -356,6 +371,10 @@ class CPU(inv.ComponentClass):
     def __init__(self, sName, sSpeed, sFamily, iCores):
         self.sName = sName
         self.dData = {'speed': sSpeed, 'family': sFamily, 'cores': iCores}
+        return
+
+    def _ConnectTriggerFactory(self, oTriggersFactory):
+        self.oTriggers = oTriggersFactory
         return
 
     def __repr__(self):
@@ -367,17 +386,20 @@ class CPU(inv.ComponentClass):
         oZbxHost._oAddApp(self.sName)     # CPU #
         oTypeItem = oZbxHost._oAddItem(
             self.sName + " Type", sAppName=self.sName,
-            dParams={'key': "{}_{}_Type".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "Type"),
                      'description': _('Processor type'),
                      'value_type': 1})
+        if self.oTriggers:
+            self.oTriggers._AddNoDataTrigger(oTypeItem, _('Cannot determine processor type'),
+                                             'average', 48)
         oCoresItem = oZbxHost._oAddItem(
             self.sName + " # Cores", sAppName=self.sName,
-            dParams={'key': "{}_{}_Cores".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "Cores"),
                      'description': _('Number of cores'),
                      'value_type': 3})
         oSpeedItem = oZbxHost._oAddItem(
             self.sName + " Speed", sAppName=self.sName,
-            dParams={'key': "{}_{}_Speed".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "Speed"),
                      'description': _('CPU Clock speed'),
                      'value_type': 1})
 
@@ -403,23 +425,31 @@ class DASD(inv.ComponentClass):
         return sFmt.format(self.sName, self.dDiskData['model'], self.dDiskData['pn'],
                            self.dDiskData['sn'], self.dDiskData['size'])
 
+    def _ConnectTriggerFactory(self, oTriggersFactory):
+        self.oTriggers = oTriggersFactory
+        return
+
     def _MakeAppsItems(self, oZbxHost, oZbxSender):
         oZbxHost._oAddApp(self.sName)     # Disk Drive_65535_0
         oModelItem = oZbxHost._oAddItem(
             self.sName + " Model", sAppName=self.sName,
-            dParams={'key': "{}_{}_Model".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "Model"),
                      'value_type': 1, 'description': _('Disk model')})
         oPN_Item = oZbxHost._oAddItem(
             self.sName + " Part Number", sAppName=self.sName,
-            dParams={'key': "{}_{}_PN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "PN"),
                      'value_type': 1, 'description': _('Disk part number')})
         oSN_Item = oZbxHost._oAddItem(
             self.sName + " Serial Number", sAppName=self.sName,
-            dParams={'key': "{}_{}_SN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "SN"),
                      'value_type': 1, 'description': _('Disk serial number')})
+        if self.oTriggers:
+            self.oTriggers._AddChangeTrigger(oSN_Item, _('Disk serial number is changed'), 'warning')
+            self.oTriggers._AddNoDataTrigger(oSN_Item, _('Cannot receive disk serial number in two days'),
+                                             'average')
         oSize_Item = oZbxHost._oAddItem(
             self.sName + " Size", sAppName=self.sName,
-            dParams={'key': "{}_{}_Size".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "Size"),
                      'value_type': 3, 'units': 'GB', 'description': _('Disk capacity in GB')})
         oModelItem._SendValue(self.dDiskData['model'], oZbxSender)
         oPN_Item._SendValue(self.dDiskData['pn'], oZbxSender)
@@ -437,6 +467,10 @@ class PCI_Adapter(inv.ComponentClass):
         self.dData.update(dOther)
         self.sPartNum = ''
         self.sSerNum = ''
+        return
+
+    def _ConnectTriggerFactory(self, oTriggersFactory):
+        self.oTriggers = oTriggersFactory
         return
 
     @property
@@ -472,30 +506,35 @@ class PCI_Adapter(inv.ComponentClass):
         if self.sIDs != ':':
             oIDs_item = oZbxHost._oAddItem(
                 sAppName + ' IDs', sAppName=sAppName,
-                dParams={'key': _sMkKey_(sAppName, "IDs"), 'value_type': 1,
+                dParams={'key': zi._sMkKey(sAppName, "IDs"), 'value_type': 1,
                          'description': _('PCI vendor:device identifiers')})
             oIDs_item._SendValue(self.sIDs, oZbxSender)
         oPosItem = oZbxHost._oAddItem(
             sAppName + ' Position', sAppName=sAppName,
-            dParams={'key': _sMkKey_(sAppName, 'Pos'), 'value_type': 1,
+            dParams={'key': zi._sMkKey(sAppName, 'Pos'), 'value_type': 1,
                      'description': _('PCI device logical position (bus/slot/function)')})
+        if self.oTriggers:
+            self.oTriggers._AddNoDataTrigger(oPosItem, _('Cannot determine adapter position in 2 days'),
+                                             'average', 48)
         oPosItem._SendValue(self.dData['pos'], oZbxSender)
         if 'sn' in self.dData:
             oSNItem = oZbxHost._oAddItem(
                 sAppName + ' Serial', sAppName=sAppName,
-                dParams={'key': _sMkKey_(sAppName, 'SN'), 'value_type': 1,
+                dParams={'key': zi._sMkKey(sAppName, 'SN'), 'value_type': 1,
                          'description': _('Device serial number')})
+            if self.oTriggers:
+                self.oTriggers._AddChangeTrigger(oSNItem, _('Adapter S/N changed'), 'warning')
             oSNItem._SendValue(self.dData['sn'], oZbxSender)
         if 'pn' in self.dData:
             oPN_Item = oZbxHost._oAddItem(
                 sAppName + ' Part Number', sAppName=sAppName,
-                dParams={'key': _sMkKey_(sAppName, 'PN'), 'value_type': 1,
+                dParams={'key': zi._sMkKey(sAppName, 'PN'), 'value_type': 1,
                          'description': _('Device part number')})
             oPN_Item._SendValue(self.dData['pn'], oZbxSender)
         if 'model' in self.dData:
             oModelItem = oZbxHost._oAddItem(
                 sAppName + ' Model', sAppName=sAppName,
-                dParams={'key': _sMkKey_(sAppName, 'Model'), 'value_type': 1,
+                dParams={'key': zi._sMkKey(sAppName, 'Model'), 'value_type': 1,
                          'description': _('Device model')})
             oModelItem._SendValue(self.dData['model'], oZbxSender)
         return
@@ -513,6 +552,10 @@ class HBA_Class(PCI_Adapter):
     def sWWN(self, sID):
         self.dData['wwn'] = sID
 
+    def _ConnectTriggerFactory(self, oTriggersFactory):
+        self.oTriggers = oTriggersFactory
+        return
+
     def __repr__(self):
         return super().__repr__() + "\nWWN: " + self.dData.get('wwn', '')
 
@@ -521,11 +564,13 @@ class HBA_Class(PCI_Adapter):
         oZbxHost._oAddApp(sAppName)     # HBA vmhba2
         super()._MakeAppsItems(oZbxHost, oZbxSender, sApp=sAppName)
         if 'wwn' in self.dData:
-            oModelItem = oZbxHost._oAddItem(
+            oWWN_Item = oZbxHost._oAddItem(
                 sAppName + ' WWN', sAppName=sAppName,
-                dParams={'key': _sMkKey_(sAppName, 'WWN'), 'value_type': 1,
+                dParams={'key': zi._sMkKey(sAppName, 'WWN'), 'value_type': 1,
                          'description': _('HBA World-Wide-Name (WWN)')})
-            oModelItem._SendValue(self.dData['wwn'], oZbxSender)
+            oWWN_Item._SendValue(self.dData['wwn'], oZbxSender)
+            if self.oTriggers:
+                self.oTriggers._AddChangeTrigger(oWWN_Item, _('Host Bus Adapter WWN changed'), 'warning')
         return
 
 

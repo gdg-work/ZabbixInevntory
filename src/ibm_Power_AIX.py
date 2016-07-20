@@ -68,12 +68,11 @@ class PowerHostClass(inv.GenericServer):
         self.lPwrSupplies = []
         self.lDIMMs = []
         self.oZbxHost = None
-        self._Fill_HMC_Data()
-        self._FillFromAIX()
         # print(self)
         return
 
     def _ConnectTriggerFactory(self, oTriggersFactory):
+        oLog.debug('Connecting triggers factory {} to host {}'.format(str(oTriggersFactory), self.sName))
         self.oTriggers = oTriggersFactory
         return
 
@@ -132,7 +131,9 @@ class PowerHostClass(inv.GenericServer):
                 pass        # skip empty slots
             else:
                 # oLog.debug('Current self.oAdapters content: ' + str(self.oAdapters.items()))
-                self.oAdapters._append(IBM_Power_Adapter(d['description'], d['bus_id'], d['drc_name']))
+                oAdapter = IBM_Power_Adapter(d['description'], d['bus_id'], d['drc_name'])
+                oAdapter._ConnectTriggerFactory(self.oTriggers)
+                self.oAdapters._append(oAdapter)
         return
 
     def _FillFromAIX(self):
@@ -142,6 +143,9 @@ class PowerHostClass(inv.GenericServer):
         self._FillDisks(lsCfgData)
         self._FillPwrSupplies(lsCfgData)
         self._FillDIMMs(lsCfgData)
+        for oElem in self.lDisks + self.lDIMMs + self.lPwrSupplies:
+            # oLog.debug('Connecting trigger factory to element: ' + str(oElem))
+            oElem._ConnectTriggerFactory(self.oTriggers)
         return
 
     def _FillDisks(self, lsCfgData):
@@ -154,7 +158,7 @@ class PowerHostClass(inv.GenericServer):
                 iterDiskData = it.dropwhile(lambda x: not RE_HDISK.match(x), iterDiskData)
                 # we are at first line of disk's description. Let's parse it.
                 sL1 = next(iterDiskData).strip()
-                oLog.debug('_FillDisks: 1st line is {}'.format(sL1))
+                # oLog.debug('_FillDisks: 1st line is {}'.format(sL1))
                 sDskName, sHWLoc, sDesc = RE_WS.split(sL1, maxsplit=2)
                 sL = '--------'   # initialize loop variable
                 bInDiskDescription = False
@@ -180,8 +184,8 @@ class PowerHostClass(inv.GenericServer):
                         pass
                     sL = next(iterDiskData).strip()
                     # end while not...
-                oLog.debug('Disk found: {} at {}, pn {}, sn {}, model {}'.format(
-                    sDskName, sHWLoc, sPN, sSN, sModel))
+                # oLog.debug('Disk found: {} at {}, pn {}, sn {}, model {}'.format(
+                #     sDskName, sHWLoc, sPN, sSN, sModel))
 
                 # create Disk object
                 if bIsLocal:
@@ -201,9 +205,10 @@ class PowerHostClass(inv.GenericServer):
                 sPN = ''                # no P/N on non-local drives
                 iterPSData = it.dropwhile(lambda x: not RE_PWRSUPPLY.match(x), iterPSData)
                 # we are at first line of disk's description. Let's parse it.
-                sL1 = next(iterPSData).strip()
+                # sL1 = next(iterPSData).strip()
+                next(iterPSData)
                 self.iPwrSupplies += 1
-                oLog.debug('_FillPwrSupply: 1st line is {}'.format(sL1))
+                # oLog.debug('_FillPwrSupply: 1st line is {}'.format(sL1))
                 sName = 'Power Supply {}'.format(self.iPwrSupplies)
                 sL = '--------'   # initialize loop variable
                 while sL != '':        # empty line is end of PS record
@@ -234,8 +239,9 @@ class PowerHostClass(inv.GenericServer):
                 sHWLoc, sName, sSN, sPN, iSize = ('', '', '', '', 0)   # empty variables
                 iterDIMMsData = it.dropwhile(lambda x: not RE_RAM_MODULE.match(x), iterDIMMsData)
                 # we are at first line of disk's description. Let's parse it.
-                sL1 = next(iterDIMMsData).strip()
-                oLog.debug('_FillDIMMs: 1st line is {}'.format(sL1))
+                # sL1 = next(iterDIMMsData).strip()
+                next(iterDIMMsData)
+                # oLog.debug('_FillDIMMs: 1st line is {}'.format(sL1))
                 self.iDIMMs += 1
                 sL = '--------'   # initialize loop variable
                 while sL != '':
@@ -291,7 +297,9 @@ class PowerHostClass(inv.GenericServer):
         return
 
     def _MakeAppsItems(self):
-        """return a list of Zabbix 'application' names for this type of server"""
+        """Make objects in Zabbix, requesting the data from AIX"""
+        self._Fill_HMC_Data()
+        self._FillFromAIX()
         if self.oZbxHost:
             # zabbix interface is defined
             self.oZbxHost._oAddApp('System')
@@ -323,8 +331,8 @@ class PowerHostClass(inv.GenericServer):
                 dParams={'key': "Host_{}_Serial".format(self.sName),
                          'description': _('Serial number of system')})
             oSN_Item._SendValue(self.sSerialNum, self.oZbxSender)
-            self.oTriggers._AddChangeTrigger(oSN_Item, _('System SN changed'), 'error')
-            self.oTriggers._AddNoDataTrigger(oSN_Item, _('Cannot receive system SN in 2 days'), 'error', 48)
+            self.oTriggers._AddChangeTrigger(oSN_Item, _('System SN changed'), 'average')
+            self.oTriggers._AddNoDataTrigger(oSN_Item, _('Cannot receive system SN in 2 days'), 'average', 48)
             oTotPS_Item = self.oZbxHost._oAddItem(
                 "System Pwr Supplies", sAppName='System',
                 dParams={'key': "Host_{}_NPwrSupplies".format(self.sName), 'value_type': 3,
@@ -351,6 +359,12 @@ class IBM_Power_Adapter(inv.ComponentClass):
         self.sName = sName
         self.sBusID = sBusID
         self.sLocation = sLocation
+        self.oTriggers = None
+        return
+
+    def _ConnectTriggerFactory(self, oTriggersFactory):
+        oLog.debug('Connecting triggers factory to Adapter {}'.format(self.sName))
+        self.oTriggers = oTriggersFactory
         return
 
     def __repr__(self):
@@ -379,6 +393,9 @@ class IBM_Power_Adapter(inv.ComponentClass):
             dParams={'key': "Adapter_{}_of_{}_Pos".format(self.sBusID, oZbxHost._sName()),
                      'description': _('Position of adapter in the machine')})
         oPosItem._SendValue(self.sLocation, oZbxSender)
+        if self.oTriggers is not None:
+            oLog.debug('Adding change trigger to adapter: ' + self.sBusID)
+            self.oTriggers._AddChangeTrigger(oNameItem, _('Adapter type changed'), 'warning')
         return
 
 
@@ -392,11 +409,17 @@ class IBM_Power_Disk(inv.ComponentClass):
 
     def __init__(self, sName, sType, sModel, sPN, sSN, sLoc):
         self.sName = sName
+        self.oTriggers = None
         self.dData = {'Type':           sType,      # keys must contain only valid chars for Zabbix key
                       'Model':          sModel,     # + spaces
                       'Part Number':    sPN,
                       'Serial Number':  sSN,
                       'Location':       sLoc}
+        return
+
+    def _ConnectTriggerFactory(self, oTriggersFactory):
+        oLog.debug('Connecting triggers factory to Disk {}'.format(self.sName))
+        self.oTriggers = oTriggersFactory
         return
 
     def _MakeAppsItems(self, oZbxHost, oZbxSender):
@@ -406,10 +429,16 @@ class IBM_Power_Disk(inv.ComponentClass):
         for sN, sV in self.dData.items():
             # oLog.debug('Parameter name:{}, value:{}'.format(sN, sV))
             sItemName = sAppName + ' ' + sN
-            sItemKey = 'Disk_{}_of_{}_{}'.format(self.sName, oZbxHost._sName(), sN).replace(' ', '_')
+            sItemKey = zi._sMkKey('Disk', self.sName, oZbxHost._sName(), sN)
             oItem = oZbxHost._oAddItem(
                 sItemName, sAppName,
                 dParams={'key': sItemKey, 'description': self.dDescriptions[sN]})
+            if sN == 'Serial Number' and self.oTriggers is not None:
+                oLog.debug('Adding change/existance triggers to disk: ' + self.sName)
+                # add trigger for changed SN and for no data
+                self.oTriggers._AddChangeTrigger(oItem, _('Disk serial number is changed'), 'warning')
+                self.oTriggers._AddNoDataTrigger(
+                    oItem, _('Cannot receive disk serial number in two days'), 'warning', 48)
             oItem._SendValue(sV, oZbxSender)
         return
 
@@ -427,6 +456,11 @@ class IBM_Power_Supply(inv.ComponentClass):
                       'HW Location': sHWLoc}
         return
 
+    def _ConnectTriggerFactory(self, oTriggersFactory):
+        oLog.debug('Connecting triggers factory to Power Supply {}'.format(self.sName))
+        self.oTriggers = oTriggersFactory
+        return
+
     def _MakeAppsItems(self, oZbxHost, oZbxSender):
         sAppName = self.sName               # 'Power supply {}'
         oZbxHost._oAddApp(sAppName)
@@ -434,12 +468,16 @@ class IBM_Power_Supply(inv.ComponentClass):
         for sN, sV in self.dData.items():
             # oLog.debug('Parameter name:{}, value:{}'.format(sN, sV))
             sItemName = sAppName + ' ' + sN
-            sItemKey = '{}_of_{}_{}'.format(
-                sAppName, oZbxHost._sName(), sN).replace(' ', '_')
+            sItemKey = zi._sMkKey(sAppName, oZbxHost._sName(), sN)
             oItem = oZbxHost._oAddItem(sItemName, sAppName,
                                        dParams={'key': sItemKey, 'description': self.dDescriptions[sN]})
             # oLog.debug('IBM_Power_Supply._MakeAppsItems: created item is ' + str(oItem))
             oItem._SendValue(sV, oZbxSender)
+            if sN == 'Serial Number' and self.oTriggers is not None:
+                # add trigger for changed SN and for no data
+                self.oTriggers._AddChangeTrigger(oItem, _('Power supply serial number is changed'), 'warning')
+                self.oTriggers._AddNoDataTrigger(
+                    oItem, _('Cannot receive power supply serial number in two days'), 'warning', 48)
         return
 
 
@@ -457,6 +495,11 @@ class IBM_DIMM_Module(inv.ComponentClass):
         self.iSize = iSize
         return
 
+    def _ConnectTriggerFactory(self, oTriggersFactory):
+        oLog.debug('Connecting triggers factory to DIMM {}'.format(self.sName))
+        self.oTriggers = oTriggersFactory
+        return
+
     def __repr__(self):
         return str('DIMM module: name:{0}, Serial:{1} at HW Loc:{2}'.format(
             self.sName, self.dStrData['Serial Number'], self.dStrData['HW Location']))
@@ -468,13 +511,17 @@ class IBM_DIMM_Module(inv.ComponentClass):
         for sN, sV in self.dStrData.items():
             # oLog.debug('Parameter name:{}, value:{}'.format(sN, sV))
             sItemName = sAppName + ' ' + sN
-            sItemKey = '{}_of_{}_{}'.format(
-                sAppName, oZbxHost._sName(), sN).replace(' ', '_')
+            sItemKey = zi._sMkKey(sAppName, oZbxHost._sName(), sN)
             oItem = oZbxHost._oAddItem(
                 sItemName, sAppName,
                 dParams={'key': sItemKey, 'description': self.dDescriptions[sN]})
             # oLog.debug('IBM_DIMM_Module._MakeAppsItems: created item is ' + str(oItem))
             oItem._SendValue(sV, oZbxSender)
+            if sN == 'Serial Number' and self.oTriggers is not None:
+                # add trigger for changed SN and for no data
+                self.oTriggers._AddChangeTrigger(oItem, _('DIMM serial number is changed'), 'warning')
+                self.oTriggers._AddNoDataTrigger(oItem,
+                                                 _("Can't receive DIMM S/N for two days"), 'warning', 48)
         # and integer item: size
         sItemName = sAppName + ' Size'
         sItemKey = '{}_of_{}_{}'.format(

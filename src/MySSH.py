@@ -94,7 +94,7 @@ class MySSHConnection:
     def _lsRunCommands(self, lsCmds):
         lResult = []
         # sCommands = "\n".join(lsCmds)
-        oLog.debug('_lsRunCommands called with commands: ' + str(lsCmds))
+        # oLog.debug('_lsRunCommands called with commands: ' + str(lsCmds))
         try:
             for sCmd in lsCmds:
                 stdin, stdout, stderr = self.oClient.exec_command(sCmd)
@@ -107,7 +107,7 @@ class MySSHConnection:
             traceback.print_exc()
         finally:
             self.oClient.close()
-        oLog.debug("_lsRunCommands result:" + str(lResult))
+        # oLog.debug("_lsRunCommands result:" + str(lResult))
         return lResult
 
     def _lsRunCommands2(self, lsCmds):
@@ -116,7 +116,7 @@ class MySSHConnection:
         sRes = '---'
         # sCommands = "\n".join(lsCmds)
         lsCmds.append('exit')
-        print('_lsRunCommands2 called with commands: ' + str(lsCmds))
+        # print('_lsRunCommands2 called with commands: ' + str(lsCmds))
         try:
             oChannel = self.oClient.invoke_shell(term='dumb', width=120)
             # flush the buffer
@@ -139,5 +139,5 @@ class MySSHConnection:
             traceback.print_exc()
         finally:
             self.oClient.close()
-        oLog.debug("_lsRunCommands result:" + str(lResult))
+        # oLog.debug("_lsRunCommands result:" + str(lResult))
         return lResult

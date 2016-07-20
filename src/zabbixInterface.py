@@ -45,6 +45,28 @@ def _sListOfStringsToJSON(lsStrings):
     return json.dumps(dRetDict)
 
 
+def _sMkKey(*args):
+    """Utility function: make string suitable for key"""
+    sPreKey = "_".join(args)
+    # now check if sPreKey is a valid identifier (Pythonic way):
+    if sPreKey.isidentifier():
+        return sPreKey
+    else:
+        # we need to replace all non-alnum chars in sPreKey by something
+        sRes = ''
+        for cChar in sPreKey:
+            if cChar.isalnum():
+                sRes += cChar
+            elif cChar in '-_.':
+                sRes += cChar
+            elif cChar == ' ':
+                sRes += '_'
+            else:
+                sRes += '.' + hex(ord(cChar))[2:] + '.'
+        # print('_sMkKey: result is <' + sRes + '>')
+        return sRes
+
+
 class GeneralZabbix:
     def __init__(self, sHostName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
         """
