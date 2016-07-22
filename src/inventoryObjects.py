@@ -3,29 +3,32 @@
 import itertools
 from collections import OrderedDict
 
+
 #
 # NetObject: a base class of Zabbix-controlled objects
 #
-
 class NetObjectClass:
-    def __init__(self, sIP :str, sType :str):
+    def __init__(self, sIP: str, sType: str):
         self.sIP = sIP
         self.sType = sType
 
-    def getType(self) ->str: return self.sType
+    def getType(self) ->str:
+        return self.sType
 
-    def getIP(self) ->str: return self.sIP
+    def getIP(self) ->str:
+        return self.sIP
+
 
 #
 # A base class for storage systems
 #
-
 class StorageClass(NetObjectClass):
     def __init__(self, sIP: str, sType: str):
         super().__init__(sIP, sType)
 
     def getSN(self):
         return "Not implemented at super-class"
+
 
 class ClassicArrayClass(StorageClass):
     """A classic disk array with 1..8 controllers, some amount of disk shelves and disks"""
@@ -35,8 +38,8 @@ class ClassicArrayClass(StorageClass):
         self.lShelves = []  # list of 'DiskShelfClass'
         self.lDisks = []    # list of DiskClass
         self.dQueries = {          # possible queries
-                "ctrls": self.getControllersAmount,
-                "disks": self.getDisksAmount}
+            "ctrls": self.getControllersAmount,
+            "disks": self.getDisksAmount}
 
     def getControllersAmount(self):
         return len(self.lControllers)
@@ -56,12 +59,12 @@ class ClassicArrayClass(StorageClass):
 
     def getShelvesSN(self):
         """returns a list of disk shelves' serial numbers"""
-        lRet = [ s.getSN() for s in self.lShelves]
+        lRet = [s.getSN() for s in self.lShelves]
         return lRet
 
     def getDisksSN(self):
         """returns a list of disk drives' serial numbers"""
-        lRet = [ s.getSN() for s in self.lDisks]
+        lRet = [s.getSN() for s in self.lDisks]
         return lRet
 
     def _dGetArrayInfoAsDict(self, ssKeys):
@@ -76,11 +79,12 @@ class ClassicArrayClass(StorageClass):
                 dRet[sKey] = self.dQueries[sKey]()
         return dRet
 
+
 class ScaleOutStorageClass(StorageClass):
     def __init__(self, sIP: str, sType: str):
         super().__init__(sIP, sType)
-        self.sType=""
-        self.lNodes=[]
+        self.sType = ""
+        self.lNodes = []
 
     def getType(self) ->str:
         return self.sType
@@ -96,21 +100,21 @@ class ScaleOutStorageClass(StorageClass):
 
     def getDisksSN(self) -> list:
         lSNs = list(itertools.chain.from_iterable(    # flatten a list
-            [n.getDisksSN for n in self.lNodes]
-            ))
+            [n.getDisksSN for n in self.lNodes]))
         return lSNs
+
 
 #
 # --- Array and servers components ---
 #
-
 class ComponentClass:
     """ Common properties of storage system's components """
-    def __init__(self, sID :str, sSN=""):
+    def __init__(self, sID: str, sSN=""):
         self.sID = sID
         self.sSN = sSN
+        self.oTriggers = None    # for Zabbix triggers
         self.dQueries = {"name": self.getID,
-                         "sn" : self.getSN }
+                         "sn":   self.getSN}
 
     def getID(self) -> str:
         return self.sID
@@ -125,10 +129,14 @@ class ComponentClass:
             dRet[name] = fun()
         return dRet
 
+    def _ConnectTriggerFactory(self, oTriggersFactory):
+        self.oTriggers = oTriggersFactory
+        return
+
 
 class ControllerClass(ComponentClass):
     """Classic array's disk controller"""
-    def __init__(self, sID :str, sSN=""):
+    def __init__(self, sID: str, sSN=""):
         super().__init__(sID, sSN)
         self.sType = ""
         self.sModel = ""
@@ -153,12 +161,12 @@ class ControllerClass(ComponentClass):
 
 
 class DiskShelfClass(ComponentClass):
-    def __init__(self, sID :str, sSN=""):
+    def __init__(self, sID: str, sSN=""):
         super().__init__(sID, sSN)
-        self.sType=""
-        self.sModel=""
-        self.lPwrSupplies=[]
-        self.lDisks=[]
+        self.sType = ""
+        self.sModel = ""
+        self.lPwrSupplies = []
+        self.lDisks = []
 
     def getType(self):
         return (self.sType)
@@ -175,13 +183,14 @@ class DiskShelfClass(ComponentClass):
     def getDisksVolume(self):
         return sum([d.getSize() for d in self.lDisks])
 
+
 class DASD_Class(ComponentClass):
-    def __init__(self, sID :str, sSN=""):
+    def __init__(self, sID: str, sSN=""):
         super().__init__(sID, sSN)
-        self.sType=""
-        self.sModel=""
-        self.rSize=""   # disk size in GB's
-        self.sPosition=""
+        self.sType = ""
+        self.sModel = ""
+        self.rSize = ""   # disk size in GB's
+        self.sPosition = ""
 
     def getType(self) ->str:
         return self.sType
@@ -195,11 +204,12 @@ class DASD_Class(ComponentClass):
     def getPosition(self) ->str:
         return self.sPosition
 
+
 class PortClass(ComponentClass):
-    def __init__(self, sID :str, sSN=""):
+    def __init__(self, sID: str, sSN=""):
         super().__init__(sID, sSN)
-        self.sType=""
-        self.sSpeed=""
+        self.sType = ""
+        self.sSpeed = ""
 
     def getType(self) ->str:
         return self.sType
@@ -207,14 +217,16 @@ class PortClass(ComponentClass):
     def getSpeed(self) ->str:
         return self.sSpeed
 
+
 class NodeClass(ComponentClass):
-    def __init__(self, sID :str, sSN=""):
+    def __init__(self, sID: str, sSN=""):
         super().__init__(sID, sSN)
-        self.sType=""
-        self.sModel=""
+        self.sType = ""
+        self.sModel = ""
         self.lPwrSupplies = []
         self.lPorts = []
         self.lDisks = []
+
 
 #
 #  -- servers classes --
@@ -320,8 +332,8 @@ class Components_Collection(OrderedDict):
 class ServersList(Components_Collection):
     def __init__(self, lObjects):
         if not (lObjects is None):
-            lServers = lObjects
-            dServers = super().__init__([(s._sGetName, s) for s in lObjects])
+            self.lServers = lObjects
+            self.dServers = super().__init__([(s._sGetName, s) for s in lObjects])
         else:
             super().__init__()
         return
@@ -335,18 +347,22 @@ class AdaptersList(Components_Collection):
             super().__init__()
         return
 
+
 class PowerSuppliesList(Components_Collection):
     def __init__(self, lObjects=None):
         super().__init__(lObjects)
         return
 
+
 class FansList(Components_Collection):
     def __init__(self, lObjects=None):
         return
 
+
 class InterConnectsList(Components_Collection):
     def __init__(self, lObjects=None):
         return
+
 
 class DisksList(Components_Collection):
     def __init__(self, lObjects=None):

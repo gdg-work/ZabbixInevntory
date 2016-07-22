@@ -9,6 +9,7 @@ import logging
 import pywbem
 import IPMIhost as ipmi
 from i18n import _
+from local import NODATA_THRESHOLD
 
 oLog = logging.getLogger(__name__)
 
@@ -36,6 +37,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
         self.iTotalCores = 0
         self.iDIMMs = 0
         self.iCPUs = 0
+        self.iMemGB = 0
         self.lDIMMs = []
         self.lCPUs = []
         self.lExps = []
@@ -91,10 +93,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
         sRet += "Under the management of vCenter: {}\n".format(self.sVCenter)
         sRet += "Access: user {}, password {}.\n".format(self.sUser, self.sPass)
         sRet += "Numbers: product {}, serial {}\n".format(self.sProdNum, self.sSerialNum)
-        try:
-            sRet += "Memory amount: {} GB\n".format(self.iMemGB)
-        except AttributeError:
-            pass
+        sRet += "Memory amount: {} GB\n".format(self.iMemGB)
         return sRet
 
     def __fillFromIPMI(self, dIPMIaccess):
@@ -345,7 +344,7 @@ class Memory_DIMM(inv.ComponentClass):
         oSize_Item._SendValue(self.dData['size_gb'], oZbxSender)
         if self.oTriggers:
             self.oTriggers._AddNoDataTrigger(oPosItem, _('Cannot determine DIMM position in 48h'),
-                                             'average', 48)
+                                             'average', NODATA_THRESHOLD)
             self.oTriggers._AddChangeTrigger(oSize_Item, _('DIMM size changed'), 'warning')
 
         if 'pn' in self.dData:
@@ -391,7 +390,7 @@ class CPU(inv.ComponentClass):
                      'value_type': 1})
         if self.oTriggers:
             self.oTriggers._AddNoDataTrigger(oTypeItem, _('Cannot determine processor type'),
-                                             'average', 48)
+                                             'average', NODATA_THRESHOLD)
         oCoresItem = oZbxHost._oAddItem(
             self.sName + " # Cores", sAppName=self.sName,
             dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "Cores"),
@@ -515,7 +514,7 @@ class PCI_Adapter(inv.ComponentClass):
                      'description': _('PCI device logical position (bus/slot/function)')})
         if self.oTriggers:
             self.oTriggers._AddNoDataTrigger(oPosItem, _('Cannot determine adapter position in 2 days'),
-                                             'average', 48)
+                                             'average', NODATA_THRESHOLD)
         oPosItem._SendValue(self.dData['pos'], oZbxSender)
         if 'sn' in self.dData:
             oSNItem = oZbxHost._oAddItem(

@@ -48,46 +48,6 @@ def _sGetServerData(oRedis, oArgs):
     return sRet
 
 
-# def _PushConnectionInfo(oParser, oRedis):
-#     ACCESS_PFX = REDIS_PREFIX + "ServersAccess"
-#     ZABBIX_PFX = REDIS_PREFIX + "ZabbixAccess"
-#     dZabbixAccess = {'zabbix_user': oParser.zabbixuser,
-#                      'zabbix_passwd': oParser.zabbixpassword,
-#                      'zabbix_IP': oParser.zabbixip,
-#                      'zabbix_port': oParser.zabbixport}
-#     if oParser.type == "power_aix":
-#         dConnectionInfo = {'type': oParser.server_type,
-#                            'sp-type': 'HMC',
-#                            'user': oParser.user,
-#                            'password': oParser.password,
-#                            'sp-user': oParser.sp_user,
-#                            'sp-pass': oParser.sp_password,
-#                            'srv-ip': oParser.server_ip,
-#                            'sp-ip': oParser.sp_ip}
-#     elif oParser.type == "esxi_amm":
-#         assert oParser.vcenter is not None
-#         dConnectionInfo = {'type': oParser.server_type,
-#                            'srv-name': oParser.server_name,
-#                            'sp-type': 'AMM',
-#                            'user': oParser.user,
-#                            'amm-name': oParser.amm_name,
-#                            'password': oParser.password,
-#                            'sp-user': oParser.sp_user,
-#                            'sp-pass': oParser.sp_password,
-#                            'sp-ip': oParser.sp_ip}
-#     else:
-#         oLog.error('Unsupported type of server')
-#         raise(IncorrectServerType)
-#     try:
-#         oRedis.set(ZABBIX_PFX, json.dumps(dZabbixAccess), oParser.redis_ttl)
-#         oRedis.hset(ACCESS_PFX, oParser.name, json.dumps(dConnectionInfo))
-#         oRedis.expire(ACCESS_PFX, oParser.redis_ttl)
-#     except RedisError:
-#         oLog.error('Cannot connect to Redis and set information')
-#         raise RedisError
-#     return
-
-
 def _PushConnectionInfo2(dConnInfo, oParser, oRedis):
     ACCESS_PFX = REDIS_PREFIX + "ServersAccess"
     ZABBIX_PFX = REDIS_PREFIX + "ZabbixAccess"

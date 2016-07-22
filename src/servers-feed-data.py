@@ -102,7 +102,6 @@ def _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAPI, oZbxSender, oTrigFacto
                                     SP_Pass=dSrvParams['sp-pass'],
                                     SP_Type=dSrvParams['sp-type']
                                     )
-        print(oZbxHost)
     elif sSrvType == "esxi":
         oZbxHost = esxi.ESXi_WBEM_Host(
             sFQDN=sSrvName,

@@ -9,7 +9,7 @@ import csv    # because commands output use quoted fields
 import zabbixInterface as zi
 import itertools as it
 from i18n import _
-
+from local import NODATA_THRESHOLD
 import re
 
 oLog = logging.getLogger(__name__)
@@ -72,7 +72,7 @@ class PowerHostClass(inv.GenericServer):
         return
 
     def _ConnectTriggerFactory(self, oTriggersFactory):
-        oLog.debug('Connecting triggers factory {} to host {}'.format(str(oTriggersFactory), self.sName))
+        # oLog.debug('Connecting triggers factory {} to host {}'.format(str(oTriggersFactory), self.sName))
         self.oTriggers = oTriggersFactory
         return
 
@@ -332,7 +332,8 @@ class PowerHostClass(inv.GenericServer):
                          'description': _('Serial number of system')})
             oSN_Item._SendValue(self.sSerialNum, self.oZbxSender)
             self.oTriggers._AddChangeTrigger(oSN_Item, _('System SN changed'), 'average')
-            self.oTriggers._AddNoDataTrigger(oSN_Item, _('Cannot receive system SN in 2 days'), 'average', 48)
+            self.oTriggers._AddNoDataTrigger(oSN_Item, _('Cannot receive system SN in 2 days'),
+                                             'average', NODATA_THRESHOLD)
             oTotPS_Item = self.oZbxHost._oAddItem(
                 "System Pwr Supplies", sAppName='System',
                 dParams={'key': "Host_{}_NPwrSupplies".format(self.sName), 'value_type': 3,
@@ -363,7 +364,7 @@ class IBM_Power_Adapter(inv.ComponentClass):
         return
 
     def _ConnectTriggerFactory(self, oTriggersFactory):
-        oLog.debug('Connecting triggers factory to Adapter {}'.format(self.sName))
+        # oLog.debug('Connecting triggers factory to Adapter {}'.format(self.sName))
         self.oTriggers = oTriggersFactory
         return
 
@@ -394,7 +395,7 @@ class IBM_Power_Adapter(inv.ComponentClass):
                      'description': _('Position of adapter in the machine')})
         oPosItem._SendValue(self.sLocation, oZbxSender)
         if self.oTriggers is not None:
-            oLog.debug('Adding change trigger to adapter: ' + self.sBusID)
+            # oLog.debug('Adding change trigger to adapter: ' + self.sBusID)
             self.oTriggers._AddChangeTrigger(oNameItem, _('Adapter type changed'), 'warning')
         return
 
@@ -418,7 +419,7 @@ class IBM_Power_Disk(inv.ComponentClass):
         return
 
     def _ConnectTriggerFactory(self, oTriggersFactory):
-        oLog.debug('Connecting triggers factory to Disk {}'.format(self.sName))
+        # oLog.debug('Connecting triggers factory to Disk {}'.format(self.sName))
         self.oTriggers = oTriggersFactory
         return
 
@@ -438,7 +439,7 @@ class IBM_Power_Disk(inv.ComponentClass):
                 # add trigger for changed SN and for no data
                 self.oTriggers._AddChangeTrigger(oItem, _('Disk serial number is changed'), 'warning')
                 self.oTriggers._AddNoDataTrigger(
-                    oItem, _('Cannot receive disk serial number in two days'), 'warning', 48)
+                    oItem, _('Cannot receive disk serial number in two days'), 'warning', NODATA_THRESHOLD)
             oItem._SendValue(sV, oZbxSender)
         return
 
@@ -457,7 +458,7 @@ class IBM_Power_Supply(inv.ComponentClass):
         return
 
     def _ConnectTriggerFactory(self, oTriggersFactory):
-        oLog.debug('Connecting triggers factory to Power Supply {}'.format(self.sName))
+        # oLog.debug('Connecting triggers factory to Power Supply {}'.format(self.sName))
         self.oTriggers = oTriggersFactory
         return
 
@@ -477,7 +478,8 @@ class IBM_Power_Supply(inv.ComponentClass):
                 # add trigger for changed SN and for no data
                 self.oTriggers._AddChangeTrigger(oItem, _('Power supply serial number is changed'), 'warning')
                 self.oTriggers._AddNoDataTrigger(
-                    oItem, _('Cannot receive power supply serial number in two days'), 'warning', 48)
+                    oItem, _('Cannot receive power supply serial number in two days'),
+                    'warning', NODATA_THRESHOLD)
         return
 
 
@@ -496,7 +498,7 @@ class IBM_DIMM_Module(inv.ComponentClass):
         return
 
     def _ConnectTriggerFactory(self, oTriggersFactory):
-        oLog.debug('Connecting triggers factory to DIMM {}'.format(self.sName))
+        # oLog.debug('Connecting triggers factory to DIMM {}'.format(self.sName))
         self.oTriggers = oTriggersFactory
         return
 
@@ -520,8 +522,8 @@ class IBM_DIMM_Module(inv.ComponentClass):
             if sN == 'Serial Number' and self.oTriggers is not None:
                 # add trigger for changed SN and for no data
                 self.oTriggers._AddChangeTrigger(oItem, _('DIMM serial number is changed'), 'warning')
-                self.oTriggers._AddNoDataTrigger(oItem,
-                                                 _("Can't receive DIMM S/N for two days"), 'warning', 48)
+                self.oTriggers._AddNoDataTrigger(oItem, _("Can't receive DIMM S/N for two days"),
+                                                 'warning', NODATA_THRESHOLD)
         # and integer item: size
         sItemName = sAppName + ' Size'
         sItemKey = '{}_of_{}_{}'.format(

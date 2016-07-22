@@ -8,14 +8,13 @@ import MySSH
 import zabbixInterface as zi
 import WBEM_vmware as wd
 from i18n import _
+from local import NODATA_THRESHOLD
 import re
 
 # Constants
 DEFAULT_SSH_PORT = 22
 RE_WS = re.compile(r'\s+')
 RE_BLADE = re.compile(r'blade\[\d{1,2}\]\s')
-# RE_BLADEINFO = re.compile(r'^system:blade\[\d{1,2}\] info')
-# RE_BLADEINFO = re.compile(r'info')
 RE_COMP = re.compile(r'^(\w+)\[(\d{1,3})\]')
 RE_INFOSTART = re.compile(r'system> info -T system:blade')
 RE_INFOCPU = re.compile(r'info -T system:[^:]+:cpu\[\d\]')
@@ -82,8 +81,10 @@ class BladeWithAMM(inv.GenericServer):
         self._FillFromAMM()
         # Disabled due to WBEM debugging
         try:
-            self.loAvailableNameSpaces = self._loListCIM_Namespaces()
+            # self.loAvailableNameSpaces = self._loListCIM_Namespaces()
             self._FillDisksFromWBEM()
+        except wd.WBEM_Disk_Exception:
+            oLog.error('Error getting data from about disk subsystem via WBEM')
         except wd.WBEM_Exception:
             oLog.error('CIM error trying to collect information from server ' + self.sAmmName)
         return
@@ -212,6 +213,7 @@ class BladeWithAMM(inv.GenericServer):
                     pass
             # make CPU object
             c = Blade_CPU(sName, sSpeed, sFamily, iCores)
+            c._ConnectTriggerFactory(self.oTriggers)
             self.lCPUs.append(c)
         return
 
@@ -236,6 +238,7 @@ class BladeWithAMM(inv.GenericServer):
                     pass
             # make CPU object
             d = Blade_DIMM(sName, sPN, sSN, sType, iSizeGB)
+            d._ConnectTriggerFactory(self.oTriggers)
             self.lDIMMs.append(d)
             self.iTotalRAMgb = iTotalGB
         return
@@ -258,6 +261,7 @@ class BladeWithAMM(inv.GenericServer):
                     pass
             # make CPU object
             a = Blade_EXP(sName, sPN, sSN, sType)
+            a._ConnectTriggerFactory(self.oTriggers)
             self.lExps.append(a)
         return
 
@@ -323,9 +327,10 @@ class BladeWithAMM(inv.GenericServer):
                 self.oTriggers._AddNoDataTrigger(oSN_Item, _('Cannot receive system SN in 2 days'), 'average')
 
             # send components' items to Zabbix
-            lComps = self.lCPUs + self.lDIMMs + self.lExps
+            lComps = self.lCPUs + self.lDIMMs + self.lExps + self.lDisks
             for o in lComps:
                 o._MakeAppsItems(self.oZbxHost, self.oZbxSender)
+            oLog.info('Finished making Zabbix items and triggers')
         else:
             oLog.error("Zabbix interface isn't initialized yet")
             raise expAMM_Error("Zabbix isn't connected yet")
@@ -337,12 +342,24 @@ class BladeWithAMM(inv.GenericServer):
         return lRet
 
     def _FillDisksFromWBEM(self):
-        if self.sVCenter:
-            self.oWBEM_Disks = wd.WBEM_Disks(self.sName, self.sUser, self.sPass, sVCenter=self.sVCenter)
-        else:
-            self.oWBEM_Disks = wd.WBEM_Disks(self.sName, self.sUser, self.sPass)
-        ldDicts = self.oWBEM_Disks._ldReportDisks()
+        ldDicts = []
+        try:
+            if self.sVCenter:
+                self.oWBEM_Disks = wd.WBEM_Disks(self.sName, self.sUser, self.sPass, sVCenter=self.sVCenter)
+            else:
+                self.oWBEM_Disks = wd.WBEM_Disks(self.sName, self.sUser, self.sPass)
+        except wd.WBEM_Disk_Exception as e:
+            oLog.error('WBEM error when initializing WBEM_Disks interface, msg: {}'.format(str(e)))
+            ldDicts = []
+            raise(e)
+        try:
+            ldDicts = self.oWBEM_Disks._ldReportDisks()
+        except wd.WBEM_Disk_Exception as e:
+            oLog.error('WBEM error when collecting information')
+            raise(e)
+
         for dDiskData in ldDicts:
+            # if previous try-except clause throws an exception, ldDicts will be empty
             try:
                 iSizeGB = int(dDiskData['MaxMediaSize']) // 2**20   # WBEM returns size in KB
                 self.lDisks.append(
@@ -351,6 +368,7 @@ class BladeWithAMM(inv.GenericServer):
             except KeyError as e:
                 oLog.error('Error accessing disk data: {}'.format(e))
                 raise expWBEM_Error('Error accessing disk data: {}'.format(e))
+        oLog.debug("_FillDisksFromWBEM: {} disks found".format(len(self.lDisks)))
         return
 
     def _FillSysFromWBEM(self):
@@ -370,7 +388,13 @@ class BladeWithAMM(inv.GenericServer):
 class Blade_CPU(inv.ComponentClass):
     def __init__(self, sName, sSpeed, sFamily, iCores):
         self.sName = sName
+        super().__init__(sName)
+        # self.oTriggers = None
         self.dData = {'speed': sSpeed, 'family': sFamily, 'cores': iCores}
+        return
+
+    def _ConnectTriggerFactory(self, oTriggersFactory):
+        self.oTriggers = oTriggersFactory
         return
 
     def __repr__(self):
@@ -393,6 +417,9 @@ class Blade_CPU(inv.ComponentClass):
             dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "Speed"),
                      'value_type': 1, 'description': _('CPU Clock speed')})
 
+        if self.oTriggers:
+            self.oTriggers._AddNoDataTrigger(oTypeItem, _('Cannot determine processor type'),
+                                             'average', NODATA_THRESHOLD)
         oTypeItem._SendValue(self.dData['family'], oZbxSender)
         oCoresItem._SendValue(self.dData['cores'], oZbxSender)
         oSpeedItem._SendValue(self.dData['speed'], oZbxSender)
@@ -402,6 +429,7 @@ class Blade_CPU(inv.ComponentClass):
 class Blade_DIMM(inv.ComponentClass):
     def __init__(self, sName, sPN, sSN, sType, iSizeGB):
         self.sName = sName
+        super().__init__(sName, sSN)
         self.dData = {'pn': sPN, 'sn': sSN, 'type': sType, 'size_gb': iSizeGB}
         return
 
@@ -414,20 +442,24 @@ class Blade_DIMM(inv.ComponentClass):
         oZbxHost._oAddApp(self.sName)     # DIMM #
         oTypeItem = oZbxHost._oAddItem(
             self.sName + " Type", sAppName=self.sName,
-            dParams={'key': "{}_{}_Type".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "Type"),
                      'value_type': 1, 'description': _('Memory module type')})
         oPN_Item = oZbxHost._oAddItem(
             self.sName + " Part Number", sAppName=self.sName,
-            dParams={'key': "{}_{}_PN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "PN"),
                      'value_type': 1, 'description': _('DIMM part number')})
         oSN_Item = oZbxHost._oAddItem(
             self.sName + " Serial Number", sAppName=self.sName,
-            dParams={'key': "{}_{}_SN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "SN"),
                      'value_type': 1, 'description': _('DIMM serial number')})
         oSize_Item = oZbxHost._oAddItem(
             self.sName + " Size", sAppName=self.sName,
-            dParams={'key': "{}_{}_SizeGB".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "SizeGB"),
                      'value_type': 3, 'units': 'GB', 'description': _('DIMM size in GB')})
+        if self.oTriggers:
+            self.oTriggers._AddChangeTrigger(oSN_Item, _('DIMM serial number is changed'), 'average')
+            self.oTriggers._AddNoDataTrigger(oSN_Item, _("Can't receive DIMM S/N for two days"),
+                                             'average', NODATA_THRESHOLD)
         oTypeItem._SendValue(self.dData['type'], oZbxSender)
         oPN_Item._SendValue(self.dData['pn'], oZbxSender)
         oSN_Item._SendValue(self.dData['sn'], oZbxSender)
@@ -438,6 +470,7 @@ class Blade_DIMM(inv.ComponentClass):
 class Blade_EXP(inv.ComponentClass):
     def __init__(self, sName, sPN, sSN, sType):
         self.sName = sName
+        super().__init__(sName, sSN)
         self.dData = {'sn': sSN, 'pn': sPN, 'type': sType}
         return
 
@@ -460,6 +493,10 @@ class Blade_EXP(inv.ComponentClass):
             self.sName + " Serial Number", sAppName=self.sName,
             dParams={'key': "{}_{}_SN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
                      'value_type': 1, 'description': _('Adapter card serial number')})
+        if self.oTriggers:
+            self.oTriggers._AddChangeTrigger(oSN_Item, _('Serial # of expansion card changed'), 'warning')
+            self.oTriggers._AddNoDataTrigger(oSN_Item, _("Can't determine S/N of expansion card"),
+                                             'average', NODATA_THRESHOLD)
         oTypeItem._SendValue(self.dData['type'], oZbxSender)
         oPN_Item._SendValue(self.dData['pn'], oZbxSender)
         oSN_Item._SendValue(self.dData['sn'], oZbxSender)
@@ -468,6 +505,7 @@ class Blade_EXP(inv.ComponentClass):
 
 class Blade_Disk(inv.ComponentClass):
     def __init__(self, sName, sModel, sPN, sSN, iSizeGB):
+        super().__init__(sName, sSN)
         self.sName = sName
         self.dDiskData = {
             "model": sModel,
@@ -499,10 +537,14 @@ class Blade_Disk(inv.ComponentClass):
             self.sName + " Size", sAppName=self.sName,
             dParams={'key': "{}_{}_Size".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
                      'value_type': 3, 'units': 'GB', 'description': _('Disk capacity in GB')})
-        oModelItem._SendValue(self.dData['model'], oZbxSender)
-        oPN_Item._SendValue(self.dData['pn'], oZbxSender)
-        oSN_Item._SendValue(self.dData['sn'], oZbxSender)
-        oSize_Item._SendValue(self.dData['size'], oZbxSender)
+        if self.oTriggers:
+            self.oTriggers._AddChangeTrigger(oSN_Item, _('Disk serial number is changed'), 'warning')
+            self.oTriggers._AddNoDataTrigger(oSN_Item, _('Cannot receive disk serial number in two days'),
+                                             'average', NODATA_THRESHOLD)
+        oModelItem._SendValue(self.dDiskData['model'], oZbxSender)
+        oPN_Item._SendValue(self.dDiskData['pn'], oZbxSender)
+        oSN_Item._SendValue(self.dDiskData['sn'], oZbxSender)
+        oSize_Item._SendValue(self.dDiskData['size'], oZbxSender)
         return
 
 

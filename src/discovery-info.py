@@ -150,7 +150,7 @@ def _oGetCLIParser():
 if __name__ == '__main__':
     logging.config.dictConfig(dLoggingConfig)
     oLog = logging.getLogger('Discovery')
-    oLog.debug('Starting Discovery-info program')
+    oLog.info('<<< Starting Discovery-info program')
     # oLog.debug(" ".join(sys.argv))
     oParser = _oGetCLIParser()
     sRet = "Not implemented yet"
@@ -162,6 +162,7 @@ if __name__ == '__main__':
     except Exception as e:
         oLog.error("Exception at top-level {}".format(str(e)))
         iRetCode = 1
+    oLog.info('>>> Discovery-info program finished')
     exit(iRetCode)
 
 # vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4 : autoindent

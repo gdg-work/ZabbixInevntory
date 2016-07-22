@@ -221,6 +221,8 @@ class WBEM_Info:
             except exVCenterError as e:
                 oLog.error("Error requesting ticket from vCenter" + str(e))
                 tsCreds = None
+                raise WBEM_Exception(
+                    'Invalid authentication data for vCenter ticket to host {}'.format(sHost))
         # now put a credentials to use, request connection from a server
         try:
             self.oConn = pywbem.WBEMConnection(sUrl, tsCreds, no_verification=True)
