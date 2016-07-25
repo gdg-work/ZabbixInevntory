@@ -98,6 +98,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
 
     def __fillFromIPMI(self, dIPMIaccess):
         """ create IPMI object in this host, fill in data for that object"""
+        oLog.warning('IPMI access called for server {}, BMC IP: {}'.format(self.sName, dIPMIaccess['ip']))
         self.oIPMI_Interface = ipmi.IPMIhost(dIPMIaccess['ip'], dIPMIaccess['user'], dIPMIaccess['pass'])
         self.lFruList = self.oIPMI_Interface._loFruList()
         return

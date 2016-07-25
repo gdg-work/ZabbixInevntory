@@ -103,6 +103,28 @@ class PowerHostClass(inv.GenericServer):
         return sFromCmd
 
     def _Fill_HMC_Data(self):
+
+        def _dDrcName_to_ID(lAdapterNames):
+            """convert DRC name from format like "U789D.001.DQD81N6-P1-C2" to something like
+            "box1-P1-C2"""
+            dNamesByBoxes = {}
+            for sName in lAdapterNames:
+                sBoxID = sName.split('-', maxsplit=1)[0]
+                if sBoxID in dNamesByBoxes:
+                    dNamesByBoxes[sBoxID].append(sName)
+                else:
+                    dNamesByBoxes[sBoxID] = [sName]
+            # now we have we have names arranged by boxes. Let's sort and rename the boxes.
+            lBoxNames = list(dNamesByBoxes.keys())
+            lBoxNames.sort()
+            dResult = {}
+            for iBoxNum in range(0, len(lBoxNames)):
+                lItems = dNamesByBoxes[lBoxNames[iBoxNum]]
+                for i in lItems:
+                    sSuffix = "".join(i.split('-')[-2:])
+                    dResult[i] = "Bx{}-{}".format(iBoxNum + 1, sSuffix)
+            return dResult
+
         oAuth = MySSH.AuthData(self.sSpUser, bUseKey=False, sPasswd=self.sSpPass)
         oHmcConn = MySSH.MySSHConnection(self.sHmcIP, DEFAULT_SSH_PORT, oAuth)
         # Memory
@@ -126,14 +148,21 @@ class PowerHostClass(inv.GenericServer):
             self.iMemGBs, self.iTotalCores, self.sType, self.sModel, self.sSerialNum))
         # adapters
         iterData = csv.DictReader(lOut[3].split('\n'), fieldnames=lFields)
+        lAdapters = []
         for d in iterData:
             if d['description'] == 'Empty slot':
                 pass        # skip empty slots
             else:
-                # oLog.debug('Current self.oAdapters content: ' + str(self.oAdapters.items()))
-                oAdapter = IBM_Power_Adapter(d['description'], d['bus_id'], d['drc_name'])
-                oAdapter._ConnectTriggerFactory(self.oTriggers)
-                self.oAdapters._append(oAdapter)
+                lAdapters.append(d)
+        # now we have a list of dictionaries with adapters data, but we need to alter our BUS IDs
+        # so there will be no duplicates. I think the good format will be as in RAM, box-id.
+        # drc_name is of kind: U789D.001.DQD81N6-P1-C2, 'DQD81N6' is a s/n of the box.
+        dConversion = _dDrcName_to_ID([a['drc_name'] for a in lAdapters])
+        for d in lAdapters:
+            # oLog.debug('Current self.oAdapters content: ' + str(self.oAdapters.items()))
+            oAdapter = IBM_Power_Adapter(d['description'], dConversion[d['drc_name']], d['drc_name'])
+            oAdapter._ConnectTriggerFactory(self.oTriggers)
+            self.oAdapters._append(oAdapter)
         return
 
     def _FillFromAIX(self):
@@ -356,6 +385,7 @@ class PowerHostClass(inv.GenericServer):
 
 
 class IBM_Power_Adapter(inv.ComponentClass):
+
     def __init__(self, sName, sBusID, sLocation):
         self.sName = sName
         self.sBusID = sBusID
@@ -378,7 +408,8 @@ class IBM_Power_Adapter(inv.ComponentClass):
     def _sGetName(self):
         return self.sName
 
-    def _sBusID(self):
+    @property
+    def busId(self):
         return self.sBusID
 
     def _MakeAppsItems(self, oZbxHost, oZbxSender):
@@ -386,12 +417,12 @@ class IBM_Power_Adapter(inv.ComponentClass):
         oZbxHost._oAddApp(sAppName)
         oNameItem = oZbxHost._oAddItem(
             sAppName + " Type", sAppName,
-            dParams={'key': "Adapter_{}_of_{}_Type".format(self.sBusID, oZbxHost._sName()),
+            dParams={'key': zi._sMkKey(self.sBusID, oZbxHost.name, 'Type'),
                      'description': _('Type of adapter')})
         oNameItem._SendValue(self.sName, oZbxSender)
         oPosItem = oZbxHost._oAddItem(
             sAppName + " Position", sAppName,
-            dParams={'key': "Adapter_{}_of_{}_Pos".format(self.sBusID, oZbxHost._sName()),
+            dParams={'key': zi._sMkKey(self.sBusID, oZbxHost._sName(), 'Pos'),
                      'description': _('Position of adapter in the machine')})
         oPosItem._SendValue(self.sLocation, oZbxSender)
         if self.oTriggers is not None:

@@ -349,7 +349,9 @@ class BladeWithAMM(inv.GenericServer):
             else:
                 self.oWBEM_Disks = wd.WBEM_Disks(self.sName, self.sUser, self.sPass)
         except wd.WBEM_Disk_Exception as e:
-            oLog.error('WBEM error when initializing WBEM_Disks interface, msg: {}'.format(str(e)))
+            oLog.error(
+                'WBEM error when initializing WBEM_Disks interface of server {}, msg: {}'.format(
+                    self.sName, str(e)))
             ldDicts = []
             raise(e)
         try:
