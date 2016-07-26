@@ -59,18 +59,21 @@ dLoggingConfig = yaml.load("""
             level: DEBUG
             handlers: [ console, logfile ]
         ibm_Power_AIX:
-            level: DEBUG
+            level: INFO
             handlers: [ console, logfile ]
         ibm_BladeCenter_AMM:
-            level: DEBUG
+            level: INFO
             handlers: [ console, logfile ]
         FeedData:
             level: INFO
             handlers: [ console, logfile ]
         MySSH:
-            level: DEBUG
+            level: INFO
             handlers: [ console, logfile ]
         WBEM_vmware:
+            level: INFO
+            hadnlers: [console, logfile ]
+        ESXi_WBEM_host:
             level: DEBUG
             hadnlers: [console, logfile ]
     """)

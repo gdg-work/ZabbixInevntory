@@ -13,8 +13,6 @@ from local import NODATA_THRESHOLD
 
 oLog = logging.getLogger(__name__)
 
-# _sMkKey_ = zi._sMkKey
-
 
 class ESXi_WBEM_Host(inv.GenericServer):
     def __init__(self, sFQDN, sUser, sPass, sVCenter, **dParams):
@@ -26,6 +24,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
         # IPMI information from dParams dictionary
         self.dIPMIaccess = {}
         if dParams.get('sMgtIP', None) is not None:
+            oLog.warning('Server {}, requested IPMI via {}'.format(self.sName, dParams.get('sMgtIP', '')))
             self.dIPMIaccess = {'ip':   dParams.get('sMgtIP', None),
                                 'user': dParams.get('sMgtUser', None),
                                 'pass': dParams.get('sMgtPass', None)}
@@ -54,16 +53,13 @@ class ESXi_WBEM_Host(inv.GenericServer):
         self.iPSAmount = 0
         # receive information
         # receive info from IPMI
-        if len(self.dIPMIaccess) > 0:
-            self.__fillFromIPMI(self.dIPMIaccess)
-            self._ClarifyMemFromIPMI()
         return
 
     def _ConnectTriggerFactory(self, oTriggersFactory):
         self.oTriggers = oTriggersFactory
         return
 
-    def __fillData(self):
+    def __FillData(self):
         for fun in [self._HostInfoFromWBEM,
                     self._MemFromWBEM,
                     self._CpuFromWBEM,
@@ -79,12 +75,19 @@ class ESXi_WBEM_Host(inv.GenericServer):
             except wbem.WBEM_Disk_Exception as e:
                 oLog.error("WBEM disk interface exception in {}".format(str(fun)))
                 continue
+            except wbem.WBEM_PowerSupply_Exception as e:
+                oLog.error('WBEM power supply access exception in __FillData' + str(e))
+                continue
             except pywbem.cim_operations.CIMError as e:
-                oLog.error("CIM error in function " + str(fun))
+                oLog.error("CIM error in function " + str(fun.__name__))
                 continue
             except Exception as e:
-                oLog.error("Unhandled exception in __fillData")
+                oLog.error("Unhandled exception in __FillData")
                 oLog.error(str(e))
+        if len(self.dIPMIaccess) > 0:
+            oLog.warning('IPMI access requested, data is: ' + str(self.dIPMIaccess))
+            self.__fillFromIPMI(self.dIPMIaccess)
+            self._ClarifyMemFromIPMI()
         return
 
     def __repr__(self):
@@ -216,7 +219,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
 
     def _MakeAppsItems(self):
         """Creates applications and items on Zabbix server and sends data to Zabbix"""
-        self.__fillData()    # receive information from WBEM
+        self.__FillData()    # receive information from WBEM
         if self.oZbxHost:
             # zabbix interface is defined
             self.oZbxHost._oAddApp('System')
@@ -330,15 +333,16 @@ class Memory_DIMM(inv.ComponentClass):
 
     def _MakeAppsItems(self, oZbxHost, oZbxSender):
         """Make applications, items and send values to Zabbix"""
-        oZbxHost._oAddApp(self.sName)     # DIMM #
+        sApplication = self.sName
+        oZbxHost._oAddApp(sApplication)     # DIMM #
         oPosItem = oZbxHost._oAddItem(
-            self.sName + " Position", sAppName=self.sName,
-            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "Pos"),
-                     'value_type': 2,
+            sApplication + " Position", sAppName=sApplication,
+            dParams={'key': zi._sMkKey(oZbxHost._sName(), sApplication, "Pos"),
+                     'value_type': 1,
                      'description': _("Position in the host")})
         oSize_Item = oZbxHost._oAddItem(
-            self.sName + " Size", sAppName=self.sName,
-            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "SizeGB"),
+            sApplication + " Size", sAppName=sApplication,
+            dParams={'key': zi._sMkKey(oZbxHost._sName(), sApplication, "SizeGB"),
                      'value_type': 3, 'units': 'GB',
                      'description': _('Size of memory unit in GiB')})
         oPosItem._SendValue(self.dData['pos'], oZbxSender)
@@ -350,16 +354,16 @@ class Memory_DIMM(inv.ComponentClass):
 
         if 'pn' in self.dData:
             oPNItem = oZbxHost._oAddItem(
-                self.sName + " Part Number", sAppName=self.sName,
-                dParams={'key': zi._sMkKey(self.sName, 'PN'),
-                         'value_type': 2,
+                sApplication + " Part Number", sAppName=sApplication,
+                dParams={'key': zi._sMkKey(sApplication, 'PN'),
+                         'value_type': 1,
                          'description': _("DIMM part number")})
             oPNItem._SendValue(self.dData['pn'], oZbxSender)
         if 'sn' in self.dData:
             oSNItem = oZbxHost._oAddItem(
-                self.sName + " Serial Number", sAppName=self.sName,
-                dParams={'key': zi._sMkKey(self.sName, 'SN'),
-                         'value_type': 2,
+                sApplication + " Serial Number", sAppName=sApplication,
+                dParams={'key': zi._sMkKey(sApplication, 'SN'),
+                         'value_type': 1,
                          'description': _("DIMM serial number")})
             oSNItem._SendValue(self.dData['sn'], oZbxSender)
             if self.oTriggers:

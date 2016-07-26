@@ -62,6 +62,11 @@ class WBEM_Memory_Exception(WBEM_Exception):
 class WBEM_CPU_Exception(WBEM_Exception):
     pass
 
+class WBEM_PowerSupply_Exception(WBEM_Exception):
+    pass
+
+class WBEM_HBA_Exception(WBEM_Exception):
+    pass
 
 class WBEM_System_Exception(WBEM_Exception):
     pass
@@ -235,7 +240,13 @@ class WBEM_Info:
     def _ldGetInfoFromWBEM(self, sNS, sClass):
         """returns WBEM instances as a list of dictionaries with 'None'-valued keys removed"""
         lData = []
-        for oInstance in self.oConn.EnumerateInstances(namespace=sNS, ClassName=sClass):
+        try:
+            lInstances = self.oConn.EnumerateInstances(namespace=sNS, ClassName=sClass)
+        except Exception as e:
+            oLog.error('CIM error in _ldGetInfoFromWBEM: '+ str(e))
+            raise WBEM_Exception('Cannot receive information from WBEM in _ldGetInfoFromWBEM()')
+
+        for oInstance in lInstances:
             dOut = {}
             for k, v in oInstance.items():
                 if v is not None:
@@ -367,14 +378,17 @@ class WBEM_HBAs(WBEM_Info):
             super().__init__(sHost, sUser, sPass, sVCenter, iPort)
         except WBEM_Exception as e:
             oLog.error('Error scanning HBAs: ' + str(e))
-            raise WBEM_Exception
+            raise WBEM_HBA_Exception(str(e))
 
     def __repr__(self):
         return "VMware HBA info access class: host={}".format(str(self.oConn))
 
     def _ldReportAdapters(self):
         ldRet = []
-        loFCADaptersData = self._ldGetInfoFromWBEM(self.sMyNS, self.sMyClass)
+        try:
+            loFCADaptersData = self._ldGetInfoFromWBEM(self.sMyNS, self.sMyClass)
+        except WBEM_Exception as e:
+            raise WBEM_HBA_Exception("Error reporting HBAs:" + str(e))
         # return only the relevant information
         for oHBAData in loFCADaptersData:
             dRet = {}
@@ -400,8 +414,11 @@ class WBEM_System(WBEM_Info):
 
     def _dGetInfo(self):
         dRet = {}
-        ldGen = self._ldGetInfoFromWBEM(self.sMyNS, self.dMyClassNames['gen'])
-        ldSpec = self._ldGetInfoFromWBEM(self.sMyNS, self.dMyClassNames['spec'])
+        try:
+            ldGen = self._ldGetInfoFromWBEM(self.sMyNS, self.dMyClassNames['gen'])
+            ldSpec = self._ldGetInfoFromWBEM(self.sMyNS, self.dMyClassNames['spec'])
+        except WBEM_Exception as e:
+            raise WBEM_System_Exception(e)
         # list ldGen usually have 1 element, and ldSpec two, we are interested in [0].
         for dSys in ldGen:
             assert(dSys['CreationClassName'] == 'OMC_UnitaryComputerSystem')
@@ -523,7 +540,7 @@ class WBEM_PowerSupplySet(WBEM_Info):
         try:
             super().__init__(sHost, sUser, sPass, sVCenter, iPort)
         except WBEM_Exception as e:
-            raise WBEM_System_Exception(e)
+            raise WBEM_PowerSupply_Exception('WBEM_PowerSupplySet: error in __init__: ' + str(e))
         return
 
     def __lGetPwrSupplyNames(self):
@@ -533,7 +550,7 @@ class WBEM_PowerSupplySet(WBEM_Info):
             lPSProfiles = self._loGetInstanceNames(sClass=self.sProfileClassName, sNS='root/interop')
         except Exception as e:
             oLog.error('Cannot enumerate Power Supplies class, something is really wrong')
-            raise WBEM_System_Exception('Cannot enumerate PS class')
+            raise WBEM_PowerSupply_Exception('Cannot enumerate PS class')
         # print(lPSProfiles)
         for oProfName in lPSProfiles:
             lPSs = self.oConn.AssociatorNames(oProfName, ResultClass=self.sPwrSupplyClassName)
