@@ -378,6 +378,7 @@ class PowerHostClass(inv.GenericServer):
             # Adapters, disks, PS, etc.
             for oObj in (list(self.oAdapters.values()) + self.lDisks + self.lPwrSupplies + self.lDIMMs):
                 oObj._MakeAppsItems(self.oZbxHost, self.oZbxSender)
+            self.oZbxHost._MakeTimeStamp(self.oZbxSender)
         else:
             oLog.error("Zabbix interface isn't initialized yet")
             raise expHMC_Error("Zabbix isn't connected yet")

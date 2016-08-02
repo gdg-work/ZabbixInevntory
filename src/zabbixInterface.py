@@ -8,6 +8,7 @@ from uuid import uuid4
 from copy import copy   # copy of Python objects
 import re
 import json
+import time
 
 oLog = getLogger(__name__)
 
@@ -79,15 +80,22 @@ class GeneralZabbix:
         self.iZabbixPort = iZabbixPort
         self.dApplicationNamesToIds = {}
         self.sHostName = sHostName
+        self.ldApplications = []
+        self.dItemNames = {}
+        self.dAppIds = {}
+        self.dApps = {}
         # self.sArrayName = sHostName
         self.sHostID = ''
+        self.iHostID = 0
         try:
             self.oZapi = ZabbixAPI(url=self.sZabbixURL, user=sZabUser, password=sZabPwd)
+            self.oAPI = self.oZapi
             self.oZSend = ZabbixSender(zabbix_server=self.sZabbixIP, zabbix_port=self.iZabbixPort)
             lsHosts = self.oZapi.host.get(filter={"host": sHostName})
             if len(lsHosts) > 0:
                 # Just use the first host
                 self.sHostID = str(lsHosts[0]['hostid'])
+                self.iHostID = int(self.sHostID)
                 oLog.debug("host ID of host {1}: {0}".format(self.sHostID, self.sHostName))
             else:
                 oLog.error("Invalid or non-existent host in Zabbix")
@@ -154,6 +162,104 @@ class GeneralZabbix:
             self.oZSend.send(loMetrics)
         else:
             pass   # dont send empty metrics
+        return
+
+    def _iGetHostID(self):
+        return int(self.sHostID)
+
+    def _sName(self):
+        return self.sHostName
+
+    def _bHasApplication(self, sAppName):
+        sAppName = sAppName.lower()
+        ldApplications = self.oZapi.do_request('application.get', {'hostids': self.sHostID})
+        for dApp in ldApplications['result']:
+            sNewName = dApp['name'].lower()
+            sNewID = dApp['applicationid']
+            self.dAppIds[sNewName] = dApp['applicationid']
+            self.dApps[sNewID] = ZabbixApplication(sNewName, self, dApp)
+        bRet = (sAppName in self.dAppIds)
+        return bRet
+
+    def _bHasItem(self, sItemName):
+        bRet = False
+        sItemName = sItemName.lower()
+        dGetItem = {'hostids': self.sHostID,
+                    'search': {'name': sItemName}}
+        dItems = self.oZapi.do_request('item.get', dGetItem)
+        oLog.debug('_bHasItem: result of item.get() is {}'.format(str(dItems)))
+        if len(dItems['result']) > 0:
+            # matching item(s) found
+            for dItemDict in dItems['result']:
+                oLog.debug("Item found: {}".format(str(dItemDict)))
+                # sName = dItemDict['name'].lower()
+                # dItemDict['key'] = dItemDict.get('key_')    # from the Zabbix parameter 'key_'
+            bRet = True
+        else:
+            # No item found
+            bRet = False
+        return bRet
+
+    def _oGetItem(self, sItemName):
+        """returns item object by name"""
+        sItemName = sItemName.lower()
+        if self._bHasItem(sItemName):
+            return self.dItemNames.get(sItemName, None)
+        else:
+            return None
+
+    def _oGetApp(self, sAppName):
+        sAppName = sAppName.lower()
+        if self._bHasApplication(sAppName):
+            return self.dApps[self.dAppIds[sAppName]]
+        else:
+            return None
+
+    def _oAddApp(self, sAppName):
+        # sAppName = sAppName.lower()
+        if self._bHasApplication(sAppName):
+            # already have this app
+            oApp = self._oGetApp(sAppName)
+        else:
+            oApp = ZabbixApplication(sAppName, self)
+            oApp._NewApp(sAppName)
+            self.dAppIds[sAppName] = oApp._iGetID
+            self.dApps[oApp._iGetID] = oApp
+        return oApp
+
+    def _oAddItem(self, sItemName, sAppName='', dParams=None):
+        # sItemName = sItemName.lower()
+        if self._bHasItem(sItemName):
+            # already have that item
+            oItem = self._oGetItem(sItemName)
+            oLog.debug('Already have that item, returned {}'.format(str(oItem)))
+        else:
+            # need to create item
+            oItem = ZabbixItem(sItemName, self, dParams)
+            self.dItemNames[sItemName] = oItem
+            if sAppName != '':
+                oApp = self._oGetApp(sAppName)
+                oItem._LinkWithApp(oApp)
+            oItem._NewZbxItem()
+            oLog.debug('Created a new item, returned {}'.format(str(oItem)))
+        return oItem
+
+    def _MakeTimeStamp(self):
+        """make an application and item (if there are no), send current timestamp as a TS of last update"""
+        sTSAppName = 'Timestamps'
+        sItemName = 'Last updated'
+        if not self._bHasApplication(sTSAppName):
+            self._oAddApp(sTSAppName)
+        if self._bHasItem(sItemName):
+            oTimeStamp_Item = self._oGetItem(sItemName)
+        else:
+            oTimeStamp_Item = self._oAddItem(
+                sItemName, sAppName=sTSAppName,
+                dParams={'key': "Update_Time", 'value_type': 3, 'units': 's',
+                         'description': 'Date and time of last data update'})
+        # now the application and item must exist
+        if oTimeStamp_Item is not None:
+            oTimeStamp_Item._SendValue(int(time.time()), self.oZSend)
         return
 
 
@@ -661,7 +767,7 @@ class ZabbixHost:
             bRet = (sAppName in self.dAppIds)
         return bRet
 
-    def _bHasItem(self, sItemName, iAppID=0):
+    def _bHasItem(self, sItemName):
         bRet = False
         sItemName = sItemName.lower()
         if sItemName in self.dItemNames:
@@ -749,6 +855,23 @@ class ZabbixHost:
             return self.dApps[self.dAppIds[sAppName]]
         else:
             return None
+
+    def _MakeTimeStamp(self, oSender):
+        """make an application and item (if there are no), send current timestamp as a TS of last update"""
+        sTSAppName = 'Timestamps'
+        sItemName = 'Last updated'
+        if not self._bHasApplication(sTSAppName):
+            self._oAddApp(sTSAppName)
+        if self._bHasItem(sItemName):
+            oTimeStamp_Item = self._oGetItem(sItemName)
+        else:
+            oTimeStamp_Item = self._oAddItem(
+                sItemName, sAppName=sTSAppName,
+                dParams={'key': "Update_Time", 'value_type': 3, 'units': 's',
+                         'description': 'Date and time of last data update'})
+        # now the application and item must exist
+        oTimeStamp_Item._SendValue(int(time.time()), oSender)
+        return
 
 
 class ZabbixApplication:

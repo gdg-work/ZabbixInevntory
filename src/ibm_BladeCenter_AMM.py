@@ -9,6 +9,7 @@ import zabbixInterface as zi
 import WBEM_vmware as wd
 from i18n import _
 from local import NODATA_THRESHOLD
+from ESXi_WBEM_host import _sNormDimmName
 import re
 
 # Constants
@@ -219,8 +220,10 @@ class BladeWithAMM(inv.GenericServer):
 
     def _FillDIMMs(self, llData):
         self.lDIMMs = []
+        iTotalGB = 0
         for lsCpuDesc in llData:
-            sName, sPN, sSN, sType, iSizeGB, iTotalGB = ("", "", "", "", 0, 0)
+            sName, sPN, sSN, sType, iSizeGB = ("", "", "", "", 0)
+            oLog.debug('Found DIMMs with size: ' + str(iTotalGB))
             for s in lsCpuDesc:
                 if s[:16] == 'Mach type/model:':
                     sName = s[17:]
@@ -330,6 +333,8 @@ class BladeWithAMM(inv.GenericServer):
             lComps = self.lCPUs + self.lDIMMs + self.lExps + self.lDisks
             for o in lComps:
                 o._MakeAppsItems(self.oZbxHost, self.oZbxSender)
+            # make a time stamp
+            self.oZbxHost._MakeTimeStamp(self.oZbxSender)
             oLog.info('Finished making Zabbix items and triggers')
         else:
             oLog.error("Zabbix interface isn't initialized yet")
@@ -357,7 +362,7 @@ class BladeWithAMM(inv.GenericServer):
         try:
             ldDicts = self.oWBEM_Disks._ldReportDisks()
         except wd.WBEM_Disk_Exception as e:
-            oLog.error('WBEM error when collecting information')
+            oLog.error('WBEM error when collecting information: ' + self.sName)
             raise(e)
 
         for dDiskData in ldDicts:
@@ -430,7 +435,7 @@ class Blade_CPU(inv.ComponentClass):
 
 class Blade_DIMM(inv.ComponentClass):
     def __init__(self, sName, sPN, sSN, sType, iSizeGB):
-        self.sName = sName
+        self.sName = _sNormDimmName(sName)
         super().__init__(sName, sSN)
         self.dData = {'pn': sPN, 'sn': sSN, 'type': sType, 'size_gb': iSizeGB}
         return
@@ -441,7 +446,7 @@ class Blade_DIMM(inv.ComponentClass):
 
     def _MakeAppsItems(self, oZbxHost, oZbxSender):
         """Make applications, items and send values to Zabbix"""
-        oZbxHost._oAddApp(self.sName)     # DIMM #
+        oZbxHost._oAddApp(self.sName)     # DIMM XX
         oTypeItem = oZbxHost._oAddItem(
             self.sName + " Type", sAppName=self.sName,
             dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "Type"),

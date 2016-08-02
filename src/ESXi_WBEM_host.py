@@ -14,6 +14,44 @@ from local import NODATA_THRESHOLD
 oLog = logging.getLogger(__name__)
 
 
+def _sNormDimmName(sName: str):
+    """The function will normalize DIMM names, such as:
+    DIMM01  -> DIMM 01
+    DIMM7   -> DIMM 07
+    DIMM 2  -> DIMM 02
+    DIMM 17 -> DIMM 17
+    sName looked at as three-part string: first is a label (letters only),
+    2nd is a number (digits only), rest is void.
+    """
+    sLabel, sNumber = ("", "")
+    bFillLabel, bFillNumber = (True, True)
+    sName = sName.strip()
+    for sChar in sName:
+        # print("*DBG* Processing char: " + sChar)
+        if sChar.isalpha() and bFillLabel:
+            # print("*DBG* in label")
+            sLabel += sChar
+        elif sChar.isnumeric() and bFillNumber:
+            # print("*DBG* in number")
+            bFillLabel = False  # end of label
+            sNumber += sChar
+        elif sChar.isspace() or sChar in '_-+:':
+            # print("*DBG* space")
+            if bFillLabel:
+                sLabel += sChar
+            elif bFillNumber:
+                bFillNumber = False
+        else:
+            # label is competed and non-digit occurs
+            bFillNumber = False
+            # print("*DBG* end of processing")
+    # now we have label and number separated
+    iNum = int(sNumber)
+    sLabel = sLabel.strip()
+    sRes = "{0} {1:02d}".format(sLabel, iNum)
+    return sRes
+
+
 class ESXi_WBEM_Host(inv.GenericServer):
     def __init__(self, sFQDN, sUser, sPass, sVCenter, **dParams):
         """sAMM_Name is a name of the server in AMM"""
@@ -32,7 +70,6 @@ class ESXi_WBEM_Host(inv.GenericServer):
         self.sSerialNum = ''
         self.sProdNum = ''
         self.sVendor = ''
-        self.iTotalRAMgb = 0
         self.iTotalCores = 0
         self.iDIMMs = 0
         self.iCPUs = 0
@@ -75,11 +112,17 @@ class ESXi_WBEM_Host(inv.GenericServer):
             except wbem.WBEM_Disk_Exception as e:
                 oLog.error("WBEM disk interface exception in {}".format(str(fun)))
                 continue
+            except wbem.WBEM_HBA_Exception as e:
+                oLog.error('WBEM HBA information access exception in __FillData' + str(e))
+                continue
             except wbem.WBEM_PowerSupply_Exception as e:
                 oLog.error('WBEM power supply access exception in __FillData' + str(e))
                 continue
             except pywbem.cim_operations.CIMError as e:
                 oLog.error("CIM error in function " + str(fun.__name__))
+                continue
+            except wbem.WBEM_Exception as e:
+                oLog.error('Unknown WBEM exception in __FillData: ' + str(e))
                 continue
             except Exception as e:
                 oLog.error("Unhandled exception in __FillData")
@@ -281,6 +324,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
             for o in lComps:
                 o._ConnectTriggerFactory(self.oTriggers)
                 o._MakeAppsItems(self.oZbxHost, self.oZbxSender)
+            self.oZbxHost._MakeTimeStamp(self.oZbxSender)
         else:
             oLog.error("Zabbix interface isn't initialized yet")
             raise Exception("Zabbix isn't connected yet")
@@ -291,7 +335,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
 
 class Memory_DIMM(inv.ComponentClass):
     def __init__(self, sName, sPosition, iSizeGB):
-        self.sName = sName
+        self.sName = _sNormDimmName(sName)
         self.dData = {'pos': sPosition, 'size_gb': iSizeGB}
         return
 

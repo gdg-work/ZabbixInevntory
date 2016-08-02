@@ -62,11 +62,14 @@ class WBEM_Memory_Exception(WBEM_Exception):
 class WBEM_CPU_Exception(WBEM_Exception):
     pass
 
+
 class WBEM_PowerSupply_Exception(WBEM_Exception):
     pass
 
+
 class WBEM_HBA_Exception(WBEM_Exception):
     pass
+
 
 class WBEM_System_Exception(WBEM_Exception):
     pass
@@ -199,8 +202,11 @@ def _ldGetDiskParametersFromWBEM(oConnection, sNS):
         oLog.debug("== No disk classes found, but I found some other: ==\n{}".format(
             "\n".join(lOtherClasses)))
     else:
-        lDDrives = oConnection.EnumerateInstances(namespace=sNS, ClassName=sDiskClass)
-        lPDisks = oConnection.EnumerateInstances(namespace=sNS, ClassName=sPhysDiskClass)
+        try:
+            lDDrives = oConnection.EnumerateInstances(namespace=sNS, ClassName=sDiskClass)
+            lPDisks = oConnection.EnumerateInstances(namespace=sNS, ClassName=sPhysDiskClass)
+        except pywbem.cim_operations.CIMError as e:
+            raise WBEM_Exception(e)
         assert (len(lDDrives) == len(lPDisks))
         for oDsk, oPhy in zip(lDDrives, lPDisks):
             # check if Tags of both objects are the same
@@ -243,7 +249,7 @@ class WBEM_Info:
         try:
             lInstances = self.oConn.EnumerateInstances(namespace=sNS, ClassName=sClass)
         except Exception as e:
-            oLog.error('CIM error in _ldGetInfoFromWBEM: '+ str(e))
+            oLog.error('CIM error in _ldGetInfoFromWBEM: ' + str(e))
             raise WBEM_Exception('Cannot receive information from WBEM in _ldGetInfoFromWBEM()')
 
         for oInstance in lInstances:
@@ -571,7 +577,7 @@ class WBEM_PowerSupplySet(WBEM_Info):
 
 if __name__ == "__main__":
     # access for a test system
-    from access import demohs21_host as tsys
+    from access import demohs21_9_10 as tsys
     # from access import demobl460_host as tsys
 
     # logging setup
@@ -582,27 +588,27 @@ if __name__ == "__main__":
 
     # for d in ld:
     #     print("\n".join([str(t) for t in d.items()]))
-    # oMem = WBEM_Memory(sHostIP, sUser, sPass, iPort)
-    # print("\n".join([str(d.items()) for d in oMem._ldGetInfo()]))
+    oMem = WBEM_Memory(tsys.sHostLong, tsys.sUser, tsys.sPass)
+    print("\n".join([str(d.items()) for d in oMem._ldGetInfo()]))
 
-    # oProc = WBEM_CPU(sHostIP, sUser, sPass, sVCenter='vcenter.hostco.ru')
-    # print("\n".join([str(d.items()) for d in oProc._ldGetInfo()]))
+    oProc = WBEM_CPU(tsys.sHostLong, tsys.sUser, tsys.sPass)
+    print("\n".join([str(d.items()) for d in oProc._ldGetInfo()]))
 
-    # oAdapters = WBEM_PCI_Adapters(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
-    # oAdapters = WBEM_HBAs(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
+    oAdapters = WBEM_PCI_Adapters(tsys.sHostLong, tsys.sUser, tsys.sPass)
+    oAdapters = WBEM_HBAs(tsys.sHostLong, tsys.sUser, tsys.sPass)
     # print("\n".join([str(d.items()) for d in oAdapters._ldGetInfo()]))
 
-    # oAdapters = WBEM_HBAs(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
-    oSys = WBEM_System(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
-    # oSys = WBEM_System(tsys.sHostIP, tsys.sUser, tsys.sPass)
+    oAdapters = WBEM_HBAs(tsys.sHostLong, tsys.sUser, tsys.sPass)
+    oSys = WBEM_System(tsys.sHostLong, tsys.sUser, tsys.sPass)
+    oSys = WBEM_System(tsys.sHostIP, tsys.sUser, tsys.sPass)
     # print("\n".join(oSys._ssGetNameSpaces()))
-    # print(oSys._sGetHBANameSpace())
+    print(oSys._sGetHBANameSpace())
     for i in oSys._loGetHBAInstances():
         print("\n".join([str(k) + "=" + str(v) for k, v in i.items()]))
 
     print(oSys._loGetIntegratedDiskControllers())
 
-    oPS = WBEM_PowerSupplySet(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
+    oPS = WBEM_PowerSupplySet(tsys.sHostLong, tsys.sUser, tsys.sPass)
     print(oPS._iGetPwrSuppliesAmount())
 
 # vim: expandtab:tabstop=4:softtabstop=4:shiftwidth=4

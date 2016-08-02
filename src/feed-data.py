@@ -241,17 +241,26 @@ def _lGetListOfSomething(sArrayName, oArray, dZbxInfo, sParamName, oZI_Object):
 
 
 def _GetArrayParameters(sArrayName, oArray, dZbxInfo):
-    ssItemsToRemove = set(['disk-names', 'ctrl-names', 'shelf-names', 'node-names',
-                           'switch-names', 'ups-names', 'dimm-names', 'cf-names'])
+    # ssItemsToRemove = set(['disk-names', 'ctrl-names', 'shelf-names', 'node-names',
+    #                        'switch-names', 'ups-names', 'dimm-names', 'cf-names'])
     oArZabCon = _fPrepareZbxConnection(zi.ArrayToZabbix, sArrayName, dZbxInfo)
     ssKeys = set(oArray.dQueries.keys())
+
     # XXX Подумать - возможно, тут лучше выкинуть из множества все элементы, в которых есть
     # суффикс -names, то есть запросы списков компонентов XXX
     # make a difference of the sets
-    ssKeys = ssKeys.difference(ssItemsToRemove)
+    # ssKeys = ssKeys.difference(ssItemsToRemove)
+
+    ssRemovedItems = set([])
+    for s in ssKeys:
+        if '-names' in s:
+            ssRemovedItems.add(s)
+    ssKeys = ssKeys.difference(ssRemovedItems)
+
     # oLog.debug('_GetArrayParameters: keys are: ' + str(ssKeys))
     dArrayInfo = oArray._dGetArrayInfoAsDict(ssKeys)
     oArZabCon._SendInfoToZabbix(sArrayName, dArrayInfo)
+    oArZabCon._MakeTimeStamp()
     # oLog.debug('_GetArrayParameters: Array info is {}'.format(str(dArrayInfo)))
     return
 
