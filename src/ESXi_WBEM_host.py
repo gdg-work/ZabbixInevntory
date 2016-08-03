@@ -210,19 +210,24 @@ class ESXi_WBEM_Host(inv.GenericServer):
         try:
             self.oDisksWBEM = wbem.WBEM_Disks(self.sName, self.sUser, self.sPass, sVCenter=self.sVCenter)
         except wbem.WBEM_Disk_Exception as e:
-            oLog.error("_sDiskFromWBEM: cannot retrieve controller's namespace")
+            oLog.error(
+                'WBEM error when initializing WBEM_Disks interface of server {}, msg: {}'.format(
+                    self.sName, str(e)))
             raise e
 
-        ldDisks = self.oDisksWBEM._ldReportDisks()
-        iDisks = 0
+        try:
+            ldDisks = self.oDisksWBEM._ldReportDisks()
+        except wbem.WBEM_Disk_Exception as e:
+            oLog.error('WBEM error collecting disks info from: ' + self.sName + 'error: ' + str(e))
+            raise(e)
+
         for dDisk in ldDisks:
             # print(str(dDisk))
-            iDisks += 1
             iDiskSize = int(dDisk.get('MaxMediaSize', 0)) // 2**20
             self.lDisks.append(DASD(dDisk['Name'], dDisk['Model'], dDisk['PartNumber'],
                                     dDisk.get('SerialNumber'), iDiskSize))
-        self.iDisksAmount = iDisks
-        oLog.debug(str(self.lDisks))
+        self.iDisksAmount = len(self.lDisks)
+        # oLog.debug(str(self.lDisks))
         return
 
     def _AdaptersFromWBEM(self):

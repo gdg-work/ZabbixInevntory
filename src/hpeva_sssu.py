@@ -394,7 +394,7 @@ class HP_EVA_Class(ClassicArrayClass):
                 iRet = len(oSoup.object.powersources.find_all(name='source'))
             except AttributeError:
                 # there are no 'powersources' attribute
-                oLog.warning('getControllerShelfPSUAmount: Controller enclosure without power sources!')
+                oLog.debug('getControllerShelfPSUAmount: Controller enclosure without power sources!')
                 iRet = 0
         else:
             iRet = 0

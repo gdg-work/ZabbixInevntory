@@ -39,25 +39,10 @@ D_KEYS = {'ctrl-names':   'LIST_OF_CONTROLLER_NAMES',
           "cf-names":     'LIST OF COMPACT FLASH MODULES',
           "switch-names": 'LIST OF SWITCHES'}
 RANDOM_ID_CHARS = string.ascii_uppercase + string.ascii_lowercase + string.digits
-# RE_DISK =       re.compile(r'^Drive\s+')
-# RE_ENCLOSURE =  re.compile(r'^DiskShelf\s+')
-# RE_CONTROLLER = re.compile(r'^Controller\s+')
-# RE_SYSTEM =     re.compile(r'^System\s*$')
-# RE_NODE =       re.compile(r'^Node\s*$')
-# RE_SWITCH =     re.compile(r'^Switch\s*$')
-# RE_UPS =        re.compile(r'^UPS\s*$')
 
 
 def _sRandomString(size=8, chars=RANDOM_ID_CHARS):
     return ''.join(random.choice(chars) for x in range(size))
-
-
-# def _sListOfStringsToJSON(lsStrings):
-#     """Converts list of strings to JSON data for Zabbix"""
-#     ID = '{#ID}'
-#     lRetList = [{ID: n} for n in lsStrings]
-#     dRetDict = {"data": lRetList}
-#     return json.dumps(dRetDict)
 
 
 def _oConnect2Redis(sConnInfo):
@@ -241,15 +226,8 @@ def _lGetListOfSomething(sArrayName, oArray, dZbxInfo, sParamName, oZI_Object):
 
 
 def _GetArrayParameters(sArrayName, oArray, dZbxInfo):
-    # ssItemsToRemove = set(['disk-names', 'ctrl-names', 'shelf-names', 'node-names',
-    #                        'switch-names', 'ups-names', 'dimm-names', 'cf-names'])
     oArZabCon = _fPrepareZbxConnection(zi.ArrayToZabbix, sArrayName, dZbxInfo)
     ssKeys = set(oArray.dQueries.keys())
-
-    # XXX Подумать - возможно, тут лучше выкинуть из множества все элементы, в которых есть
-    # суффикс -names, то есть запросы списков компонентов XXX
-    # make a difference of the sets
-    # ssKeys = ssKeys.difference(ssItemsToRemove)
 
     ssRemovedItems = set([])
     for s in ssKeys:
@@ -259,7 +237,7 @@ def _GetArrayParameters(sArrayName, oArray, dZbxInfo):
 
     # oLog.debug('_GetArrayParameters: keys are: ' + str(ssKeys))
     dArrayInfo = oArray._dGetArrayInfoAsDict(ssKeys)
-    oArZabCon._SendInfoToZabbix(sArrayName, dArrayInfo)
+    oArZabCon._SendInfoToZabbix(sArrayName, [dArrayInfo])  # _SendInfoToZabbox expects a LIST of DICTs
     oArZabCon._MakeTimeStamp()
     # oLog.debug('_GetArrayParameters: Array info is {}'.format(str(dArrayInfo)))
     return

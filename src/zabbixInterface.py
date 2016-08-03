@@ -64,8 +64,12 @@ def _sMkKey(*args):
                 sRes += '_'
             else:
                 sRes += '.' + hex(ord(cChar))[2:] + '.'
-        # print('_sMkKey: result is <' + sRes + '>')
         return sRes
+
+
+class ZabbixHostObject:
+    def __init__():
+        pass
 
 
 class GeneralZabbix:
@@ -74,7 +78,7 @@ class GeneralZabbix:
         sHostName is a name of host or array (HOST.HOST) IN ZABBIX
         *Zab* are parameters for Zabbix connection.
         """
-        oLog.debug("Entered GeneralZabbix.__init__")
+        # oLog.debug("Entered GeneralZabbix.__init__")
         self.sZabbixURL = 'http://' + sZabbixIP + "/zabbix"
         self.sZabbixIP = sZabbixIP
         self.iZabbixPort = iZabbixPort
@@ -187,11 +191,11 @@ class GeneralZabbix:
         dGetItem = {'hostids': self.sHostID,
                     'search': {'name': sItemName}}
         dItems = self.oZapi.do_request('item.get', dGetItem)
-        oLog.debug('_bHasItem: result of item.get() is {}'.format(str(dItems)))
+        # oLog.debug('_bHasItem: result of item.get() is {}'.format(str(dItems)))
         if len(dItems['result']) > 0:
             # matching item(s) found
-            for dItemDict in dItems['result']:
-                oLog.debug("Item found: {}".format(str(dItemDict)))
+            # for dItemDict in dItems['result']:
+                # oLog.debug("Item found: {}".format(str(dItemDict)))
                 # sName = dItemDict['name'].lower()
                 # dItemDict['key'] = dItemDict.get('key_')    # from the Zabbix parameter 'key_'
             bRet = True
@@ -232,7 +236,7 @@ class GeneralZabbix:
         if self._bHasItem(sItemName):
             # already have that item
             oItem = self._oGetItem(sItemName)
-            oLog.debug('Already have that item, returned {}'.format(str(oItem)))
+            # oLog.debug('Already have that item, returned {}'.format(str(oItem)))
         else:
             # need to create item
             oItem = ZabbixItem(sItemName, self, dParams)
@@ -241,7 +245,7 @@ class GeneralZabbix:
                 oApp = self._oGetApp(sAppName)
                 oItem._LinkWithApp(oApp)
             oItem._NewZbxItem()
-            oLog.debug('Created a new item, returned {}'.format(str(oItem)))
+            # oLog.debug('Created a new item, returned {}'.format(str(oItem)))
         return oItem
 
     def _MakeTimeStamp(self):
@@ -262,8 +266,30 @@ class GeneralZabbix:
             oTimeStamp_Item._SendValue(int(time.time()), self.oZSend)
         return
 
+    def _SendInfoToZabbix(self, sArrayName, ldInfo):
+        """send data to Zabbix via API"""
+        loMetrics = []
+        # oLog.debug('sendInfoToZabbix: data to send: {}'.format(str(ldInfo)))
+        for dInfo in ldInfo:
+            if self.sAppClass == 'System':   # Special case
+                sAppName = self.sAppClass
+            else:
+                sAppName = (self.sAppClass + ' ' + dInfo['name']).strip()
+            for sName, oValue in dInfo.items():
+                try:
+                    loMetrics.append(self.dOperations[sName](sAppName, oValue))
+                except KeyError:
+                    # unknown names passed
+                    oLog.info('Skipped unknown information item named {} with value {}'.format(
+                        sName, str(oValue)))
+                    pass
+        self._SendMetrics(loMetrics)
+        return
+
 
 class DisksToZabbix(GeneralZabbix):
+    sAppClass = 'Drive'
+
     def __init__(self, sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
         """
         sArrayName is a name of array (HOST.HOST) IN ZABBIX
@@ -303,25 +329,10 @@ class DisksToZabbix(GeneralZabbix):
     def _oPrepareDiskPosition(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Position', sValue)
 
-    def _SendInfoToZabbix(self, sArrayName, ldDisksInfo):
-        """send data to Zabbix via API"""
-        loMetrics = []
-        # oLog.debug('sendDiskInfoToZabbix: data to send: {}'.format(str(ldDisksInfo)))
-        for dDiskInfo in ldDisksInfo:
-            sAppName = 'Drive ' + dDiskInfo['name']
-            for sName, oValue in dDiskInfo.items():
-                try:
-                    loMetrics.append(self.dOperations[sName](sAppName, oValue))
-                except KeyError:
-                    # unknown names passed
-                    oLog.info('Skipped unknown disk information item named {} with value {}'.format(
-                        sName, str(oValue)))
-                    pass
-        self._SendMetrics(loMetrics)
-        return
-
 
 class EnclosureToZabbix(GeneralZabbix):
+    sAppClass = 'DiskShelf'
+
     def __init__(self, sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
         super().__init__(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
         self.dOperations = {"name":         _NullFunction,
@@ -354,26 +365,10 @@ class EnclosureToZabbix(GeneralZabbix):
     def _oPrepareEnclPSAmount(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Number of Power Supplies', sValue)
 
-    def _SendInfoToZabbix(self, sArrayName, ldEnclosuresInfo):
-        """send data to Zabbix via API"""
-        loMetrics = []
-        # oLog.debug('sendEnclInfoToZabbix: data to send: {}'.format(str(ldEnclosuresInfo)))
-        for dShelfInfo in ldEnclosuresInfo:
-            # oLog.debug('_SendEnclInfoToZabbix -- shelf info dict is {}'.format(dShelfInfo))
-            sAppName = 'DiskShelf ' + dShelfInfo['name']
-            for sName, oValue in dShelfInfo.items():
-                try:
-                    loMetrics.append(self.dOperations[sName](sAppName, oValue))
-                except KeyError:
-                    # unknown names passed
-                    oLog.info('Skipped unknown DE information item named {} with value {}'.format(
-                        sName, str(oValue)))
-                    pass
-        self._SendMetrics(loMetrics)
-        return
-
 
 class NodeToZabbix(GeneralZabbix):
+    sAppClass = 'Node'
+
     def __init__(self, sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
         super().__init__(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
         self.dOperations = {"name":         _NullFunction,
@@ -420,24 +415,10 @@ class NodeToZabbix(GeneralZabbix):
     def _oPrepareNodeRAM_GB(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Memory', sValue)
 
-    def _SendInfoToZabbix(self, sArrayName, ldNodesInfo):
-        """send data to Zabbix via API"""
-        loMetrics = []
-        for dNodeInfo in ldNodesInfo:
-            sAppName = 'Node ' + dNodeInfo['name']
-            for sName, oValue in dNodeInfo.items():
-                try:
-                    loMetrics.append(self.dOperations[sName](sAppName, oValue))
-                except KeyError:
-                    # unknown names passed
-                    oLog.info('Skipped unknown Node information item named {} with value {}'.format(
-                        sName, str(oValue)))
-                    pass
-        self._SendMetrics(loMetrics)
-        return
-
 
 class SwitchToZabbix(GeneralZabbix):
+    sAppClass = 'Switch'
+
     def __init__(self, sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
         super().__init__(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
         self.dOperations = {"name":         _NullFunction,
@@ -448,24 +429,10 @@ class SwitchToZabbix(GeneralZabbix):
     def _oPrepareSwitchSN(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Serial Number', sValue)
 
-    def _SendInfoToZabbix(self, sArrayName, ldSwitchInfo):
-        """send data to Zabbix via API"""
-        loMetrics = []
-        for dSwitchInfo in ldSwitchInfo:
-            sAppName = 'Switch ' + dSwitchInfo['name']
-            for sName, oValue in dSwitchInfo.items():
-                try:
-                    loMetrics.append(self.dOperations[sName](sAppName, oValue))
-                except KeyError:
-                    # unknown names passed
-                    oLog.info('Skipped unknown Switch information item named {} with value {}'.format(
-                        sName, str(oValue)))
-                    pass
-        self._SendMetrics(loMetrics)
-        return
-
 
 class DIMMsToZabbix(GeneralZabbix):
+    sAppClass = 'DIMM'
+
     def __init__(self, sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
         super().__init__(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
         self.dOperations = {"name":     _NullFunction,
@@ -488,25 +455,10 @@ class DIMMsToZabbix(GeneralZabbix):
     def _oPreparePosition(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Position', sValue)
 
-    def _SendInfoToZabbix(self, sArrayName, ldInfo):
-        """send data to Zabbix via API"""
-        loMetrics = []
-        oLog.debug('DIMMsToZabbix: _SendInfoToZabbix: info list is ' + str(ldInfo))
-        for dInfo in ldInfo:
-            sAppName = 'DIMM ' + dInfo['name']
-            for sName, oValue in dInfo.items():
-                try:
-                    loMetrics.append(self.dOperations[sName](sAppName, oValue))
-                except KeyError:
-                    # unknown names passed
-                    oLog.info('Skipped unknown DIMM information item named {} with value {}'.format(
-                        sName, str(oValue)))
-                    pass
-        self._SendMetrics(loMetrics)
-        return
-
 
 class CFtoZabbix(GeneralZabbix):
+    sAppClass = 'Compact Flash'
+
     def __init__(self, sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
         super().__init__(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
         self.dOperations = {"name":     _NullFunction,
@@ -528,25 +480,10 @@ class CFtoZabbix(GeneralZabbix):
     def _oPreparePosition(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Module', sValue)
 
-    def _SendInfoToZabbix(self, sArrayName, ldInfo):
-        """send data to Zabbix via API"""
-        loMetrics = []
-        oLog.debug('CFtoZabbix: _SendInfoToZabbix: info list is ' + str(ldInfo))
-        for dInfo in ldInfo:
-            sAppName = 'Compact Flash ' + dInfo['name']
-            for sName, oValue in dInfo.items():
-                try:
-                    loMetrics.append(self.dOperations[sName](sAppName, oValue))
-                except KeyError:
-                    # unknown names passed
-                    oLog.info('Skipped unknown CF information item named {} with value {}'.format(
-                        sName, str(oValue)))
-                    pass
-        self._SendMetrics(loMetrics)
-        return
-
 
 class UPSesToZabbix(GeneralZabbix):
+    sAppClass = 'UPS'
+
     def __init__(self, sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
         super().__init__(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
         self.dOperations = {"name":         _NullFunction,
@@ -561,25 +498,11 @@ class UPSesToZabbix(GeneralZabbix):
     def _oPrepareMDate(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Production Date', sValue)
 
-    def _SendInfoToZabbix(self, sArrayName, ldInfo):
-        """send data to Zabbix via API"""
-        loMetrics = []
-        for dInfo in ldInfo:
-            sAppName = 'UPS ' + dInfo['name']
-            for sName, oValue in dInfo.items():
-                try:
-                    loMetrics.append(self.dOperations[sName](sAppName, oValue))
-                except KeyError:
-                    # unknown names passed
-                    oLog.info('Skipped unknown UPS information item named {} with value {}'.format(
-                        sName, str(oValue)))
-                    pass
-        self._SendMetrics(loMetrics)
-        return
-
 
 class CtrlsToZabbix(GeneralZabbix):
     """Disk controllers to Zabbix interface"""
+    sAppClass = 'Controller'
+
     def __init__(self, sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
         super().__init__(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
         self.dOperations = {"name":       _NullFunction,
@@ -622,27 +545,11 @@ class CtrlsToZabbix(GeneralZabbix):
     def _oPrepareRAMInfo(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'DIMM', sValue)
 
-    def _SendInfoToZabbix(self, sArrayName, ldCtrlsInfo):
-        """send data to Zabbix via API"""
-        loMetrics = []
-        # oLog.debug('sendCtrlsToZabbix: data to send: {}'.format(str(ldCtrlsInfo)))
-        for dCtrl in ldCtrlsInfo:
-            # oLog.debug('_SendCtrlsInfoToZabbix -- controllers info dict is {}'.format(dCtrl))
-            sAppName = 'Controller ' + dCtrl['name']
-            for sName, oValue in dCtrl.items():
-                try:
-                    loMetrics.append(self.dOperations[sName](sAppName, oValue))
-                except KeyError:
-                    # unknown names passed
-                    oLog.info('Skipped unknown controller information item named {} with value {}'.format(
-                        sName, str(oValue)))
-                    pass
-        self._SendMetrics(loMetrics)
-        return
-
 
 class ArrayToZabbix(GeneralZabbix):
     """Class makes an interface between disk arrays' classes and Zabbix templates"""
+    sAppClass = 'System'
+
     def __init__(self, sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
         super().__init__(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
         self.dOperations = {
@@ -698,27 +605,8 @@ class ArrayToZabbix(GeneralZabbix):
     def _oPrepareArrayMemory(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'Total RAM', sValue)
 
-    def _SendInfoToZabbix(self, sArrayName, dArrInfo):
-        """send ARRAY data to Zabbix via API"""
-        loMetrics = []
-        sAppName = 'System'
-        for sName, oValue in dArrInfo.items():
-            try:
-                oResult = self.dOperations[sName](sAppName, oValue)
-                if not(oResult is None):
-                    loMetrics.append(oResult)
-            except KeyError:
-                # unknown names passed
-                oLog.info('Skipped unknown ARRAY information item named {} with value {}'.format(
-                    sName, str(oValue)))
-                pass
-        oLog.debug('_SendArrayToZabbix: metrics are {}'.format(str(loMetrics)))
-        self._SendMetrics(loMetrics)
-        return
-
 
 # "New" Zabbix classes for servers, mapping Zabbix entities to Python objects
-
 class MyZabbixException(Exception):
     def __init__(self, s):
         self.sMsg = s
@@ -757,7 +645,7 @@ class ZabbixHost:
             bRet = True
         else:
             ldApplications = self.oAPI.do_request('application.get', {'hostids': str(self.iHostID)})
-            # print("Defined applications on host {0}:\n{1}".format(self.iHostID, "\n".join(
+            # oLog.debug("Defined applications on host {0}:\n{1}".format(self.iHostID, "\n".join(
             #      [str(a) for a in ldApplications['result']])))
             for dApp in ldApplications['result']:
                 sNewName = dApp['name'].lower()
@@ -777,12 +665,12 @@ class ZabbixHost:
             dGetItem = {'hostids': self.iHostID,
                         'search': {'name': sItemName}}
             dItems = self.oAPI.do_request('item.get', dGetItem)
-            oLog.debug('_bHasItem: result of item.get() is {}'.format(str(dItems)))
+            # oLog.debug('_bHasItem: result of item.get() is {}'.format(str(dItems)))
             if len(dItems['result']) > 0:
                 # matching item(s) found
                 for dItemDict in dItems['result']:
                     # dItemDict = dItems['result'][0]
-                    oLog.debug("Item found: {}".format(str(dItemDict)))
+                    # oLog.debug("Item found: {}".format(str(dItemDict)))
                     sName = dItemDict['name'].lower()
                     dItemDict['key'] = dItemDict.get('key_')    # from the Zabbix parameter 'key_'
                     self.dItemNames[sName] = ZabbixItem(sName, self, dItemDict)
@@ -790,7 +678,7 @@ class ZabbixHost:
             else:
                 # No item found
                 bRet = False
-            oLog.debug('_bHasItem: dItemNames after call is: ' + str(self.dItemNames))
+            # oLog.debug('_bHasItem: dItemNames after call is: ' + str(self.dItemNames))
         return bRet
 
     def _oAddApp(self, sAppName):
@@ -810,7 +698,7 @@ class ZabbixHost:
         if self._bHasItem(sItemName):
             # already have that item
             oItem = self._oGetItem(sItemName)
-            oLog.debug('Already have that item, returned {}'.format(str(oItem)))
+            # oLog.debug('Already have that item, returned {}'.format(str(oItem)))
         else:
             # need to create item
             oItem = ZabbixItem(sItemName, self, dParams)
@@ -819,7 +707,7 @@ class ZabbixHost:
                 oApp = self._oGetApp(sAppName)
                 oItem._LinkWithApp(oApp)
             oItem._NewZbxItem()
-            oLog.debug('Created a new item, returned {}'.format(str(oItem)))
+            # oLog.debug('Created a new item, returned {}'.format(str(oItem)))
         return oItem
 
     def __repr__(self):
@@ -1023,13 +911,13 @@ class ZabbixItem:
         except ZabbixAPIException as e:
             # error: cannot create item
             raise MyZabbixException('_NewZbxItem: Cannot create an item, error {}'.format(e))
-        oLog.debug("_NewZbxItem: operation result is \n{}".format(
-            ["{}{}\n".format(str(k), str(v)) for k, v in dRes.items()]))
+        # oLog.debug("_NewZbxItem: operation result is \n{}".format(
+        #     ["{}{}\n".format(str(k), str(v)) for k, v in dRes.items()]))
         self.iID = dRes.get('itemid')
         return
 
     def _SendValue(self, oValue, oZabSender):
-        oLog.debug('Entered _SendValue, params are: {}, {}'.format(oValue, str(oZabSender)))
+        # oLog.debug('Entered _SendValue, params are: {}, {}'.format(oValue, str(oZabSender)))
         if self.iValType == 0:        # numeric (float)
             oValue = float(oValue)
         elif self.iValType in [1, 2, 4]:      # character
@@ -1065,41 +953,62 @@ class TriggerFactory:
         # hosts and keys
         return
 
+    def _GetTriggers(self, oHost):
+        """get all triggers for a given hostname and fill in the dictionary of triggers"""
+        dParams = {'host': oHost.name, 'selectItems': 1}
+        dRes = oHost.oAPI.do_request('trigger.get', dParams)
+        for dTrigger in dRes['result']:
+            # oLog.debug('Defined trigger: ' + str(dTrigger))
+            ldItemsData = dTrigger.get('items', [])
+            if ldItemsData:
+                # dTrigger['items'] is a list of dictionaries
+                for dItemData in ldItemsData:
+                    iItemID = int(dItemData['itemid'])
+                    self._RegisterTriggerByIds(oHost.id, iItemID, dTrigger['description'])
+        return
+
     def _bTriggerExist(self, oHost, oItem, sTrigName):
         """check if trigger with given name alredy exists on given host and item"""
         bResult = False
-        oLog.debug("*DBG* ddTriggersList is {}".format(str(self.ddTriggersList)))
-        if sTrigName in self.ddTriggersList.get(oHost.name, {}).get(oItem.key, []):
-            oLog.debug("*DBG* Trigger named {1} exist on host {0}".format(oHost.name, sTrigName))
+        # fill in the triggers list for a given host name
+        if oHost.id not in self.ddTriggersList:
+            self._GetTriggers(oHost)
+            pass
+        # oLog.debug("ddTriggersList is {}".format(str(self.ddTriggersList)))
+        if sTrigName in self.ddTriggersList.get(oHost.id, {}).get(oItem.id, []):
+            # oLog.debug("*DBG* Trigger named {1} exist on host {0}".format(oHost.name, sTrigName))
+            oLog.debug('*DBG* trigger exists -- from cache')
             bResult = True
         else:
-            dParams = {'host': oHost.sName, 'itemids': [oItem.id]}
+            dParams = {'hostid': oHost.id, 'itemids': [oItem.id]}
             dRes = oHost.oAPI.do_request('trigger.get', dParams)
-            oLog.debug('_bTriggerExist: Result of trigger.get: ' + str(dRes))
+            # oLog.debug('_bTriggerExist: Result of trigger.get: ' + str(dRes))
             for dOneRes in dRes['result']:
                 bResult = bResult or ('triggerid' in dOneRes)
                 # there should be not much results, so no 'continue' optimization here
             if bResult:
-                self._RegisterTrigger(oHost, oItem, sTrigName)
+                oLog.debug('Trigger found on host, adding to cache')
+                self._RegisterTriggerByIds(oHost.id, oItem.id, sTrigName)
         return bResult
 
-    def _RegisterTrigger(self, oHost, oItem, sTrigName):
-        """Add a trigger name to list value of self.ddTriggersList[host][item]
+    def _RegisterTriggerByIds(self, iHostID, iItemID, sTriggerName):
+        """Add a trigger name to list value of self.ddTriggersList[iHostID][iItemID]
         Parameters:
-        1) Host object
-        2) Item object
+        1) Host ID
+        2) Item ID
         3) Trigger name
         """
-        if not (oHost.name in self.ddTriggersList):
-            oLog.debug("*DBG* _RegisterTrigger: unknown host {}".format(oHost.name))
-            self.ddTriggersList[oHost.name] = {}
-        if oItem.key not in self.ddTriggersList[oHost.name]:
-            oLog.debug("*DBG* _RegisterTrigger: unknown item {}".format(oItem.name))
-            self.ddTriggersList[oHost.name][oItem.key] = []
-        oLog.debug("*DBG* Registered trigger named {0} for host {1} and item {2}".format(
-            sTrigName, oHost.name, oItem.name))
-        self.ddTriggersList[oHost.name][oItem.key].append(sTrigName)
-        oItem._AddTrigger(sTrigName)
+        if not (iHostID in self.ddTriggersList):
+            oLog.debug("_RegisterTriggerByIds: unknown host id {}".format(iHostID))
+            self.ddTriggersList[iHostID] = {}
+        if iItemID not in self.ddTriggersList[iHostID]:
+            oLog.debug("_RegisterTriggerByIds: unknown item id {}".format(iItemID))
+            self.ddTriggersList[iHostID][iItemID] = []
+        # oLog.debug("Registered trigger named {0} for host {1} and item {2}".format(
+        #     sTrigName, oHost.name, oItem.name))
+        if sTriggerName not in self.ddTriggersList[iHostID][iItemID]:
+            self.ddTriggersList[iHostID][iItemID].append(sTriggerName)
+        # oItem._AddTrigger(sTrigName)
         return
 
     def _AddChangeTrigger(self, oItem, sTriggerName='', sSeverity='warning'):
@@ -1108,7 +1017,7 @@ class TriggerFactory:
         if not self._bTriggerExist(oItem.host, oItem, sTriggerName):
             sHostName = oItem.host.name
             sExpr = '{' + "{}:{}".format(sHostName, oItem.key) + '.diff()}=1'
-            oLog.debug('Expression: ' + sExpr)
+            # oLog.debug('Expression: ' + sExpr)
             enSeverity = _enStrToSeverity(sSeverity)
             dNewTrigger = {'hostid': oItem.host.id,
                            'description': sTriggerName,
@@ -1116,17 +1025,17 @@ class TriggerFactory:
                            'priority': enSeverity.value,
                            'status': 0,  # enabled
                            }
-            dRes = {}
             try:
-                dRes = oItem.host.oAPI.do_request('trigger.create', dNewTrigger)
-                oLog.debug("_AddChangeTrigger: operation result is \n{}".format(
-                    ["{}{}\n".format(str(k), str(v)) for k, v in dRes.items()]))
-                self._RegisterTrigger(oItem.host, oItem, sTriggerName)
+                oItem.host.oAPI.do_request('trigger.create', dNewTrigger)
+                # oLog.debug("_AddChangeTrigger: operation result is \n{}".format(
+                #     ["{}{}\n".format(str(k), str(v)) for k, v in dRes.items()]))
+                self._RegisterTriggerByIds(oItem.host.id, oItem.id, sTriggerName)
             except ZabbixAPIException as e:
                 raise MyZabbixException('_AddChangeTrigger: Cannot create an trigger, error {}'.format(e))
         else:
-            oLog.debug('Trigger {} already exists on host {} and itemid {}'.format(
-                sTriggerName, oItem.host.name, oItem.id))
+            # oLog.debug('Trigger {} already exists on host {} and itemid {}'.format(
+            #     sTriggerName, oItem.host.name, oItem.id))
+            pass
         return
 
     def _AddNoDataTrigger(self, oItem, sTriggerName, sSeverity='warning', iPeriod=24):
@@ -1142,9 +1051,9 @@ class TriggerFactory:
         if not self._bTriggerExist(oItem.host, oItem, sTriggerName):
             iSec = int(iPeriod * 3600)   # from hours to seconds
             sExpr = '{' + '{0}:{1}.nodata({2})'.format(oItem.host.name, oItem.key, iSec) + '}=1'
-            oLog.debug("NoData trigger expression:  " + sExpr)
+            # oLog.debug("NoData trigger expression:  " + sExpr)
 
-            oLog.debug('_AddNoDataTrigger: Expression: ' + sExpr)
+            # oLog.debug('_AddNoDataTrigger: Expression: ' + sExpr)
             enSeverity = _enStrToSeverity(sSeverity)
             dNewTrigger = {'hostid': oItem.host.id,
                            'description': sTriggerName,
@@ -1152,12 +1061,12 @@ class TriggerFactory:
                            'priority': enSeverity.value,
                            'status': 0,  # enabled
                            }
-            dRes = {}
+            # dRes = {}
             try:
-                dRes = oItem.host.oAPI.do_request('trigger.create', dNewTrigger)
-                oLog.debug("_AddNoDataTrigger: operation result is \n{}".format(
-                    ["{}{}\n".format(str(k), str(v)) for k, v in dRes.items()]))
-                self._RegisterTrigger(oItem.host, oItem, sTriggerName)
+                oItem.host.oAPI.do_request('trigger.create', dNewTrigger)
+                # oLog.debug("_AddNoDataTrigger: operation result is \n{}".format(
+                #     ["{}{}\n".format(str(k), str(v)) for k, v in dRes.items()]))
+                self._RegisterTriggerByIds(oItem.host.id, oItem.id, sTriggerName)
             except ZabbixAPIException as e:
                 raise MyZabbixException('_AddChangeTrigger: Cannot create an trigger, error {}'.format(e))
         else:

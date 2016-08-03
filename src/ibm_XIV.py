@@ -71,7 +71,8 @@ class IBM_XIV_Storage(inv.ScaleOutStorageClass):
         self.oMMs = IBM_XIV_MaintenanceModulesList(self)
         self.oNICs = IBM_XIV_NICsList(self)
         self.oFCs = IBM_XIV_FCPortsList(self)
-        self.dQueries = {"node-names":   self.oNodesList._lsListNames,
+        self.dQueries = {"name": lambda: self.sSysName,
+                         "node-names":   self.oNodesList._lsListNames,
                          "switch-names": self.oSwitches._lsListNames,
                          "disk-names":   self.oDisksList._lsListNames,
                          "ups-names":    self.oUPSs._lsListNames,

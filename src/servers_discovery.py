@@ -199,6 +199,7 @@ def _Main():
     oRedis = _oConnect2Redis(oArgs.redis)
     # and call a function corresponding to server's type (from 'set_defaults')
     oArgs.func(oArgs, oRedis)
+    print('{"data":[]}')
     return
 
 
@@ -208,7 +209,7 @@ def _Main():
 if __name__ == '__main__':
     logging.config.dictConfig(dLoggingConfig)
     oLog = logging.getLogger('Srv.Discovery')
-    oLog.debug('Starting Discovery-info program')
+    oLog.info('<<< Starting servers discovery program')
     sRet = "Not implemented yet"
     iRetCode = -1
     try:
@@ -221,6 +222,7 @@ if __name__ == '__main__':
         oLog.error("Exception at top-level {}".format(str(e)))
         traceback.print_exc()
         iRetCode = 1
+    oLog.info('>>> End of servers discovery program')
     exit(iRetCode)
 
 # vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4 : autoindent
