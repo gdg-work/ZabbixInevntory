@@ -259,11 +259,11 @@ class ESXi_WBEM_Host(inv.GenericServer):
         oLog.info('PCI Adapters list:\n{}'.format(str(self.lPCI_Adapters)))
         return
 
-    def _Connect2Zabbix(self, oAPI, oSender):
-        self.oZbxAPI = oAPI
-        self.oZbxSender = oSender
-        self.oZbxHost = zi.ZabbixHost(self.sName, self.oZbxAPI)
-        return
+#    def _Connect2Zabbix(self, oZbxAccess):
+#        self.oZbxAPI = oZbxAccess.api
+#        self.oZbxSender = oZbxAccess.sender
+#        self.oZbxHost = zi.ZabbixHost(self.sName, self.oZbxAccess)
+#        return
 
     def _MakeAppsItems(self):
         """Creates applications and items on Zabbix server and sends data to Zabbix"""

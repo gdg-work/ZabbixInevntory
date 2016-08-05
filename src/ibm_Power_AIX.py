@@ -319,10 +319,10 @@ class PowerHostClass(inv.GenericServer):
                 self.lDIMMs.append(oDIMM)
         return
 
-    def _Connect2Zabbix(self, oAPI, oSender):
-        self.oZbxAPI = oAPI
-        self.oZbxSender = oSender
-        self.oZbxHost = zi.ZabbixHost(self.sName, self.oZbxAPI)
+    def _Connect2Zabbix(self, oZbxAccess):
+        self.oZbxAPI = oZbxAccess.api
+        self.oZbxSender = oZbxAccess.sender
+        self.oZbxHost = zi.ZabbixHost(self.sName, self.oZbxAccess)
         return
 
     def _MakeAppsItems(self):

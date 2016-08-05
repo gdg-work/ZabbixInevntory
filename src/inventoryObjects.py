@@ -2,6 +2,7 @@
 
 import itertools
 from collections import OrderedDict
+import zabbixInterface as zi
 
 
 #
@@ -266,6 +267,13 @@ class GenericServer:
         """for printing, debug and error messages etc"""
         return("Server name: {0}, type-model: {1}-{2}, SN: {3}".format(
                self.sName, self.sType, self.sModel, self.sSerialNum))
+
+    def _Connect2Zabbix(self, oZbxAccess):
+        self.oZbxAPI = oZbxAccess.api
+        self.oZbxSender = oZbxAccess.sender
+        self.oZbxHost = zi.ZabbixHost(self.sName, oZbxAccess)
+        return
+
 
 
 class ModularServer:

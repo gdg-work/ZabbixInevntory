@@ -17,8 +17,8 @@ import zabbixInterface as zi
 from inventoryLogger import dLoggingConfig
 from servers_discovery import REDIS_PREFIX
 from local import REDIS_ENCODING
-from pyzabbix.api import ZabbixAPI          # ZabbixAPIException
-from pyzabbix.sender import ZabbixSender    # ZabbixMetric
+# from pyzabbix.api import ZabbixAPI          # ZabbixAPIException
+# from pyzabbix.sender import ZabbixSender    # ZabbixMetric
 from redis_utils import _oConnect2Redis
 
 # for debugging
@@ -74,7 +74,7 @@ def _dGetServersInfo(oRedis):
     return lRet
 
 
-def _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAPI, oZbxSender, oTrigFactory):
+def _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAccess, oTrigFactory):
     oZbxHost = None
     sSrvType = dSrvParams['type']
     sSrvIP = dSrvParams.get('srv-ip', sSrvName)
@@ -117,7 +117,7 @@ def _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAPI, oZbxSender, oTrigFacto
         oLog.error("Host type is not supported yet!")
     # connect to server, retrieve information from it
     oZbxHost._ConnectTriggerFactory(oTrigFactory)
-    oZbxHost._Connect2Zabbix(oZbxAPI, oZbxSender)
+    oZbxHost._Connect2Zabbix(oZbxAccess)
     oZbxHost._MakeAppsItems()
     return oZbxHost
 
@@ -129,14 +129,20 @@ def _ProcessArgs(oArgs, oLog, oTrigFactory):
 
     dZbxInfo = _dGetZabbixConnectionInfo(oRedis)
     dServersInfo = _dGetServersInfo(oRedis)
-    sZbxURL = "http://{}/zabbix/".format(dZbxInfo['zabbix_IP'])
-    oZbxAPI = ZabbixAPI(url=sZbxURL, user=dZbxInfo['zabbix_user'], password=dZbxInfo['zabbix_passwd'])
-    oZbxSender = ZabbixSender(zabbix_server=dZbxInfo['zabbix_IP'], zabbix_port=dZbxInfo['zabbix_port'])
+#    sZbxURL = "http://{}/zabbix/".format(dZbxInfo['zabbix_IP'])
+#    oZbxAPI = ZabbixAPI(url=sZbxURL, user=dZbxInfo['zabbix_user'], password=dZbxInfo['zabbix_passwd'])
+#    oZbxSender = ZabbixSender(zabbix_server=dZbxInfo['zabbix_IP'], zabbix_port=dZbxInfo['zabbix_port'])
+
+    oZbxAccess = zi.ZabbixAccess(
+        Pwd=dZbxInfo['zabbix_passwd'], User=dZbxInfo['zabbix_user'],
+        IP=dZbxInfo['zabbix_IP'], SndIP=dZbxInfo['zabbix_IP'],
+        SndPort=dZbxInfo['zabbix_port'])
+
     for sSrvName, dSrvParams in dServersInfo.items():
         try:
             # 'zabbix_user', 'zabbix_passwd':, 'zabbix_IP':, 'zabbix_port'
             oLog.info("Processing server {}".format(sSrvName))
-            _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAPI, oZbxSender, oTrigFactory)
+            _CollectInfoFromServer(sSrvName, dSrvParams, oZbxAccess, oTrigFactory)
             # oZbxInterface._SendDataToZabbix(oServer)
         except Exception as e:
             oLog.error('Exception when processing server: ' + sSrvName)
