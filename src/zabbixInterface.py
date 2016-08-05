@@ -67,11 +67,6 @@ def _sMkKey(*args):
         return sRes
 
 
-class ZabbixHostObject:
-    def __init__():
-        pass
-
-
 class GeneralZabbix:
     def __init__(self, sHostName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
         """
@@ -188,20 +183,27 @@ class GeneralZabbix:
     def _bHasItem(self, sItemName):
         bRet = False
         sItemName = sItemName.lower()
-        dGetItem = {'hostids': self.sHostID,
-                    'search': {'name': sItemName}}
-        dItems = self.oZapi.do_request('item.get', dGetItem)
-        # oLog.debug('_bHasItem: result of item.get() is {}'.format(str(dItems)))
-        if len(dItems['result']) > 0:
-            # matching item(s) found
-            # for dItemDict in dItems['result']:
-                # oLog.debug("Item found: {}".format(str(dItemDict)))
-                # sName = dItemDict['name'].lower()
-                # dItemDict['key'] = dItemDict.get('key_')    # from the Zabbix parameter 'key_'
+        if sItemName in self.dItemNames:
             bRet = True
         else:
-            # No item found
-            bRet = False
+            # try to refresh dItemNames
+            dGetItem = {'hostids': self.iHostID,
+                        'search': {'name': sItemName}}
+            dItems = self.oAPI.do_request('item.get', dGetItem)
+            # oLog.debug('_bHasItem: result of item.get() is {}'.format(str(dItems)))
+            if len(dItems['result']) > 0:
+                # matching item(s) found
+                for dItemDict in dItems['result']:
+                    # dItemDict = dItems['result'][0]
+                    # oLog.debug("Item found: {}".format(str(dItemDict)))
+                    sName = dItemDict['name'].lower()
+                    dItemDict['key'] = dItemDict.get('key_')    # from the Zabbix parameter 'key_'
+                    self.dItemNames[sName] = ZabbixItem(sName, self, dItemDict)
+                bRet = True
+            else:
+                # No item found
+                bRet = False
+            # oLog.debug('_bHasItem: dItemNames after call is: ' + str(self.dItemNames))
         return bRet
 
     def _oGetItem(self, sItemName):
@@ -256,14 +258,15 @@ class GeneralZabbix:
             self._oAddApp(sTSAppName)
         if self._bHasItem(sItemName):
             oTimeStamp_Item = self._oGetItem(sItemName)
+            oLog.debug('Timestamp item: ' + str(oTimeStamp_Item))
         else:
             oTimeStamp_Item = self._oAddItem(
                 sItemName, sAppName=sTSAppName,
                 dParams={'key': "Update_Time", 'value_type': 3, 'units': 's',
                          'description': 'Date and time of last data update'})
         # now the application and item must exist
-        if oTimeStamp_Item is not None:
-            oTimeStamp_Item._SendValue(int(time.time()), self.oZSend)
+        oTimeStamp_Item._SendValue(int(time.time()), self.oZSend)
+        oLog.debug('TimeStamp set!')
         return
 
     def _SendInfoToZabbix(self, sArrayName, ldInfo):
