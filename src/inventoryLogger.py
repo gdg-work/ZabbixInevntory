@@ -24,7 +24,7 @@ dLoggingConfig = yaml.load("""
         formatter: simple
         encoding: utf8
         level: DEBUG
-        filename: /tmp/zabinventory.log
+        filename: /tmp/New-zabinventory.log
         # Max log file size: 1 MB, then the file will be rotated
         maxBytes: 1048576
         backupCount: 1
@@ -38,7 +38,7 @@ dLoggingConfig = yaml.load("""
             level: INFO
             handlers: [ console, logfile ]
         hpeva_sssu:
-            level: INFO
+            level: DEBUG
             handlers: [ console, logfile ]
         ibm_FlashSystem_SW:
             level: INFO
@@ -47,7 +47,7 @@ dLoggingConfig = yaml.load("""
             level: INFO
             handlers: [ console, logfile ]
         zabbixInterface:
-            level: INFO
+            level: DEBUG
             handlers: [ console, logfile ]
         Discovery:
             level: INFO

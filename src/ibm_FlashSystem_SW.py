@@ -68,7 +68,7 @@ class IBMFlashSystem(inv.ClassicArrayClass):
     """IBM FlashSystem object class. Encapsulates main data of the array"""
 
     def __init__(self, sIP, oAuth, sSysName, oRedisConn):
-        super().__init__(sIP, "FlashSystem")
+        super().__init__(sSysName, sIP, "FlashSystem")
         self.sRedisKeyPrefix = "pyzabbix::FlashSys::" + sSysName + "::"
         self.sSysName = sSysName
         self.sIP = sIP

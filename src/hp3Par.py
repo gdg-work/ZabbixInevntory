@@ -85,7 +85,7 @@ class HP3Par(ClassicArrayClass):
     reCPUModel = re.compile(r'\((.*)\)')
 
     def __init__(self, sIP, oAuth, sSysName, oRedisConn):
-        super().__init__(sIP, "3Par")
+        super().__init__(sSysName, sIP, "3Par")
         self.sRedisKeyPrefix = "pyzabbix::hp3Par::" + sSysName + "::"
         self.sSysName = sSysName
         self.sIP = sIP

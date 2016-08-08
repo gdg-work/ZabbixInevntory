@@ -12,7 +12,9 @@ import pickle   # serializing/deserializing of objects to stings and files
 # Storage classes
 from inventoryObjects import ClassicArrayClass, ControllerClass, DiskShelfClass, DASD_Class
 # local constants
-from local import SSSU_PATH, CACHE_TIME, REDIS_ENCODING
+from local import SSSU_PATH, CACHE_TIME, REDIS_ENCODING, NODATA_THRESHOLD
+from i18n import _
+import zabbixInterface as zi
 
 import sys
 sys.setrecursionlimit(5000)   # for 'pickle' module to correctly encode/decode BeautifulSoup objects
@@ -170,11 +172,12 @@ class EVA_Exception(Exception):
 
 class HP_EVA_Class(ClassicArrayClass):
     def __init__(self, sIP, sUser, sPassword, sSysName, oRedisConn, sType="HP EVA"):
-        super().__init__(sIP, sType)
+        super().__init__(sSysName, sIP, sType)
         self.sSysName = sSysName
         self.dDiskByShelfPos = {}
         self.dDiskByName = {}
         self.dDiskByID = {}
+        self.lDiskObjects = []
         self.dDiskShelves = {}
         self.dControllers = {}
         self.oEvaConnection = SSSU_Iface(SSSU_PATH, sIP, sUser, sPassword, sSysName, oLog.debug, oLog.error)
@@ -185,18 +188,20 @@ class HP_EVA_Class(ClassicArrayClass):
         self.sRedisKeyPrefix = "pyzabbix::hpeva_sssu::" + self.sSysName + "::"
         self.oRedisConnection = oRedisConn
         # dictionary of available queries and methods of the object
-        self.dQueries = {"name": self.getName,
-                         "sn": self.getSN,
-                         "wwn": self.getWWN,
-                         "type": self.getType,
-                         "model": self.getModel,
-                         "ctrls": self.getControllersAmount,
-                         "shelves": self.getShelvesAmount,
-                         "disks": self.getDisksAmount,
-                         "ctrl-names": self.getControllerNames,
-                         "shelf-names": self.getDiskShelfNames,
-                         "disk-names":  self.getDiskNames,
-                         "ps-amount": self.getControllerShelfPSUAmount}
+        self.dQueries = {"name": (self.getName, 'Array name', _('HP EVA array name')),
+                         "sn": (self.getSN, 'SN', _('Serial number of an array')),
+                         "wwn": (self.getWWN, 'WWN', _('World-Wide Name of an Array')),
+                         "type": (self.getType, 'Type', _('Type of an array controllers')),
+                         "model": (self.getModel, 'Model', _('Model of an Array')),
+                         "ctrls": (self.getControllersAmount, '# of Controllers', _('Number of array controllers')),
+                         "shelves": (self.getShelvesAmount, '# of Disk Shelves', _('Number of disk shelves')),
+                         "disks": (self.getDisksAmount, '# of Disks', _('Number of disks in an array')),
+                         "ctrl-names": (self.getControllerNames, 'Ctrl Names', _('List of controller names')),
+                         "shelf-names": (self.getDiskShelfNames, 'Disk shelf Names', _('List of disk shelf names')),
+                         "disk-names": ( self.getDiskNames, 'Disk names', _('List of disk names')),
+                         "ps-amount": (self.getControllerShelfPSUAmount, '# of Pwr Supplies', _('Number of power supplies'))}
+
+            # "sn":         (self.getSN, 'Serial Number', _('Controller serial number')),
 
     def __sFromSystem__(self, sParam):
         """returns information from 'ls system <name>' output as a *string*"""
@@ -584,6 +589,77 @@ class HP_EVA_Class(ClassicArrayClass):
         oLog.debug('Found Controllers: {}'.format(self.dControllers.keys()))
         return
 
+    def _CollectInfo(self,):
+        lDrives = []
+        self.__FillControllers__()
+        self.__FillListOfDisks2__()
+        self.__FillDiskEnclosures__()
+        for sDiskName, sDiskID in self.dDiskByName.items():
+            oDiskSoup = self.dDiskByID[sDiskID]
+            oDrive = EVA_DiskDriveClass(sDiskName, oDiskSoup, self)
+            lDrives.append(oDrive)
+        self.lDiskObjects = lDrives
+        return
+
+    def _MakeAppsItems(self, oZabbixAccess):
+        # applications and items of a components
+        lObjects = []
+        # for lObjList in [self.dControllers.values(), self.dDiskShelves.values(), self.dDiskByID.values()]:
+        for lObjList in [self.dControllers.values(), self.dDiskShelves.values(), self.lDiskObjects]:
+            lObjects.extend(lObjList)
+        oLog.info('lObjects is ' + str(lObjects))
+        for oObj in lObjects:
+            # oLog.debug('EVA:MakeAppsItems: Obj is: ' + str(oObj))
+            if oObj is not None:
+                oObj._ConnectTriggerFactory(self.oTriggers)
+                oObj._MakeAppsItems(self.oZbxArray, oZabbixAccess)
+
+        # system apps and items
+        # dArrayInfo = oArray._dGetArrayInfoAsDict(ssKeys)
+        # oArZabCon._SendInfoToZabbix(sArrayName, [dArrayInfo])  # _SendInfoToZabbox expects a LIST of DICTs
+        sAppName = 'System'
+        for sVar in "name sn wwn type model ctrls shelves disks".split():   # simpler to write
+            fFun, sSuffix, sDesc = self.dQueries[sVar]
+            sItemName = sAppName + ' ' + sSuffix
+            sKey = zi._sMkKey(sItemName)
+            if sVar in "name sn wwn type model".split():
+                # string value
+                dParams = {'key': sKey, 'description': sDesc, 'value_type': 1}
+            elif sVar in "ctrls shelves disks".split():
+                # integer value
+                dParams = {'key': sKey, 'description': sDesc, 'value_type': 3}
+
+            oItem = self.oZbxArray._oAddItem(sItemName, sAppName, dParams)
+            oLog.info('Created item: ' + str(oItem))
+            oItem._SendValue(fFun())
+            if self.oZbxArray.oTriggers is not None:
+                oTriggers = self.oZbxArray.oTriggers
+                if sVar == 'wwn':
+                    oLog.debug('Triggers factory is defined, making a trigger for array WWN')
+                    sTrigName = _('Cannot receive array WWN of {}').format(self.sName)
+                    oTriggers._AddNoDataTrigger(oItem, sTrigName, 'average', NODATA_THRESHOLD)
+                if sVar == 'shelves':
+                    oLog.debug('Triggers factory is defined, making a trigger for shelves count')
+                    sTrigName = _('Number of disk enclosures is changed on array {}'.self.sName)
+                    oTriggers._AddChangeTrigger(oItem, sTrigName, 'warning')
+                if sVar == 'disks':
+                    oLog.debug('Triggers factory is defined, making a trigger for disks number')
+                    oTriggers._AddChangeTrigger(oItem, sTrigName, 'warning')
+        return
+
+#         self.dQueries = {"name": self.getName,
+#                          "sn": self.getSN,
+#                          "wwn": self.getWWN,
+#                          "type": self.getType,
+#                          "model": self.getModel,
+#                          "ctrls": self.getControllersAmount,
+#                          "shelves": self.getShelvesAmount,
+#                          "disks": self.getDisksAmount,
+#                          "ctrl-names": self.getControllerNames,
+#                          "shelf-names": self.getDiskShelfNames,
+#                          "disk-names":  self.getDiskNames,
+#                          "ps-amount": self.getControllerShelfPSUAmount}
+
     #
     # Methods for receiving components' information as a list of name:value dictionaries
     #
@@ -701,12 +777,11 @@ class EVA_ControllerClass(ControllerClass):
         self.oSoup = oSoup
         self.oParentArray = oArrayObj
         self.dQueries = {
-            "name":       self.getName,
-            "sn":         self.getSN,
-            "type":       self.getType,
-            "model":      self.getModel,
-            "cpu-cores":  self.getCPUCores,
-            "port-count": self.getPortCount}
+            # "name":       (self.getName, '', '')
+            "sn":         (self.getSN, 'Serial Number', _('Controller serial number')),
+            "type":       (self.getType, 'Type', _('EVA Controller Type')),
+            "model":      (self.getModel, 'Model', _('EVA Controller Model')),
+            "port-count": (self.getPortCount, '# of Host Ports', _('Host ports count'))}
 
     # "port-names": self.getPortNames,
 
@@ -742,9 +817,6 @@ class EVA_ControllerClass(ControllerClass):
             pass
         return sRet
 
-    def getCPUCores(self):
-        return "N/A"
-
     def getModel(self):
         sRet = "Model isn't known"
         if self.oSoup:
@@ -771,6 +843,37 @@ class EVA_ControllerClass(ControllerClass):
             pass
         return iRet
 
+    def _MakeAppsItems(self, oZbxArray, oZbxAccess):
+        oLog.debug("ControllerClass: _MakeAppsItems called")
+        sAppName = 'Controller ' + self.sName
+        self.oZbxArray = oZbxArray
+        oZbxArray._oAddApp(sAppName)
+        # string data
+        for sParam in ['sn', 'type', 'model']:
+            fFun, sSuffix, sDesc = self.dQueries[sParam]
+            sItemName = sAppName + ' ' + sSuffix
+            sKey = zi._sMkKey(sItemName)
+            dParams = {'key': sKey, 'description': sDesc, 'value_type': 1}
+            oItem = self.oZbxArray._oAddItem(sItemName, sAppName, dParams)
+            oLog.info('Created item: ' + str(oItem))
+            oItem._SendValue(fFun())
+            if sParam == 'sn' and self.oZbxArray.oTriggers is not None:
+                oTriggers = self.oZbxArray.oTriggers
+                sTrigName = _('Controller {} serial number changed').format(self.sName)
+                oTriggers._AddChangeTrigger(oItem, sTrigName, 'warning')
+                sTrigName = _('Cannot receive serial number of controller {}').format(self.sName)
+                oTriggers._AddNoDataTrigger(oItem, sTrigName, 'average', NODATA_THRESHOLD)
+        for sParam in ['port-count']:
+            # Integer items
+            fFun, sSuffix, sDesc = self.dQueries[sParam]
+            sItemName = sAppName + ' ' + sSuffix
+            sKey = zi._sMkKey(sItemName)
+            dParams = {'key': sKey, 'description': sDesc, 'value_type': 3}
+            oItem = self.oZbxArray._oAddItem(sItemName, sAppName, dParams)
+            oItem._SendValue(fFun())
+
+        return
+
 
 class EVA_DiskShelfClass(DiskShelfClass):
     def __init__(self, sID, oSoup, oArrayObj):
@@ -784,15 +887,13 @@ class EVA_DiskShelfClass(DiskShelfClass):
             raise EVA_Exception("Invalid name of shelf in EVA_DiskShelfClass.init")
         self.oParentArray = oArrayObj
         self.dQueries = {   # permitted queries
-            "name":   self.getName,
-            "sn":     self.getSN,
-            "type":   self.getType,
-            "model":  self.getModel,
-            "disks":  self.getDisksAmount,
-            "disk-slots":  self.getSlotsAmount,
-            "ps-amount":  self.getPwrSupplyAmount}
-
-        #   "disk-names": self.getDiskNames, # <--- isn't needed now
+            "name":   (self.getName, 'Enclosure Name', _('Disk enclosure name')),
+            "sn":     (self.getSN, 'Enclosure S/N', _('Disk enclosure serial number')),
+            "type":   (self.getType, 'Enclosure type', _('Disk enclosure type')),
+            "model":  (self.getModel, 'Enclosure model', _('Disk enclosure model')),
+            "disks":  (self.getDisksAmount, 'Disks #', _('Number of disks in the enclosure')),
+            "disk-slots":  (self.getSlotsAmount, 'Slots #', _('Number of slots')),
+            "ps-amount":  (self.getPwrSupplyAmount, 'Power Supplies #', _('Number of Power Supplies'))}
 
     def _dGetDataAsDict(self):
         # name, type, model, SN, position, RPM, size
@@ -881,6 +982,48 @@ class EVA_DiskShelfClass(DiskShelfClass):
         oLog.debug("getPwrSupplyAmount: list of power supplies {:d}".format(iRet))
         return iRet
 
+        self.dQueries = {   # permitted queries
+            "name":   self.getName,
+            "sn":     self.getSN,
+            "type":   self.getType,
+            "model":  self.getModel,
+            "disks":  self.getDisksAmount,
+            "disk-slots":  self.getSlotsAmount,
+            "ps-amount":  self.getPwrSupplyAmount}
+
+    def _MakeAppsItems(self, oZbxArray, oZbxAccess):
+        oLog.info("EVA_DiskShelfClass: _MakeAppsItems called")
+        self.oZbxArray = oZbxArray
+        sAppName = 'DiskShelf ' + self.sName
+        oZbxArray._oAddApp(sAppName)
+        # string data
+        for sParam in ['sn', 'type', 'model']:
+            fFun, sSuffix, sDesc = self.dQueries[sParam]
+            sItemName = sAppName + ' ' + sSuffix
+            sKey = zi._sMkKey(sItemName)
+            dParams = {'key': sKey, 'description': sDesc, 'value_type': 1}
+            oItem = self.oZbxArray._oAddItem(sItemName, sAppName, dParams)
+            oLog.info('Created item: ' + str(oItem))
+            oItem._SendValue(fFun())
+            if sParam == 'sn' and self.oZbxArray.oTriggers is not None:
+                oTriggers = self.oZbxArray.oTriggers
+                sTrigName = _('{} serial number changed').format(self.sName)
+                oTriggers._AddChangeTrigger(oItem, sTrigName, 'warning')
+                sTrigName = _('Cannot receive serial number of {}').format(self.sName)
+                oTriggers._AddNoDataTrigger(oItem, sTrigName, 'average', NODATA_THRESHOLD)
+        for sParam in ['disks', 'ps-amount']:
+            # Integer items
+            fFun, sSuffix, sDesc = self.dQueries[sParam]
+            sItemName = sAppName + ' ' + sSuffix
+            sKey = zi._sMkKey(sItemName)
+            dParams = {'key': sKey, 'description': sDesc, 'value_type': 3}
+            oItem = self.oZbxArray._oAddItem(sItemName, sAppName, dParams)
+            oItem._SendValue(fFun())
+            if sParam == 'disks' and self.oZbxArray.oTriggers is not None:
+                sTrigName = _('{} disks amount changed').format(self.sName)
+                self.oZbxArray.oTriggers._AddChangeTrigger(oItem, sTrigName, 'warning')
+        return
+
 
 class EVA_DiskDriveClass(DASD_Class):
 
@@ -964,6 +1107,10 @@ class EVA_DiskDriveClass(DASD_Class):
                 'position': self.getPosition(),
                 'RPM': self.getRPM(),
                 'size': self.getSize()}
+
+    def _MakeAppsItems(self, oZbxArray, oZbxAccess):
+        oLog.info("EVA_DiskDriveClass: _MakeAppsItems called")
+        return
 
 #
 # some checks when this module isn't imported but is called with python directly

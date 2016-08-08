@@ -172,6 +172,7 @@ class ZabbixHostObject:
         self.iHostID = 0
         self.oAPI = oZbxAccess.api
         self.dItemNames = {}
+        self.oTriggers = None
         self.oZSend = oZbxAccess.sender
         # retrieve Host ID from Zabbix server
         try:
@@ -229,6 +230,32 @@ class ZabbixHostObject:
             # No item found
             bRet = False
         return bRet
+
+#    def _bHasItem(self, sItemName):
+#        bRet = False
+#        sItemName = sItemName.lower()
+#        if sItemName in self.dItemNames:
+#            bRet = True
+#        else:
+#            # try to refresh dItemNames
+#            dGetItem = {'hostids': self.iHostID,
+#                        'search': {'name': sItemName}}
+#            dItems = self.oAPI.do_request('item.get', dGetItem)
+#            # oLog.debug('_bHasItem: result of item.get() is {}'.format(str(dItems)))
+#            if len(dItems['result']) > 0:
+#                # matching item(s) found
+#                for dItemDict in dItems['result']:
+#                    # dItemDict = dItems['result'][0]
+#                    # oLog.debug("Item found: {}".format(str(dItemDict)))
+#                    sName = dItemDict['name'].lower()
+#                    dItemDict['key'] = dItemDict.get('key_')    # from the Zabbix parameter 'key_'
+#                    self.dItemNames[sName] = ZabbixItem(sName, self, dItemDict)
+#                bRet = True
+#            else:
+#                # No item found
+#                bRet = False
+#            # oLog.debug('_bHasItem: dItemNames after call is: ' + str(self.dItemNames))
+#        return bRet
 
     def _oGetItem(self, sItemName):
         """returns item object by name"""
@@ -308,7 +335,7 @@ class ZabbixHostObject:
                          'description': 'Date and time of last data update'})
         # now the application and item must exist
         if oTimeStamp_Item is not None:
-            oTimeStamp_Item._SendValue(int(time.time()), self.oZSend)
+            oTimeStamp_Item._SendValue(int(time.time()))  # , self.oZSend)
         return
 
 
@@ -325,11 +352,12 @@ class GeneralZabbix(ZabbixHostObject):
         self.ldApplications = []
         self.dItemNames = {}
         self.sArrayName = sHostName
+        self.sHostName = sHostName
         return
 
     def __fillApplications__(self, reFilter=None):
         # receive the list of applications
-        ldApplications = self.oZapi.do_request('application.get', {'hostids': self.sHostID})
+        ldApplications = self.oAPI.do_request('application.get', {'hostids': self.sHostID})
         ldAppResult = ldApplications['result']
         dBuf = {}
         if len(ldAppResult) == 0:
@@ -361,7 +389,7 @@ class GeneralZabbix(ZabbixHostObject):
                          'applicationids': iAppID,
                          'filter': dFilter,
                          'sort': 'name'}
-            dResult = self.oZapi.do_request('item.get', dItem2Get)
+            dResult = self.oAPI.do_request('item.get', dItem2Get)
             try:
                 sKey = dResult['result'][0]['key_']
                 # now we have key, so we can prepare data to Zabbix
@@ -501,6 +529,10 @@ class GeneralZabbix(ZabbixHostObject):
                         sName, str(oValue)))
                     pass
         self._SendMetrics(loMetrics)
+        return
+
+    def _ConnectTriggerFactory(self, oTriggersFactory):
+        self.oTriggers = oTriggersFactory
         return
 
 
@@ -767,8 +799,8 @@ class ArrayToZabbix(GeneralZabbix):
     """Class makes an interface between disk arrays' classes and Zabbix templates"""
     sAppClass = 'System'
 
-    def __init__(self, sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd):
-        super().__init__(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)
+    def __init__(self, sArrayName: str, oZbxAccess: ZabbixAccess):
+        super().__init__(sArrayName, oZbxAccess)
         self.dOperations = {
             "name":       _NullFunction,
             "sn":         self._oPrepareArraySN,
@@ -1034,7 +1066,10 @@ class ZabbixItem:
             self.iValType = int(dDict.get('value_type', 1))
             # update type: see documentation.  2 is a Zabbix trapper item
             self.iUpdType = int(dDict.get('type', 2))
-            self.sKey = dDict.get('key') or dDict.get('key_')    # unique key
+            if 'key' in dDict:
+                self.sKey = dDict['key']
+            else:
+                self.sKey = dDict.get('key_')
             self.iDelay = int(dDict.get('delay', 0))
             self.sDescription = dDict.get('description', '')
         else:
@@ -1110,6 +1145,7 @@ class ZabbixItem:
         elif self.iValType == 3:      # unsigned int
             oValue = int(oValue)
         oData2Send = ZabbixMetric(host=self.oHost._sName(), key=self.sKey, value=oValue)
+        oLog.debug("_SendValue: value {}, data 2 send: {}".format(oValue, str(oData2Send)))
         try:
             if not self.oHost.oZSend.send([oData2Send]):
                 # unsuccessful data sending

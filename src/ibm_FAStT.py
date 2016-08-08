@@ -33,8 +33,9 @@ class IBM_DS(invobj.ClassicArrayClass):
     reTotalDrives =      re.compile(r'^\s*Number of drives:\s+(\d+)\s*$')
     reDriveDetailsHdr =  re.compile(r'\s*Drive at Enclosure (\d+), Slot (\d+)\s*')
 
-    def __init__(self, sArrayAddr):
-        self.sName = ''
+    def __init__(self, sName, sArrayAddr):
+        self.sName = sName
+        super().__init__(sName, sArrayAddr, 'IBM FaST')
         self.sSN = ''
         self.sWWN = ''
         self.iCtrls = 0

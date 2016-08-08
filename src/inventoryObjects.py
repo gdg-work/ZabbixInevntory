@@ -24,7 +24,8 @@ class NetObjectClass:
 # A base class for storage systems
 #
 class StorageClass(NetObjectClass):
-    def __init__(self, sIP: str, sType: str):
+    def __init__(self, sName: str, sIP: str, sType: str):
+        self.sSysName = sName
         super().__init__(sIP, sType)
 
     def getSN(self):
@@ -33,8 +34,8 @@ class StorageClass(NetObjectClass):
 
 class ClassicArrayClass(StorageClass):
     """A classic disk array with 1..8 controllers, some amount of disk shelves and disks"""
-    def __init__(self, sIP: str, sType: str):
-        super().__init__(sIP, sType)
+    def __init__(self, sName: str, sIP: str, sType: str):
+        super().__init__(sName, sIP, sType)
         self.lControllers = []    # list of ControllerClass
         self.lShelves = []  # list of 'DiskShelfClass'
         self.lDisks = []    # list of DiskClass
@@ -80,11 +81,25 @@ class ClassicArrayClass(StorageClass):
                 dRet[sKey] = self.dQueries[sKey]()
         return dRet
 
+    def _ConnectZabbixObject(self, oZabbixAccess):
+        self.oZbxAccess = oZabbixAccess
+        self.oZbxArray = zi.ArrayToZabbix(self.sSysName, oZabbixAccess)
+        pass
+
+    def _MakeTimeStamp(self):
+        """Make a timestamp in application 'Timestamps' and item 'last updated'
+        Zabbix must be connected first with _ConnectZabbixObject"""
+        self.oZbxArray._MakeTimeStamp()
+
+    def _ConnectTriggerFactory(self, oTriggersFactory):
+        self.oTriggers = oTriggersFactory
+        return
+
 
 class ScaleOutStorageClass(StorageClass):
-    def __init__(self, sIP: str, sType: str):
+    def __init__(self, sName, sIP: str, sType: str):
         super().__init__(sIP, sType)
-        self.sType = ""
+        self.sType = sType
         self.lNodes = []
 
     def getType(self) ->str:
@@ -273,7 +288,6 @@ class GenericServer:
         self.oZbxSender = oZbxAccess.sender
         self.oZbxHost = zi.ZabbixHost(self.sName, oZbxAccess)
         return
-
 
 
 class ModularServer:
