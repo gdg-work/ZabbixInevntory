@@ -21,6 +21,7 @@ import string
 from inventoryLogger import dLoggingConfig
 import zabbixInterface as zi
 from pathlib import Path
+from local import CACHE_TIME
 
 # for debugging
 import traceback
@@ -324,7 +325,7 @@ def _oGetCLIParser():
     oParser.add_argument('-r', '--redis', help="Redis database host:port or socket, default=localhost:6379",
                          default='localhost:6379', type=str, required=False)
     oParser.add_argument('-t', '--redis-ttl', help="TTL of Redis-cached data", type=int,
-                         default=900, required=False)
+                         default=CACHE_TIME, required=False)
     return (oParser.parse_args())
 
 

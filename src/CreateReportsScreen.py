@@ -78,7 +78,7 @@ dConfig = yaml.load("""
                 level: INFO
                 handlers: [ console, logfile ]
             Create_Properties_Screen:
-                level: DEBUG
+                level: INFO
                 handlers: [ console, logfile ]
     """)
 
@@ -124,7 +124,7 @@ class InventoryHost:
     def make_app_items(self, o_api, o_sender):
         APP_NAME = 'Properties'
         """transfer data to Zabbix"""
-        oLog.debug('*DBG* API object for host {0}: {1}'.format(self.s_name, str(o_api)))
+        # oLog.debug('*DBG* API object for host {0}: {1}'.format(self.s_name, str(o_api)))
         try:
             o_zbx_host = zi.ZabbixHost(self.s_name, o_api)
             if not o_zbx_host._bHasApplication(APP_NAME):
@@ -210,7 +210,7 @@ def fi_do_the_work():
     lHosts = []
     for dHost in lsHosts:
         iID = int(dHost['hostid'])
-        oLog.debug('Host ID is {}'.format(iID))
+        # oLog.debug('Host ID is {}'.format(iID))
         lHostIDs.append(iID)
         dCfg = oAPI.do_request('configuration.export',
                            {'options': {'hosts': iID}, 'format': 'json'})

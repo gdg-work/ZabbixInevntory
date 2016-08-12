@@ -18,7 +18,7 @@ from inventoryLogger import dLoggingConfig
 # from redis import StrictRedis, RedisError
 from redis_utils import _oConnect2Redis
 # from zabbixInterface import _sListOfStringsToJSON
-# from local import CACHE_TIME
+from local import CACHE_TIME
 # import sys         #  <--- for debugging
 
 # ============================== CONSTANTS ==============================
@@ -136,7 +136,7 @@ def _oGetCLIParser():
     oParser.add_argument('-r', '--redis', help="Redis database host:port or socket, default=localhost:6379",
                          default='localhost:6379', type=str, required=False)
     oParser.add_argument('--redis-ttl', help="TTL of Redis-cached data", type=int,
-                         default=900, required=False)
+                         default=CACHE_TIME, required=False)
     oParser.add_argument('-z', '--zabbixip', help="IP of Zabbix server", type=str,
                          default='127.0.0.1', required=False)
     oParser.add_argument('-S', '--zabbixport', help="Port for sending data to Zabbix server",

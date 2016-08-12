@@ -928,6 +928,7 @@ class ZabbixItem:
         elif self.iValType == 3:      # unsigned int
             oValue = int(oValue)
         oData2Send = ZabbixMetric(host=self.oHost._sName(), key=self.sKey, value=oValue)
+        print('*DBG* to send: host is {}, key is {}, value is {}'.format(self.oHost._sName(), self.sKey, oValue))
         try:
             if not oZabSender.send([oData2Send]):
                 # unsuccessful data sending

@@ -10,7 +10,7 @@ from redis import RedisError
 from redis_utils import _oConnect2Redis
 import json
 import traceback
-from local import REDIS_ENCODING
+from local import REDIS_ENCODING, CACHE_TIME
 
 # Constants
 SERVERS_SUPPORTED = ['aix_hmc', 'esxi_amm', 'esxi']
@@ -184,7 +184,7 @@ def _Main():
     oParser.add_argument('-r', '--redis', help="Redis database host:port or socket, default=localhost:6379",
                          default='localhost:6379', type=str, required=False)
     oParser.add_argument('--redis-ttl', help="TTL of Redis-cached data", type=int,
-                         default=900, required=False)
+                         default=CACHE_TIME, required=False)
     oParser.add_argument('-z', '--zabbixip', help="IP of Zabbix server", type=str,
                          default='127.0.0.1', required=False)
     oParser.add_argument('--zabbixport', help="Port for sending data to Zabbix server",

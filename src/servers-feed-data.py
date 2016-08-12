@@ -16,7 +16,7 @@ import zabbixInterface as zi
 # --- end of host types
 from inventoryLogger import dLoggingConfig
 from servers_discovery import REDIS_PREFIX
-from local import REDIS_ENCODING
+from local import REDIS_ENCODING, CACHE_TIME
 from pyzabbix.api import ZabbixAPI          # ZabbixAPIException
 from pyzabbix.sender import ZabbixSender    # ZabbixMetric
 from redis_utils import _oConnect2Redis
@@ -151,7 +151,7 @@ def _oGetCLIParser():
     oParser.add_argument('-r', '--redis', help="Redis database host:port or socket, default=localhost:6379",
                          default='localhost:6379', type=str, required=False)
     oParser.add_argument('-t', '--redis-ttl', help="TTL of Redis-cached data", type=int,
-                         default=900, required=False)
+                         default=CACHE_TIME, required=False)
     return (oParser.parse_args())
 
 
