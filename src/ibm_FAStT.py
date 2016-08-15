@@ -33,7 +33,7 @@ class IBM_DS(invobj.ClassicArrayClass):
     reTotalDrives =      re.compile(r'^\s*Number of drives:\s+(\d+)\s*$')
     reDriveDetailsHdr =  re.compile(r'\s*Drive at Enclosure (\d+), Slot (\d+)\s*')
 
-    def __init__(self, sArrayAddr):
+    def __init__(self):
         self.sName = ''
         self.sSN = ''
         self.sWWN = ''
@@ -44,6 +44,29 @@ class IBM_DS(invobj.ClassicArrayClass):
         self.lControllers = []
         self.lDisks = []
         self.lEnclosures = []
+        self.dQueries = {
+            'name':        self.getName,
+            'wwn':         self.getWWN,
+            'ctrls':       self.getCtrls,
+            'shelves':     self.getShelves,
+            'disks':       self.getDrives,
+            'type':        self._sGetType,
+            'ps-amount':   self._iGetPSAmount,
+            'ctrl-names':  self._lGetCtrls,
+            'shelf-names': self._lGetShelves,
+            'disk-names':  self._lGetDisks}
+        return
+
+    def _FromText(self, lLines):
+        self.lsData = lLines
+        # fill information
+        self.__FillGeneral__()
+        self.__FillControllers__()
+        self.__FillEnclosures__()
+        self.__FillDisks__()
+        return
+
+    def _FromArray(self, sArrayAddr):
         try:
             lCommand = [SMCLI_PATH, sArrayAddr, '-c', 'show storagesubsystem;']
             sData = check_output(lCommand, stderr=STDOUT, universal_newlines=True, shell=False)
@@ -59,18 +82,6 @@ class IBM_DS(invobj.ClassicArrayClass):
         self.__FillControllers__()
         self.__FillEnclosures__()
         self.__FillDisks__()
-
-        self.dQueries = {
-            'name':        self.getName,
-            'wwn':         self.getWWN,
-            'ctrls':       self.getCtrls,
-            'shelves':     self.getShelves,
-            'disks':       self.getDrives,
-            'type':        self._sGetType,
-            'ps-amount':   self._iGetPSAmount,
-            'ctrl-names':  self._lGetCtrls,
-            'shelf-names': self._lGetShelves,
-            'disk-names':  self._lGetDisks}
         return
 
     def getName(self):
@@ -190,28 +201,40 @@ class IBM_DS(invobj.ClassicArrayClass):
                 iEncl, iDrive = (oMatch.group(1), oMatch.group(2))
                 sDskName = "E{}:D{}".format(iEncl, iDrive)
                 # oLog.debug('Drive found: ' + sDskName)
-                iterDrive = it.islice(iterNextDrive, 30)  # 30 is a length of drive section
-                for sLine in (_.strip() for _ in iterDrive):
-                    if reSize.match(sLine):
-                        rSize = float(reSize.match(sLine).group(1))
-                    elif reType.match(sLine):
-                        sType = reType.match(sLine).group(1)
-                    elif reRPM.match(sLine):
-                        sRPM = reRPM.match(sLine).group(1)
-                        # sRPM contains something like aa,bbb. Need to strip out ','
-                        sRPM = sRPM.replace(',', '', 1)
-                        iRPM = int(sRPM)
-                    elif reSN.match(sLine):
-                        sSerNum = reSN.match(sLine).group(1)
-                    elif reProd.match(sLine):
-                        sProdNum = reProd.match(sLine).group(1)
-                    else:
+                iterDrive = it.islice(iterNextDrive, 3)
+                rSize, sType, sRPM, iRPM, sSerNum, sProdNum = (0, '', '', 0, '', '')
+                for l in iterDrive:
+                    l = l.strip()
+                    if l == '':
                         pass
-                # make 'drive' object and add it to a list
-                # oLog.debug('{} Drive found: name {}, P/N {}, SN: {} size {} GB, speed {} RPM'.format(
-                #     sType, sDskName, sProdNum, sSerNum, rSize, iRPM))
-                oDrive = IBM_DS_Drive(sDskName, sType, sProdNum, sSerNum, rSize, iRPM, iEncl, iDrive)
-                self.lDisks.append(oDrive)
+                    elif 'Status:' in l:
+                        oLog.debug('Status line found: ' + l)
+                        if 'Unresponsive' in l:
+                            oLog.debug('Skipping a failed drive: ' + sDskName)
+                            break
+                        else:
+                            iterDrive = it.islice(iterNextDrive, 27)  # 30 is a length of drive section
+                            for sLine in (s.strip() for s in iterDrive):
+                                if reSize.match(sLine):
+                                    rSize = float(reSize.match(sLine).group(1))
+                                elif reType.match(sLine):
+                                    sType = reType.match(sLine).group(1)
+                                elif reRPM.match(sLine):
+                                    sRPM = reRPM.match(sLine).group(1)
+                                    # sRPM contains something like aa,bbb. Need to strip out ','
+                                    sRPM = sRPM.replace(',', '', 1)
+                                    iRPM = int(sRPM)
+                                elif reSN.match(sLine):
+                                    sSerNum = reSN.match(sLine).group(1)
+                                elif reProd.match(sLine):
+                                    sProdNum = reProd.match(sLine).group(1)
+                                else:
+                                    pass
+                            # make 'drive' object and add it to a list
+                            oLog.debug('{} Drive found: name {}, P/N {}, SN: {} size {} GB, speed {} RPM'.format(
+                                sType, sDskName, sProdNum, sSerNum, rSize, iRPM))
+                            oDrive = IBM_DS_Drive(sDskName, sType, sProdNum, sSerNum, rSize, iRPM, iEncl, iDrive)
+                            self.lDisks.append(oDrive)
                 # next top-lvl cycle
             except StopIteration:
                 oLog.debug('End of drives section')
@@ -440,7 +463,7 @@ class IBM_DS_Drive(invobj.DASD_Class):
 
 if __name__ == "__main__":
     # access information (IP for this module)
-    from access import IBM_Fast as tsrv
+    # from access import IBM_Fast as tsrv
     # test section: logging set-up
     oLog.setLevel(logging.DEBUG)
     oConHdr = logging.StreamHandler()
@@ -448,19 +471,20 @@ if __name__ == "__main__":
     oLog.addHandler(oConHdr)
     # tests
     lLines = []
-    # for l in open(",ibmds8k.out", "r"):
-    #     lLines.append(l)
-    oDS = IBM_DS(tsrv.sIP)
-    oDS.__FillGeneral__()
-    oDS.__FillControllers__()
-    oDS.__FillEnclosures__()
-    oDS.__FillDisks__()
-    # print(str(oDS._lGetCtrls()))
-    # print(str(oDS._lGetShelves()))
-    # print(str(oDS._lGetDisks()))
-    # print(str(oDS._ldGetShelvesAsDicts()))
-    # print(str(oDS._ldGetControllersInfoAsDict()))
-    # print(str(oDS._ldGetDisksAsDicts()))
+    for l in open("/tmp/out.txt", "r"):
+        lLines.append(l)
+    oDS = IBM_DS()
+    oDS._FromText(lLines)
+#    oDS.__FillGeneral__()
+#    oDS.__FillControllers__()
+#    oDS.__FillEnclosures__()
+#    oDS.__FillDisks__()
+    print(str(oDS._lGetCtrls()))
+    print(str(oDS._lGetShelves()))
+    print(str(oDS._lGetDisks()))
+    print(str(oDS._ldGetShelvesAsDicts()))
+    print(str(oDS._ldGetControllersInfoAsDict()))
+    print(str(oDS._ldGetDisksAsDicts()))
     print(str(oDS._dGetArrayInfoAsDict(['wwn', 'sn', 'model', 'shelves', 'disks'])))
 
 # vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4

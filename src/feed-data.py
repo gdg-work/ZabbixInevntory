@@ -135,7 +135,9 @@ def _o3ParConnect(dArrayInfo, oRedis):
 
 def _oIBM_DS_Connect(dArrayInfo):
     sIp = dArrayInfo['ip']
-    return ibmds.IBM_DS(sIp)
+    oArr = ibmds.IBM_DS()
+    oArr._FromArray(sIp)
+    return oArr
 
 
 def _oIBM_FlashSys_Connect(dArrayInfo, oRedis):
