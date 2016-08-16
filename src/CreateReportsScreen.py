@@ -78,7 +78,7 @@ dConfig = yaml.load("""
                 level: INFO
                 handlers: [ console, logfile ]
             Create_Properties_Screen:
-                level: INFO
+                level: DEBUG
                 handlers: [ console, logfile ]
     """)
 
@@ -90,7 +90,7 @@ ZBX_SENDER_TIMEOUT = 120
 
 
 class InventoryHost:
-    def __init__(self, s_name, s_desc, s_inv, s_sn, s_site):
+    def __init__(self, s_name, s_desc, s_ip, s_inv, s_sn, s_site):
         """constructor of an object, parameters:
         s_name: Zabbix name,
         s_desc: human-readable description
@@ -103,6 +103,7 @@ class InventoryHost:
         self.s_inv = s_inv
         self.s_sn = s_sn
         self.s_site = s_site
+        self.s_netaccess = s_ip
         self.s_url = ''
         return
 
@@ -138,6 +139,10 @@ class InventoryHost:
                 'Description', APP_NAME, dParams={'key': zi._sMkKey(APP_NAME, 'Description'),
                                                   'value_type': 1})
             o_sender.add_item_value(oDescItem, self.s_desc)
+            oIP_Item = o_zbx_host._oAddItem(
+                'Controlling IP', APP_NAME, dParams={'key': zi._sMkKey(APP_NAME, 'IP'),
+                                                  'value_type': 1})
+            o_sender.add_item_value(oIP_Item, self.s_netaccess)
             oInvItem = o_zbx_host._oAddItem(
                 'Inventory #', APP_NAME, dParams={'key': zi._sMkKey(APP_NAME, 'Inventory Number'),
                                                   'value_type': 1})
@@ -222,11 +227,20 @@ def fi_do_the_work():
     for dHost in lHosts:
         # lets access host configuration host-by-host
         # oLog.debug('*DBG* dHost is ' + str(dHost))
-        oLog.debug("Host fields are" +  ', '.join('{0}={1}'.format(a, b) for a, b in dHost.items()))
+        # oLog.debug("Host fields are" +  ', '.join('{0}={1}'.format(a, b) for a, b in dHost.items()))
         # sName = dHost['name']
+        sIP = 'IP.AD.RE.SS'
         sName = dHost['host']
         sDesc = dHost['description']
-        oLog.debug('Host is {} ({})'.format(sName, sDesc))
+        lInterfaces = dHost['interfaces']
+        for dInt in lInterfaces:
+            if dInt['default'] == '1':
+                if dInt['useip'] == '1':
+                    sIP = dInt['ip']
+                else:
+                    sIP = dInt['dns']
+                break
+        oLog.debug('Host is {} ({}) at IP'.format(sName, sDesc, sIP))
         dInv = dHost.get('inventory', {})
         if len(dInv) > 0:
             sInvNo = dInv['asset_tag']
@@ -237,7 +251,7 @@ def fi_do_the_work():
                     dInv['site_address_a'], dInv['site_address_b'], dInv['site_address_c'],
                     dInv['site_notes']]
                 sAddr = ', '.join([s for s in lAddrList if s != ''])
-                o_inv_host = InventoryHost(sName, sDesc, sInvNo, sSN, sAddr)
+                o_inv_host = InventoryHost(sName, sDesc, sIP, sInvNo, sSN, sAddr)
                 o_inv_host.s_make_url(dConfig['Jasper'])
                 o_inv_host.make_app_items(oAPI, oNewSend)
                 lHostData.append(o_inv_host)
