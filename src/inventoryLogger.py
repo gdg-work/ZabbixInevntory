@@ -52,7 +52,7 @@ dLoggingConfig = yaml.load("""
         Discovery:
             level: INFO
             handlers: [ console, logfile ]
-        srv.Discovery:
+        Srv.Discovery:
             level: DEBUG
             handlers: [ console, logfile ]
         Servers_Feed_Data:

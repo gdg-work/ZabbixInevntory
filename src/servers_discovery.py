@@ -51,10 +51,10 @@ def _sGetServerData(oRedis, oArgs):
 def _PushConnectionInfo2(dConnInfo, oParser, oRedis):
     ACCESS_PFX = REDIS_PREFIX + "ServersAccess"
     ZABBIX_PFX = REDIS_PREFIX + "ZabbixAccess"
-    dZabbixAccess = {'zabbix_user': oParser.zabbixuser,
-                     'zabbix_passwd': oParser.zabbixpassword,
-                     'zabbix_IP': oParser.zabbixip,
-                     'zabbix_port': oParser.zabbixport}
+    dZabbixAccess = {'zabbix_user': oParser.zbxuser,
+                     'zabbix_passwd': oParser.zbxpass,
+                     'zabbix_IP': oParser.zbxip,
+                     'zabbix_port': oParser.zbxport}
     try:
         oRedis.set(ZABBIX_PFX, json.dumps(dZabbixAccess), oParser.redis_ttl)
         oRedis.hset(ACCESS_PFX, oParser.name, json.dumps(dConnInfo))
@@ -185,13 +185,13 @@ def _Main():
                          default='localhost:6379', type=str, required=False)
     oParser.add_argument('--redis-ttl', help="TTL of Redis-cached data", type=int,
                          default=CACHE_TIME, required=False)
-    oParser.add_argument('-z', '--zabbixip', help="IP of Zabbix server", type=str,
+    oParser.add_argument('-z', '--zbxip', help="IP of Zabbix server", type=str,
                          default='127.0.0.1', required=False)
-    oParser.add_argument('--zabbixport', help="Port for sending data to Zabbix server",
+    oParser.add_argument('--zbxport', help="Port for sending data to Zabbix server",
                          type=int, default=10051, required=False)
-    oParser.add_argument('--zabbixuser', help="Zabbix server user name",
+    oParser.add_argument('--zbxuser', help="Zabbix server user name",
                          default='Admin', required=False)
-    oParser.add_argument('--zabbixpassword', help="Zabbix server password",
+    oParser.add_argument('--zbxpass', help="Zabbix server password",
                          default='zabbix', required=False)
 
     oArgs = oParser.parse_args()

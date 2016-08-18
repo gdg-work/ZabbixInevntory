@@ -20,7 +20,7 @@ import logging
 
 # CONSTANTS
 REDIS_PREFIX = "pyzabbix::FlashSys::"
-FAKE_HOME = '/tmp/'
+FAKE_HOME = '/tmp'
 
 
 oLog = logging.getLogger(__name__)
@@ -53,6 +53,38 @@ class XIVError(Exception):
         return self.sMsg
 
 
+# service class for XIV command line processing
+class XIV_Collections_Service:
+
+    def __init__(self, oSystem):
+        self.oSystem = oSystem
+        return
+
+    def _FillList(self, oList):
+        """Fills in the lists in oList object from XCLI output"""
+        try:
+            sCmdLine = oList.sMyListCommand
+            lData = self.oSystem._lsRunCommand(sCmdLine)
+            if len(lData) == 0:
+                raise XIVError('No output from command ' + sCmdLine)
+            oCSV = csv.DictReader(lData,  delimiter=',', quotechar='"')
+            # oList.lData = list(lData)
+            lCSVData = list(oCSV)
+            oList.oCSV = list(lCSVData)    # copy
+            for dData in lCSVData:
+                sID = dData['Component ID']
+                bHealthy = dData['Currently Functioning'] == 'yes'
+                bHealthy = bHealthy and dData['Status'] == 'OK'
+                oList._AddID(sID, bHealthy)
+                if not bHealthy:
+                    oLog.debug('Failed component: {}'.format(sID))
+        except AttributeError as e:
+            oLog.error('No command defined for object: ' + str(type(oList)))
+            raise(e)
+        oList._PostProcessOutput()
+        return
+
+
 class IBM_XIV_Storage(inv.ScaleOutStorageClass):
     def __init__(self, sIP, sUser, sPass, oRedis, sName):
         self.sRedisPrefix = REDIS_PREFIX + "XIV::" + sName + "::"
@@ -61,6 +93,7 @@ class IBM_XIV_Storage(inv.ScaleOutStorageClass):
         self.sUser = sUser
         self.sPass = sPass
         self.oRedisDB = oRedis
+        self.oFillSvc = XIV_Collections_Service(self)
         self.oNodesList = IBM_XIV_NodesList(self)
         self.oDisksList = IBM_XIV_DisksList(self)
         self.oCFList = IBM_XIV_CompactFlashList(self)
@@ -71,6 +104,11 @@ class IBM_XIV_Storage(inv.ScaleOutStorageClass):
         self.oMMs = IBM_XIV_MaintenanceModulesList(self)
         self.oNICs = IBM_XIV_NICsList(self)
         self.oFCs = IBM_XIV_FCPortsList(self)
+        # fill in the data from an array
+        for oList in [self.oNodesList, self.oDisksList, self.oCFList,
+                      self.oDIMMs, self.oPSUs, self.oUPSs, self.oSwitches,
+                      self.oMMs, self.oNICs, self.oFCs]:
+            self.oFillSvc._FillList(oList)
         self.dQueries = {"name": lambda: self.sSysName,
                          "node-names":   self.oNodesList._lsListNames,
                          "switch-names": self.oSwitches._lsListNames,
@@ -91,19 +129,23 @@ class IBM_XIV_Storage(inv.ScaleOutStorageClass):
         sRedisKey = self.sRedisPrefix + sCmd
         try:
             sLine = self.oRedisDB.get(sRedisKey).decode(REDIS_ENCODING)
-            oLog.debug('_lsRunCommand: Data from Redis')
+            # oLog.debug('_lsRunCommand: Data from Redis')
         except AttributeError:
             # no line in Redis
             try:
-                os.environ['XIV_XCLIUSER'] = self.sUser
-                os.environ['XIV_XCLIPASSWORD'] = self.sPass
+                if self.sUser:
+                    os.environ['XIV_XCLIUSER'] = self.sUser
+                    os.environ['XIV_XCLIPASSWORD'] = self.sPass
                 os.environ['HOME'] = FAKE_HOME
-                lCommand = [XCLI_PATH, '-y', '-m', self.sIP, sCmd, '-s']
-                # sLine = check_output(lCommand, stderr=STDOUT, universal_newlines=True, shell=False)
-                sLine = check_output(' '.join(lCommand), stderr=STDOUT, universal_newlines=True, shell=True)
+                lCommand = [XCLI_PATH, '-y', '-s', '-m', self.sIP] + sCmd.split()
+                # oLog.debug('Will run: {}'.format('_'.join(lCommand)))
+                sLine = check_output(lCommand, stderr=STDOUT, universal_newlines=True, shell=False)
+                # DBG
                 self.oRedisDB.set(sRedisKey, sLine.encode(REDIS_ENCODING))
             except CalledProcessError as e:
                 sLine = e.output
+                oLog.error('Non-zero return code from XCli!')
+                oLog.debug('Failed command output from {}: \n'.format(' '.join(lCommand)) + sLine)
         lRet = sLine.split('\n')
         return lRet
 
@@ -200,22 +242,33 @@ class IBM_XIV_Storage(inv.ScaleOutStorageClass):
 
 
 class XIV_Componens_Collection:
-    def __init__(self, oSystem, sCommandLine):
+    def __init__(self, oParent):
         self.lComponentIDs = []
+        self.lFailedIDs = []
         self.dComponents = {}
-        self.oSystem = oSystem
-        self.lData = oSystem._lsRunCommand(sCommandLine)
-        if self.lData:
-            oLog.debug("XIV_Componens_Collection constructor: command output is " + str(self.lData))
-            self.oCSV = csv.DictReader(self.lData,  delimiter=',', quotechar='"')
-        else:
-            raise XIVError("No output from a command")
+        self.oParent = oParent
+        self.lData = []
+        self.oCSV = None
         return
 
     def __repr__(self):
         """for debug printing"""
-        return ("\n" + "====== List of components: ======" + '\n' +
-                "\n".join([d.__repr__() for d in self.dComponents.values()]))
+        lOut = ["\n" + "====== List of components: ======" + '\n']
+        lOut.append('List of IDs:')
+        lOut.append(', '.join(self.lComponentIDs))
+        lOut.append('Failed components:')
+        lOut.append(', '.join(self.lFailedIDs))
+        lOut.append('Components:')
+        lOut.append('\n'.join([str(s) for s in self.dComponents.values()]))
+        return ("\n".join(lOut))
+
+    def _AddID(self, sID, bHealthy):
+        """stores an ID of a component to internal list based on bHealthy value"""
+        # oLog.debug('Adding ID: {}, healthy: {}'.format(sID, bHealthy))
+        self.lComponentIDs.append(sID)
+        if not bHealthy:
+            self.lFailedIDs.append(sID)
+        return
 
     def _lsListNames(self):
         """return a copy of Component IDs list"""
@@ -230,37 +283,59 @@ class XIV_Componens_Collection:
 
     def _iLength(self):
         """# of elements in the collection"""
-        return len(self.lComponentIDs)
+        iFailed = 0
+        try:
+            lFails = [o for o in self.dComponents.values() if not o.bHealthy]
+            if len(lFails) > 0:
+                oLog.debug('There are failed elements: ' + str(lFails))
+                iFailed = len(lFails)
+        except AttributeError:
+            iFailed = 0
+        return (len(self.lComponentIDs) - iFailed)
+
+    def _AddComp(self, oComp):
+        sID = oComp.id
+        self.dComponents[sID] = oComp
+        return
 
 
 class IBM_XIV_DisksList(XIV_Componens_Collection):
-    def __init__(self, oSystem):
-        sCmd = 'disk_list -t component_id,capacity,size,model,serial'
-        super().__init__(oSystem, sCmd)
-        # parse the output
+    sMyListCommand = 'disk_list -t component_id,status,currently_functioning,capacity,size,model,serial'
+
+#     def __init__(self, oParent):
+#         super().__init__(oParent)
+#         oLog.debug('List of failed disks: ' + ",".join(self.lFailedIDs))
+#         return
+
+    def _PostProcessOutput(self):
+        # oLog.debug('List of disk IDs: ' + ",".join(self.lComponentIDs))
+        # oLog.debug('List of failed disks: ' + ",".join(self.lFailedIDs))
         for dDiskData in self.oCSV:
-            sID = dDiskData["Component ID"]
-            self.lComponentIDs.append(sID)
-            oDisk = XIV_Disk(sID, dDiskData, oSystem)
-            oSystem.oNodesList._AddDisk(sID, oDisk)
-            self.dComponents[sID] = oDisk
+            # oLog.debug('Processing disk data: ' + str(dDiskData))
+            sID = dDiskData['Component ID']
+            bHealthy = sID not in self.lFailedIDs
+            if not bHealthy:
+                oLog.debug('Failed disk with ID: ' + sID)
+            oDisk = XIV_Disk(sID, dDiskData, self.oParent, bHealthy)
+            try:
+                self.oParent.oNodesList._AddDisk(sID, oDisk)
+                self.dComponents[sID] = oDisk
+            except AttributeError as e:
+                oLog.error('DiskList: PostProcess: no parent system')
+                raise(e)
         return
 
 
 class IBM_XIV_NodesList(XIV_Componens_Collection):
     """ CAUTION: you must call this method first, before other *List constructors """
-    def __init__(self, oSystem):
-        # lsFields = ["component_id", "type", "disk_bay_count", "fc_port_count",
-        #             "ethernet_port_count", "serial", "part_number, memory_gb"]
-        # sFields = ",".join(lsFields)
-        # sCmd = 'module_list -t ' + sFields
-        sCmd = 'module_list -t all'
-        super().__init__(oSystem, sCmd)
+    sMyListCommand = 'module_list -t all'    # there are too many fields to list
+
+    def _PostProcessOutput(self):
         for dNodeData in self.oCSV:
-            oLog.debug("IBM_XIV_NodesList constructor: dNodeData: " + str(dNodeData))
+            # oLog.debug("IBM_XIV_NodesList constructor: dNodeData: " + str(dNodeData))
             sID = dNodeData['Component ID']
-            self.lComponentIDs.append(sID)
-            self.dComponents[sID] = XIV_Node(sID, dNodeData)
+            bHealthy = sID not in self.lFailedIDs
+            self.dComponents[sID] = XIV_Node(sID, dNodeData, bHealthy)
         return
 
     def _AddDisk(self, sDiskID, oDisk):
@@ -300,66 +375,73 @@ class IBM_XIV_NodesList(XIV_Componens_Collection):
 
 
 class IBM_XIV_CompactFlashList(XIV_Componens_Collection):
-    def __init__(self, oSystem):
-        sCmd = 'cf_list -t component_id,part_number,serial'
-        super().__init__(oSystem, sCmd)
+    sMyListCommand = 'cf_list -t component_id,status,currently_functioning,part_number,serial'
+
+    def _PostProcessOutput(self):
         for dCF_Data in self.oCSV:
             sID = dCF_Data['Component ID']
-            self.lComponentIDs.append(sID)
-            oCF = XIV_CompFlash(sID, dCF_Data['Part #'], dCF_Data['Serial'])
+            bHealthy = sID not in self.lFailedIDs
+            oCF = XIV_CompFlash(sID, dCF_Data['Part #'], dCF_Data['Serial'], bHealthy)
             self.dComponents[sID] = oCF
-            oSystem.oNodesList._AddCF(sID, oCF)
+            try:
+                self.oParent.oNodesList._AddCF(sID, oCF)
+            except AttributeError as e:
+                oLog.error('No oNodesList attribute in self.oParent')
+                raise(e)
         return
 
 
 class IBM_XIV_SwitchesList(XIV_Componens_Collection):
-    def __init__(self, oSystem):
-        sCmd = 'switch_list -t component_id,serial'
-        super().__init__(oSystem, sCmd)
+    sMyListCommand = 'switch_list -t component_id,status,currently_functioning,serial'
+
+    def _PostProcessOutput(self):
         for dSwitchData in self.oCSV:
             sID = dSwitchData['Component ID']
-            self.lComponentIDs.append(sID)
-            self.dComponents[sID] = XIV_IB_Switch(sID, dSwitchData['Serial'])
-        # oSystem.oSwitchesList = self
+            bHealthy = sID not in self.lFailedIDs
+            self.dComponents[sID] = XIV_IB_Switch(sID, dSwitchData['Serial'], bHealthy)
         return
 
 
 class IBM_XIV_NICsList(XIV_Componens_Collection):
-    def __init__(self, oSystem):
-        sCmd = 'nic_list -t component_id,part_number,serial'
-        super().__init__(oSystem, sCmd)
+    sMyListCommand = 'nic_list -t component_id,status,currently_functioning,part_number,serial'
+
+    def _PostProcessOutput(self):
         for dNicData in self.oCSV:
             sID = dNicData['Component ID']
-            self.lComponentIDs.append(sID)
-            oNic = XIV_NIC(sID, dNicData['Part #'], dNicData['Serial'])
-            oSystem.oNodesList._AddNIC(sID, oNic)
+            bHealthy = sID not in self.lFailedIDs
+
+            oNic = XIV_NIC(sID, dNicData['Part #'], dNicData['Serial'], bHealthy)
+            self.oParent.oNodesList._AddNIC(sID, oNic)
             self.dComponents[sID] = oNic
         return
 
 
 class IBM_XIV_FCPortsList(XIV_Componens_Collection):
-    def __init__(self, oSystem):
-        sCmd = 'fc_port_list -t component_id,module,port_num,wwpn,model,original_serial'
-        super().__init__(oSystem, sCmd)
+    sMyListCommand = 'fc_port_list -t all'
+
+    def _PostProcessOutput(self):
         for dFCData in self.oCSV:
             sID = dFCData['Component ID']
-            self.lComponentIDs.append(sID)
-            oFCPort = XIV_FCPort(sID, dFCData)
+            bHealthy = sID not in self.lFailedIDs
+
+            oFCPort = XIV_FCPort(sID, dFCData, bHealthy)
             self.dComponents[sID] = oFCPort
-            oSystem.oNodesList._AddFCPort(oFCPort)
+            self.oParent.oNodesList._AddFCPort(oFCPort)
         return
 
 
 class IBM_XIV_DIMMSlist(XIV_Componens_Collection):
-    def __init__(self, oSystem):
-        sCmd = 'dimm_list -t component_id,size,part_number,serial'
-        super().__init__(oSystem, sCmd)
+    sMyListCommand = 'dimm_list -t component_id,status,currently_functioning,size,part_number,serial'
+
+    def _PostProcessOutput(self):
         for dDIMMdata in self.oCSV:
             sID = dDIMMdata['Component ID']
-            self.lComponentIDs.append(sID)
-            oDIMM = XIV_DIMM(sID, dDIMMdata['Size(Mb)'], dDIMMdata['Part #'], dDIMMdata['Serial'])
+            bHealthy = sID not in self.lFailedIDs
+            oDIMM = XIV_DIMM(sID, dDIMMdata['Size(Mb)'],
+                             dDIMMdata['Part #'], dDIMMdata['Serial'],
+                             bHealthy)
             self.dComponents[sID] = oDIMM
-            oSystem.oNodesList._AddDIMM(sID, oDIMM)
+            self.oParent.oNodesList._AddDIMM(sID, oDIMM)
         return
 
     def _iTotalGBs(self):
@@ -370,37 +452,38 @@ class IBM_XIV_DIMMSlist(XIV_Componens_Collection):
 
 
 class IBM_XIV_MaintenanceModulesList(XIV_Componens_Collection):
-    def __init__(self, oSystem):
-        sCmd = 'mm_list -t component_id,part_number,serial'
-        super().__init__(oSystem, sCmd)
+    sMyListCommand = 'mm_list -t component_id,status,currently_functioning,part_number,serial'
+
+    def _PostProcessOutput(self):
         for dMM_Data in self.oCSV:
             # most times, there will be only one loop
             sID = dMM_Data['Component ID']
-            self.lComponentIDs.append(sID)
-            self.dComponents[sID] = XIV_MaintenanceModule(sID, dMM_Data['Part #'], dMM_Data['Serial'])
+            bHealthy =  sID not in self.lFailedIDs
+            self.dComponents[sID] = XIV_MaintenanceModule(
+                sID, dMM_Data['Part #'], dMM_Data['Serial'], bHealthy)
         return
 
 
 class IBM_XIV_PwrSuppliesList(XIV_Componens_Collection):
-    def __init__(self, oSystem):
-        sCmd = 'psu_list -t component_id'
-        super().__init__(oSystem, sCmd)
+    sMyListCommand = 'psu_list -t component_id,status,currently_functioning'
+
+    def _PostProcessOutput(self):
         for dPSData in self.oCSV:
             sID = dPSData['Component ID']
-            oPSU = XIV_PwrSupply(sID)
-            self.dComponents[sID] = oPSU
-            oSystem.oNodesList._AddPSU(sID, oPSU)
+            bHealthy =  sID not in self.lFailedIDs
+            oPSU = XIV_PwrSupply(sID, bHealthy)
+            self.oParent.oNodesList._AddPSU(sID, oPSU)
         return
 
 
 class IBM_XIV_UPS_List(XIV_Componens_Collection):
-    def __init__(self, oSystem):
-        sCmd = 'ups_list -t component_id,serial,manufacture_date'
-        super().__init__(oSystem, sCmd)
-        for dUPSData in self.oCSV:
-            sID = dUPSData['Component ID']
-            self.lComponentIDs.append(sID)
-            self.dComponents[sID] = XIV_UPS(sID, dUPSData['Serial'], dUPSData['UPS Manufacture Date'])
+    sMyListCommand = 'ups_list -t component_id,status,currently_functioning,serial,manufacture_date'
+
+    def _PostProcessOutput(self):
+        for d in self.oCSV:
+            sID = d['Component ID']
+            bHealthy =  sID not in self.lFailedIDs
+            self.dComponents[sID] = XIV_UPS(sID, d['Serial'], d['UPS Manufacture Date'], bHealthy)
         return
 
 
@@ -409,10 +492,13 @@ class IBM_XIV_UPS_List(XIV_Componens_Collection):
 #
 
 class XIV_Component(inv.ComponentClass):
-    def __init__(self, sID, sSN=""):
+    def __init__(self, sID, sSN="", bHealthy=True):
         self.sID = sID
         self.sSN = sSN
-        self.dQueries = {}
+        self.bHealthy = bHealthy
+        self.sModel = ''
+        self.dQueries = {'model': lambda: self.sModel,
+                         'sn': lambda: self.sn}
 
     def _dGetDataAsDict(self):
         # name, type, model, etc
@@ -421,13 +507,31 @@ class XIV_Component(inv.ComponentClass):
             dRet[name] = fun()
         return dRet
 
+    @property
+    def model(self):
+        if self.bHealthy:
+            return self.sModel
+        else:
+            return "NO COMPONENT!"
+
+    @property
+    def sn(self):
+        if self.bHealthy:
+            return self.sSN
+        else:
+            return "NO COMPONENT!"
+
+    @property
+    def id(self):
+        return self.sID
+
 
 class XIV_Node(XIV_Component):
     """XIV node"""
-    def __init__(self, sId, dParams):
+    def __init__(self, sId, dParams, bHealthy=True):
         """Node constructor. 2nd parameter is a dictionary of data: type, disk bays amount,
         FC ports amount, Ethernet ports amount, serial number, P/N"""
-        super().__init__(sId, dParams['Serial'])
+        super().__init__(sId, dParams['Serial'], bHealthy)
         self.sType = dParams['Type']
         self.sModel = dParams['Part Number']
         self.iDiskBaysCount = int(dParams['Data Disks'])
@@ -435,20 +539,20 @@ class XIV_Node(XIV_Component):
         self.iEthPorts = int(dParams['iSCSI Ports'])
         self.iRAM_GBs = int(dParams['Mem'])
         self.iPwrSupplies = 0
-        self.lDisks = []
-        self.lNICs = []
-        self.lFCPorts = []
-        self.lDimms = []
-        self.lPSUs = []
+        self.lDisks = IBM_XIV_DisksList(self)
+        self.lNICs = IBM_XIV_NICsList(self)
+        self.lFCPorts = IBM_XIV_FCPortsList(self)
+        self.lDimms = IBM_XIV_DIMMSlist(self)
+        self.lPSUs = IBM_XIV_PwrSuppliesList(self)
         self.oCF = None
         self.dQueries = {"name":       lambda: self.sID,
-                         "sn":         lambda: self.sSN,
-                         "disks":      lambda: len(self.lDisks),
+                         "sn":         lambda: self.sn,
+                         "healthy":    lambda: self.bHealthy,
+                         "disks":      self.lDimms._iLength,
                          "disk-bays":  lambda: self.iDiskBaysCount,
-                         "ps-amount":  lambda: self.iPwrSupplies,
-                         # "disk-names": self._lsGetDiskNames,
-                         "fc-ports":   lambda: self.iFCPorts,
-                         "model":      lambda: self.sModel,
+                         "ps-amount":  self.lPSUs._iLength,
+                         "fc-ports":   self.lFCPorts._iLength,
+                         "model":      lambda: self.model,
                          "type":       lambda: self.sType,
                          "eth-ports":  lambda: self.iEthPorts,
                          "memory":     lambda: self.iRAM_GBs
@@ -477,7 +581,9 @@ class XIV_Node(XIV_Component):
         return iRam
 
     def _AddDisk(self, oDisk):
-        self.lDisks.append(oDisk)
+        self.lDisks._AddComp(oDisk)
+        if not oDisk.bHealthy:
+            oLog.info('Adding failed disk "{}"'.format(oDisk.id))
         return
 
     def _AddCF(self, oCompactFlash):
@@ -485,57 +591,76 @@ class XIV_Node(XIV_Component):
         return
 
     def _AddNIC(self, oNic):
-        self.lNICs.append(oNic)
+        self.lNICs._AddComp(oNic)
         return
 
     def _AddFCPort(self, oPort):
-        self.lFCPorts.append(oPort)
+        self.lFCPorts._AddComp(oPort)
         return
 
     def _AddDIMM(self, oDimm):
-        self.lDimms.append(oDimm)
+        self.lDimms._AddComp(oDimm)
         return
 
     def _AddPSU(self, oPSU):
         self.iPwrSupplies += 1
-        self.lPSUs.append(oPSU)
+        self.lPSUs._AddComp(oPSU)
         return
 
     def _lsGetDiskNames(self):
         """return a list of this node disks"""
-        return [d.getID() for d in self.lDisks]
+        return self.lDisks._lsListNames()
 
 
 class XIV_Disk(XIV_Component):
     """Physical disk in XIV"""
-    def __init__(self, sID, dParams, oNode):
+    def __init__(self, sID, dParams, oNode, bHealthy=True):
         # self.sSN = dParams["Serial"]
-        super().__init__(sID, dParams["Serial"])
+        super().__init__(sID, dParams["Serial"], bHealthy)
         self.sID = sID
         self.iSizeMB = int(dParams['Size'])
         self.sSizeH = dParams['Capacity (GB)']
         self.sModel = dParams['Model']
         self.dQueries = {"name":  lambda: self.sID,
                          # "id":    lambda: self.sID,
-                         "model": lambda: self.sModel,
+                         "healthy": lambda: self.bHealthy,
+                         "model": lambda: self.model,
                          "position": self._sGetPosition,
-                         "size":  lambda: int(self.iSizeMB / 1024),
-                         "sn":    lambda: self.sSN}
-        oLog.debug('Disk ID: {}, sizeH: {}, sizeKB: {}'.format(self.sID, self.sSizeH, self.iSizeMB))
+                         "size":  self._iGetSize,
+                         "sn":    lambda: self.sn}
+        # oLog.debug('Disk ID: {}, sizeH: {}, sizeKB: {}'.format(self.sID, self.sSizeH, self.iSizeMB))
         return
+
+    def _iGetSize(self):
+        if self.bHealthy:
+            return (self.iSizeMB / 1024)
+        else:
+            return 0
+
+    @property
+    def size(self):
+        return self._iGetSize()
 
     def _sGetPosition(self):
         """return disk position based on ID"""
-        lFields = self.sID.split(':')
-        return("Node {0}, bay {1}".format(lFields[2], lFields[3]))
+        if self.bHealthy:
+            lFields = self.sID.split(':')
+            return("Node {0}, bay {1}".format(lFields[2], lFields[3]))
+        else:
+            return "NO COMPONENT!"
 
     def __repr__(self):
-        return "Drive: ID: {}, size:{}, mod:{}".format(self.sID, self.sSizeH, self.sModel)
+        if self.bHealthy:
+            h = ''
+        else:
+            h = '!FAILED '
+        return "{3} Drive: ID: {0}, size:{1}, mod:{2}".format(self.sID, self.size, self.model, h)
 
 
 class XIV_CompFlash(XIV_Component):
     """XIV CF device"""
-    def __init__(self, sID, sPN, sSN):
+    def __init__(self, sID, sPN, sSN, bHealthy=True):
+        super().__init__(sID, sSN, bHealthy)
         self.sID = sID
         # Node number is 3rd colon-separated field in the component ID
         self.sModel = sPN
@@ -548,8 +673,11 @@ class XIV_CompFlash(XIV_Component):
 
     def _sGetPos(self):
         """return module number based on ID"""
-        lFields = self.sID.split(':')
-        return("Node {0}".format(lFields[2]))
+        if self.bHealthy:
+            lFields = self.sID.split(':')
+            return("Node {0}".format(lFields[2]))
+        else:
+            return "NO COMPONENT!"
 
     def __repr__(self):
         return "Compact Flash device, ID: {0:12s}, P/N:{1}, S/N:{2}".format(self.sID, self.sModel, self.sSN)
@@ -557,10 +685,11 @@ class XIV_CompFlash(XIV_Component):
 
 class XIV_NIC(XIV_Component):
     """XIV Network Interface Card (Ethernet)"""
-    def __init__(self, sID, sPN, sSN):
-        self.sID = sID
+    def __init__(self, sID, sPN, sSN, bHealthy=True):
+        super().__init__(sID, sSN, bHealthy)
+        # self.sID = sID
         self.sPN = sPN
-        self.sSN = sSN
+        # self.sSN = sSN
         return
 
     def __repr__(self):
@@ -570,19 +699,21 @@ class XIV_NIC(XIV_Component):
 
 class XIV_MaintenanceModule(XIV_Component):
     """Maintenance module. I can't receive any information from XIV abt this module"""
-    def __init__(self, sID, sPN, sSN):
-        self.sID = sID
+    def __init__(self, sID, sPN, sSN, bHealthy=True):
+        super().__init__(sID, sSN, bHealthy)
+        # self.sID = sID
         self.sPN = sPN
-        self.sSN = sSN
+        # self.sSN = sSN
         return
 
 
 class XIV_DIMM(XIV_Component):
     """DIMM module"""
-    def __init__(self, sID, sSizeMB, sPN, sSN):
-        self.sID = sID
+    def __init__(self, sID, sSizeMB, sPN, sSN, bHealthy=True):
+        super().__init__(sID, sSN, bHealthy)
+        # self.sID = sID
         self.iSizeMB = int(sSizeMB)
-        self.sSN = sSN
+        # self.sSN = sSN
         self.sPN = sPN
         self.dQueries = {"name":     lambda: self.sID,
                          "sn":       lambda: self.sSN,
@@ -605,18 +736,18 @@ class XIV_DIMM(XIV_Component):
 
 
 class XIV_PwrSupply(XIV_Component):
-    def __init__(self, sID):
+    def __init__(self, sID, bHealthy=True):
+        super().__init__(sID, '', bHealthy)    # Empty S/N
         self.sID = sID
         return
 
     def __repr__(self):
-        return "Power supply, ID: {}".format(self.sID)
+        return "Power supply, ID: {0}, is_healthy: {1}".format(self.sID, str(self.bHealthy))
 
 
 class XIV_UPS(XIV_Component):
-    def __init__(self, sID, sSN, sMFDate):
-        self.sSN = sSN
-        self.sID = sID
+    def __init__(self, sID, sSN, sMFDate, bHealthy=True):
+        super().__init__(sID, sSN, bHealthy)
         self.sMfgDate = sMFDate
         self.dQueries = {"name":    lambda: self.sID,
                          "sn":      lambda: self.sSN,
@@ -625,13 +756,13 @@ class XIV_UPS(XIV_Component):
 
 
 class XIV_FCPort(XIV_Component):
-    def __init__(self, sID, dDataDict):
-        self.sID = sID
+    def __init__(self, sID, dDataDict, bHealthy=True):
+        super().__init__(sID, dDataDict['Original Serial'], bHealthy)
         self.sModel = dDataDict['Model']
         self.sModID = dDataDict['Module']
         self.sWWN = dDataDict['WWPN']
         self.sPortNum = dDataDict['Port Number']
-        self.sSN = dDataDict['Original Serial']
+        # self.sSN = dDataDict['Original Serial']
         return
 
     def _sGetModID(self):
@@ -643,9 +774,8 @@ class XIV_FCPort(XIV_Component):
 
 
 class XIV_IB_Switch(XIV_Component):
-    def __init__(self, sID, sSerial):
-        self.sID = sID
-        self.sSN = sSerial
+    def __init__(self, sID, sSerial, bHealthy=True):
+        super().__init__(sID, sSerial, bHealthy)
         self.dQueries = {"name":       lambda: self.sID,
                          "sn":         lambda: self.sSN}
         pass
@@ -659,15 +789,29 @@ class XIV_IB_Switch(XIV_Component):
 # --------------------------------------------
 if __name__ == '__main__':
     # access to test system
-    from access import IBM_XIV as tsys
+    from access import IBM_XIV_1 as tsys
+
+    # set up all logging to console
+    oLog.setLevel(logging.DEBUG)
+    oConHdr = logging.StreamHandler()
+    oConHdr.setLevel(logging.DEBUG)
+    oLog.addHandler(oConHdr)
 
     # print(str(oXiv.oNodesList))
     import redis
     oRedis = redis.StrictRedis()
-    oXiv = IBM_XIV_Storage(tsys.sIP, tsys.sUser, tsys.sPass, oRedis, tsys.sName)
+    # oXiv = IBM_XIV_Storage(tsys.sIP, tsys.sUser, tsys.sPass, oRedis, tsys.sName)
+    oXiv = IBM_XIV_Storage(tsys.sIP, '', '', oRedis, tsys.sName)
+    # oLog.debug(oXiv._ldGetDisksAsDicts())
     print(oXiv.dQueries["node-names"]())
-    print(oXiv.dQueries["switch-names"]())
+    # print(oXiv.dQueries["switch-names"]())
     # print(oXiv._ldGetSwitchesAsDicts())
-    print(oXiv.dQueries["ups-names"]())
-    print(oXiv.dQueries["disk-names"]())
+    # print(oXiv.dQueries["ups-names"]())
+    # print(oXiv.oDisksList)
+    print("Nodes:", oXiv.dQueries["nodes"]())
+    print("Disks:", oXiv.dQueries["disks"]())
+    print("FC Ports", oXiv.dQueries["fc-ports"]())
+    print("Ethernet Ports:", oXiv.dQueries["eth-ports"]())
+    print("DIMM Names:", oXiv.dQueries["dimm-names"]())
+    print("Memory GBs:", oXiv.dQueries["memory"]())
     pass

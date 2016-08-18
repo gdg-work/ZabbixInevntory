@@ -26,8 +26,8 @@ dConfig = yaml.load("""
     version: 1
     ZabbixAPI:
         ip: 127.0.0.1
-        user: Admin
-        password: zabbix
+        user: zabbix
+        password: A3hHr88man01
     ZabbixSender:
         ip: 127.0.0.1
         port: 10051
