@@ -262,7 +262,7 @@ class GeneralZabbix:
         else:
             oTimeStamp_Item = self._oAddItem(
                 sItemName, sAppName=sTSAppName,
-                dParams={'key': "Update_Time", 'value_type': 3, 'units': 's',
+                dParams={'key': "Update_Time", 'value_type': 3, 'units': 'unixtime',
                          'description': 'Date and time of last data update'})
         # now the application and item must exist
         oTimeStamp_Item._SendValue(int(time.time()), self.oZSend)

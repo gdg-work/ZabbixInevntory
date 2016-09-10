@@ -238,7 +238,7 @@ def _GetArrayParameters(sArrayName, oArray, dZbxInfo):
             ssRemovedItems.add(s)
     ssKeys = ssKeys.difference(ssRemovedItems)
 
-    # oLog.debug('_GetArrayParameters: keys are: ' + str(ssKeys))
+    oLog.debug('_GetArrayParameters: keys are: ' + str(ssKeys))
     dArrayInfo = oArray._dGetArrayInfoAsDict(ssKeys)
     oArZabCon._SendInfoToZabbix(sArrayName, [dArrayInfo])  # _SendInfoToZabbox expects a LIST of DICTs
     oArZabCon._MakeTimeStamp()

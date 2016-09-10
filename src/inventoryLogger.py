@@ -30,6 +30,7 @@ dLoggingConfig = yaml.load("""
         backupCount: 1
     root:
         level: INFO
+        handlers: [ console, logfile ]
     loggers:
         __main__:
             level: INFO

@@ -429,6 +429,7 @@ class HP3Par(ClassicArrayClass):
         for sKey in ssKeys:
             if sKey in self.dQueries:
                 dRet[sKey] = self.dQueries[sKey]()
+        # oLog.debug('_dGetArrayInfoAsDict: are' + str(dRet))
         return dRet
 
 

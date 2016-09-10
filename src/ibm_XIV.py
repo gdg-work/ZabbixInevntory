@@ -186,6 +186,7 @@ class IBM_XIV_Storage(inv.ScaleOutStorageClass):
         for sKey in ssKeys:
             if sKey in self.dQueries:
                 dRet[sKey] = self.dQueries[sKey]()
+        # oLog.debug('XIV: _dGetArrayInfoAsDict results are: ' + str(dRet))
         return dRet
 
     def _ldGetDisksAsDicts(self):
@@ -284,6 +285,8 @@ class XIV_Componens_Collection:
     def _iLength(self):
         """# of elements in the collection"""
         iFailed = 0
+        oLog.debug('_iLength: dComponents is: ' + ', '.join(self.dComponents.keys()))
+        oLog.debug('_iLength: lComponentIDs length is {}'.format(len(self.lComponentIDs)))
         try:
             lFails = [o for o in self.dComponents.values() if not o.bHealthy]
             if len(lFails) > 0:
@@ -295,6 +298,7 @@ class XIV_Componens_Collection:
 
     def _AddComp(self, oComp):
         sID = oComp.id
+        self.lComponentIDs.append(sID)
         self.dComponents[sID] = oComp
         return
 
@@ -342,34 +346,40 @@ class IBM_XIV_NodesList(XIV_Componens_Collection):
         """Add a HDD to corresponding XIV node (module)"""
         iNodeNum = _iGetNodeNum(sDiskID)
         sNodeID = _sMkNodeID(iNodeNum)
+        oLog.debug('Adding a disk {} to node {}'.format(sDiskID, sNodeID))
         self.dComponents[sNodeID]._AddDisk(oDisk)
         return
 
     def _AddCF(self, sCF_ID, oCF):
         """Adds a Compact Flash device to a corresponding node"""
         sNodeID = _sMkNodeID(_iGetNodeNum(sCF_ID))
+        oLog.debug('Adding a CF {} to node {}'.format(sCF_ID, sNodeID))
         self.dComponents[sNodeID]._AddCF(oCF)
         return
 
     def _AddNIC(self, sID, oNic):
         """Adds a NIC to a right node based on Component ID"""
         sNodeID = _sMkNodeID(_iGetNodeNum(sID))
+        oLog.debug('Adding a NIC {} to node {}'.format(sID, sNodeID))
         self.dComponents[sNodeID]._AddNIC(oNic)
         return
 
     def _AddFCPort(self, oFC):
         """Adds a FC port to a module that owns it"""
         sNodeID = oFC._sGetModID()
+        oLog.debug('Adding a FC port {} to node {}'.format(oFC.id, sNodeID))
         self.dComponents[sNodeID]._AddFCPort(oFC)
         return
 
     def _AddDIMM(self, sID, oDimm):
         sNodeID = _sMkNodeID(_iGetNodeNum(sID))
+        oLog.debug('Adding a DIMM {} to node {}'.format(sID, sNodeID))
         self.dComponents[sNodeID]._AddDIMM(oDimm)
         return
 
     def _AddPSU(self, sID, oPSU):
         sNodeID = _sMkNodeID(_iGetNodeNum(sID))
+        oLog.debug('Adding a Power supply {} to node {}'.format(sID, sNodeID))
         self.dComponents[sNodeID]._AddPSU(oPSU)
         return
 
@@ -548,13 +558,13 @@ class XIV_Node(XIV_Component):
         self.dQueries = {"name":       lambda: self.sID,
                          "sn":         lambda: self.sn,
                          "healthy":    lambda: self.bHealthy,
-                         "disks":      self.lDimms._iLength,
+                         "disks":      self.lDisks._iLength,
                          "disk-bays":  lambda: self.iDiskBaysCount,
                          "ps-amount":  self.lPSUs._iLength,
                          "fc-ports":   self.lFCPorts._iLength,
                          "model":      lambda: self.model,
                          "type":       lambda: self.sType,
-                         "eth-ports":  lambda: self.iEthPorts,
+                         "eth-ports":  self.lNICs._iLength,
                          "memory":     lambda: self.iRAM_GBs
                          }
         return
@@ -582,6 +592,7 @@ class XIV_Node(XIV_Component):
 
     def _AddDisk(self, oDisk):
         self.lDisks._AddComp(oDisk)
+        oLog.debug("Added disk {1}, new count is: {0}".format(self.lDisks._iLength(), oDisk.id))
         if not oDisk.bHealthy:
             oLog.info('Adding failed disk "{}"'.format(oDisk.id))
         return
@@ -789,7 +800,7 @@ class XIV_IB_Switch(XIV_Component):
 # --------------------------------------------
 if __name__ == '__main__':
     # access to test system
-    from access import IBM_XIV_1 as tsys
+    from access import IBM_XIV_2 as tsys
 
     # set up all logging to console
     oLog.setLevel(logging.DEBUG)
@@ -808,10 +819,11 @@ if __name__ == '__main__':
     # print(oXiv._ldGetSwitchesAsDicts())
     # print(oXiv.dQueries["ups-names"]())
     # print(oXiv.oDisksList)
-    print("Nodes:", oXiv.dQueries["nodes"]())
-    print("Disks:", oXiv.dQueries["disks"]())
-    print("FC Ports", oXiv.dQueries["fc-ports"]())
-    print("Ethernet Ports:", oXiv.dQueries["eth-ports"]())
-    print("DIMM Names:", oXiv.dQueries["dimm-names"]())
-    print("Memory GBs:", oXiv.dQueries["memory"]())
+    print(oXiv._dGetArrayInfoAsDict(oXiv.dQueries))
+#     print("Nodes:", oXiv.dQueries["nodes"]())
+#     print("Disks:", oXiv.dQueries["disks"]())
+#     print("FC Ports", oXiv.dQueries["fc-ports"]())
+#     print("Ethernet Ports:", oXiv.dQueries["eth-ports"]())
+#     print("DIMM Names:", oXiv.dQueries["dimm-names"]())
+#     print("Memory GBs:", oXiv.dQueries["memory"]())
     pass
