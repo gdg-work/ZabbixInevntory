@@ -557,7 +557,7 @@ class Blade_Disk(inv.ComponentClass):
 
 if __name__ == '__main__':
     """testing section"""
-    from access import vmsrv04 as srv
+    from access import vmsrv06 as srv
 
     oLog.setLevel(logging.DEBUG)
     oConHdr = logging.StreamHandler()
@@ -566,7 +566,7 @@ if __name__ == '__main__':
     oAmm = BladeWithAMM(srv.sHostLong, srv.sHostShort, IP=srv.sHostLong, User=srv.sUser,
                         Pass=srv.sPass, vCenter=srv.sVCenter, SP_User=srv.sSPUser,
                         SP_Pass=srv.sSPPass, AMM_IP=srv.sSPIP)
-    # oAmm._FillSysFromWBEM()
+    oAmm._FillData()
     # lOut = oAmm._lsFromAMM([])
     # print("\n".join(lOut))
 
