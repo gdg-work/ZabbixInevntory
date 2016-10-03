@@ -199,20 +199,31 @@ def _ldGetDiskParametersFromWBEM(oConnection, sNS):
     ldDiskData = []
     # debug
     if sDiskClass == '' and sPhysDiskClass == '':
-        oLog.debug("== No disk classes found, but I found some other: ==\n{}".format(
+        oLog.info("== No disk classes found, but I found some other: ==\n{}".format(
             "\n".join(lOtherClasses)))
     else:
         try:
-            lDDrives = oConnection.EnumerateInstances(namespace=sNS, ClassName=sDiskClass)
-            lPDisks = oConnection.EnumerateInstances(namespace=sNS, ClassName=sPhysDiskClass)
+            lDDriveNames = oConnection.EnumerateInstanceNames(namespace=sNS, ClassName=sDiskClass)
+            # oLog.debug('lDDriveNames: ' + str(lDDriveNames))
+            lPDiskNames = oConnection.EnumerateInstanceNames(namespace=sNS, ClassName=sPhysDiskClass)
+            # oLog.debug('lPDiskNames: ' + str(lPDiskNames))
         except pywbem.cim_operations.CIMError as e:
             raise WBEM_Exception(e)
-        assert (len(lDDrives) == len(lPDisks))
-        for oDsk, oPhy in zip(lDDrives, lPDisks):
+        assert (len(lDDriveNames) == len(lPDiskNames))
+        for oDskName, oPhyName in zip(lDDriveNames, lPDiskNames):
+            try:
+                oDsk = oConnection.GetInstance(oDskName)
+                oLog.debug('oDsk object: ' + str(oDsk))
+                oLog.debug('Getting PhysDisk based on oPhyName: ' + str(oPhyName))
+                oPhy = oConnection.GetInstance(oPhyName)
+                oLog.debug('oPhy object: ' + str(oPhy))
+                assert oDsk['Tag'] == oPhy['Tag']
+                dData = _dMergeDicts(_dFilterNone(dict(oDsk)), _dFilterNone(dict(oPhy)))
+                ldDiskData.append(dData)
+            except pywbem.cim_operations.CIMError as e:
+                oLog.error("_ldGetDiskParametersFromWBEM: CIM error getting Drive/PhysDisk instances: {}".format(oPhyName.get('Tag')))
+                # raise(WBEM_Exception(e))
             # check if Tags of both objects are the same
-            assert oDsk['Tag'] == oPhy['Tag']
-            dData = _dMergeDicts(_dFilterNone(dict(oDsk)), _dFilterNone(dict(oPhy)))
-            ldDiskData.append(dData)
     return ldDiskData
 
 
@@ -465,16 +476,16 @@ class WBEM_System(WBEM_Info):
                 loInstNames = self._loGetInstanceNames(sNSName, 'CIM_PhysicalPackage')
                 if loInstNames:
                     for oIN in loInstNames:
-                        print('\n--------- Instance Name: {} ---------'.format(oIN.classname))
+                        oLog.debug('\n--------- Instance Name: {} ---------'.format(oIN.classname))
                         # print(oIN)
                         lAssocNames = (self.oConn.AssociatorNames(
                             oIN,
                             ResultClass='CIM_PortController'))
                         for oAN in lAssocNames:
                             if 'HBA' in oAN.classname:
-                                print(self.oConn.GetInstance(oAN))
+                                oLog.debug(self.oConn.GetInstance(oAN))
                                 sHBA_NS = sNSName
-                                print(self.oConn.AssociatorNames(oAN))
+                                oLog.debug(self.oConn.AssociatorNames(oAN))
             except pywbem.cim_operations.CIMError as e:
                 # probably there is no such class
                 pass
@@ -577,7 +588,7 @@ class WBEM_PowerSupplySet(WBEM_Info):
 
 if __name__ == "__main__":
     # access for a test system
-    from access import demohs21_9_10 as tsys
+    from access import vmexchsrv01 as tsys
     # from access import demobl460_host as tsys
 
     # logging setup
@@ -588,27 +599,30 @@ if __name__ == "__main__":
 
     # for d in ld:
     #     print("\n".join([str(t) for t in d.items()]))
-    oMem = WBEM_Memory(tsys.sHostLong, tsys.sUser, tsys.sPass)
-    print("\n".join([str(d.items()) for d in oMem._ldGetInfo()]))
+    # oMem = WBEM_Memory(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
+    # print("\n".join([str(d.items()) for d in oMem._ldGetInfo()]))
 
-    oProc = WBEM_CPU(tsys.sHostLong, tsys.sUser, tsys.sPass)
-    print("\n".join([str(d.items()) for d in oProc._ldGetInfo()]))
+    # oProc = WBEM_CPU(tsys.sHostLong, tsys.sUser, tsys.sPass , sVCenter=tsys.sVCenter)
+    # print("\n".join([str(d.items()) for d in oProc._ldGetInfo()]))
 
-    oAdapters = WBEM_PCI_Adapters(tsys.sHostLong, tsys.sUser, tsys.sPass)
-    oAdapters = WBEM_HBAs(tsys.sHostLong, tsys.sUser, tsys.sPass)
+    # oAdapters = WBEM_PCI_Adapters(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
+    # oAdapters = WBEM_HBAs(tsys.sHostLong, tsys.sUser, tsys.sPass)
     # print("\n".join([str(d.items()) for d in oAdapters._ldGetInfo()]))
 
-    oAdapters = WBEM_HBAs(tsys.sHostLong, tsys.sUser, tsys.sPass)
-    oSys = WBEM_System(tsys.sHostLong, tsys.sUser, tsys.sPass)
-    oSys = WBEM_System(tsys.sHostIP, tsys.sUser, tsys.sPass)
+    # oAdapters = WBEM_HBAs(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
+    # oSys = WBEM_System(tsys.sHostIP, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
     # print("\n".join(oSys._ssGetNameSpaces()))
-    print(oSys._sGetHBANameSpace())
-    for i in oSys._loGetHBAInstances():
-        print("\n".join([str(k) + "=" + str(v) for k, v in i.items()]))
+    # print(oSys._sGetHBANameSpace())
+    # for i in oSys._loGetHBAInstances():
+    #     print("\n".join([str(k) + "=" + str(v) for k, v in i.items()]))
 
-    print(oSys._loGetIntegratedDiskControllers())
+    # print(oSys._loGetIntegratedDiskControllers())
 
-    oPS = WBEM_PowerSupplySet(tsys.sHostLong, tsys.sUser, tsys.sPass)
+    oPS = WBEM_PowerSupplySet(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
     print(oPS._iGetPwrSuppliesAmount())
+
+    oDisksWBEM = WBEM_Disks(tsys.sName, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
+    ldDisks = oDisksWBEM._ldReportDisks()
+    print(str(ldDisks))
 
 # vim: expandtab:tabstop=4:softtabstop=4:shiftwidth=4
