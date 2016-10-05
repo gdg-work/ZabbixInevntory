@@ -306,11 +306,6 @@ class XIV_Componens_Collection:
 class IBM_XIV_DisksList(XIV_Componens_Collection):
     sMyListCommand = 'disk_list -t component_id,status,currently_functioning,capacity,size,model,serial'
 
-#     def __init__(self, oParent):
-#         super().__init__(oParent)
-#         oLog.debug('List of failed disks: ' + ",".join(self.lFailedIDs))
-#         return
-
     def _PostProcessOutput(self):
         # oLog.debug('List of disk IDs: ' + ",".join(self.lComponentIDs))
         # oLog.debug('List of failed disks: ' + ",".join(self.lFailedIDs))
@@ -643,8 +638,9 @@ class XIV_Disk(XIV_Component):
         return
 
     def _iGetSize(self):
+        oLog.debug('Disk ID: {0} size is {1} MB'.format(self.sID, self.iSizeMB))
         if self.bHealthy:
-            return (self.iSizeMB / 1024)
+            return int(self.iSizeMB / 1024)
         else:
             return 0
 
@@ -818,7 +814,7 @@ if __name__ == '__main__':
     # print(oXiv.dQueries["switch-names"]())
     # print(oXiv._ldGetSwitchesAsDicts())
     # print(oXiv.dQueries["ups-names"]())
-    # print(oXiv.oDisksList)
+    print(oXiv.oDisksList)
     print(oXiv._dGetArrayInfoAsDict(oXiv.dQueries))
 #     print("Nodes:", oXiv.dQueries["nodes"]())
 #     print("Disks:", oXiv.dQueries["disks"]())
