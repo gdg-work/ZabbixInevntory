@@ -20,6 +20,8 @@ RE_PWRSUPPLY = re.compile(r'^\s*A IBM AC PS\s*:$')
 RE_WS = re.compile(r'\s+')
 RE_DOTS = re.compile(r'\.\.+')
 RE_RAM_MODULE = re.compile(r'\s*Memory DIMM:$')
+RE_CPU_TYPE = re.compile(r'^Processor Type:\s(.*)$')
+RE_CPU_FREQ = re.compile(r'^Processor Clock Speed:\s(.*)$')
 
 
 class expHMC_Error(Exception):
@@ -139,7 +141,7 @@ class PowerHostClass(inv.GenericServer):
         sAdaptersCmd = 'lshwres -r io -m {0} --rsubtype slot -F {1}'.format(
             self.sName, ','.join(lFields))
         lOut = oHmcConn._lsRunCommands([sMemCmd, sProcCmd, sSysCmd, sAdaptersCmd])
-        # print(str(lOut))
+        oLog.debug("Memory cfg:" + str(lOut))
         self.iMemGBs = int(lOut[0]) // 1024
         self.iTotalCores = int(float(lOut[1]))
         sTM, self.sHmcIP, self.sSerialNum = lOut[2].split(',')
@@ -172,6 +174,18 @@ class PowerHostClass(inv.GenericServer):
         self._FillDisks(lsCfgData)
         self._FillPwrSupplies(lsCfgData)
         self._FillDIMMs(lsCfgData)
+        # Processor information from 'prtconf' output
+        sRet = self._sFromHost('prtconf').split('\n')
+        sProcType = ''
+        for sLine in sRet:
+            oMatch = RE_CPU_TYPE.match(sLine)
+            if oMatch:
+                sProcType = oMatch.group(1)
+            oMatch = RE_CPU_FREQ.match(sLine)
+            if oMatch:
+                sFreq = oMatch.group(1)
+        self.sProcType = "{0} at {1}".format(sProcType, sFreq)
+        oLog.debug('Processor type: ' + self.sProcType)
         for oElem in self.lDisks + self.lDIMMs + self.lPwrSupplies:
             # oLog.debug('Connecting trigger factory to element: ' + str(oElem))
             oElem._ConnectTriggerFactory(self.oTriggers)
@@ -339,11 +353,16 @@ class PowerHostClass(inv.GenericServer):
                          'description': _('Total memory size in GB')})
             oMemItem._SendValue(self.iMemGBs, self.oZbxSender)
             self.oTriggers._AddChangeTrigger(oMemItem, _('Memory size changed'), 'warning')
-            oCPUItem = self.oZbxHost._oAddItem(
+            oCPUTypeItem = self.oZbxHost._oAddItem(
+                "CPU Type", sAppName='System',
+                dParams={'key': zi._sMkKey("CPU", "Type"),
+                         'description': _('Processor type')})
+            oCPUTypeItem._SendValue(self.sProcType, self.oZbxSender)
+            oCPUCoresItem = self.oZbxHost._oAddItem(
                 "System Total Cores", sAppName='System',
                 dParams={'key': "Host_{}_Cores".format(self.sName), 'value_type': 3,
                          'description': _('Total amount of cores in all CPUs')})
-            oCPUItem._SendValue(self.iTotalCores, self.oZbxSender)
+            oCPUCoresItem._SendValue(self.iTotalCores, self.oZbxSender)
             # self.sType, self.sModel
             oTypeItem = self.oZbxHost._oAddItem(
                 "System Type", sAppName='System',
@@ -566,5 +585,32 @@ class IBM_DIMM_Module(inv.ComponentClass):
         oItem._SendValue(self.iSize, oZbxSender)
 
         return
+
+if __name__ == '__main__':
+    # access for a test system
+    from access import utgard as tsys
+    from access import zabbixAtProtek as zbx
+    import pyzabbix.api
+    import pyzabbix.sender
+
+    # logging setup
+    oLog.setLevel(logging.DEBUG)
+    oConHdr = logging.StreamHandler()
+    oConHdr.setLevel(logging.DEBUG)
+    oLog.addHandler(oConHdr)
+
+    # connect to test server
+    oTestHost = PowerHostClass(tsys.name, User=tsys.user, Pass=tsys.passwd, SP_User=tsys.sp_user,
+                               SP_Pass=tsys.sp_pass, IP=tsys.ip, HMC_IP=tsys.hmc_ip)
+    # oTestHost._Fill_HMC_Data()
+    # oTestHost._FillFromAIX()
+    sZabbixURL = 'http://' + zbx.ip + "/zabbix"
+    oAPI = pyzabbix.api.ZabbixAPI(url=sZabbixURL, user=zbx.user, password=zbx.password)
+    oSnd = pyzabbix.sender.ZabbixSender(zabbix_server=zbx.ip)
+    oTestHost._Connect2Zabbix(oAPI, oSnd)
+    oTriggers = zi.TriggerFactory()
+    oTestHost._ConnectTriggerFactory(oTriggers)
+    oTestHost._MakeAppsItems()
+
 
 # vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4
