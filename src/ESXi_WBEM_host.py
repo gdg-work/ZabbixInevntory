@@ -594,8 +594,8 @@ class PCI_Adapter(inv.ComponentClass):
 
 
 class HBA_Class(PCI_Adapter):
-    def __init__(self, sName, sPosition, sVendorID, sDeviceID, **dOther):
-        super().__init__(sName, sPosition, sVendorID, sDeviceID, **dOther)
+    def __init__(self, sName, sVendorID, sDeviceID, **dOther):
+        super().__init__(sName, sVendorID=sVendorID, sDeviceID=sDeviceID, **dOther)
 
     @property
     def sWWN(self):
@@ -610,7 +610,7 @@ class HBA_Class(PCI_Adapter):
         return
 
     def __repr__(self):
-        return super().__repr__() + "\nWWN: " + self.dData.get('wwn', '')
+        return super().__repr__()
 
     def _MakeAppsItems(self, oZbxHost, oZbxSender):
         sAppName = "Host Bus Adapter {}".format(self.sName)

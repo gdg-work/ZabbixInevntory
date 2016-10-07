@@ -567,7 +567,7 @@ class HP_EVA_Class(ClassicArrayClass):
         return
 
     def __FillControllers__(self):
-        """Requests and caches disk enclosure data"""
+        """Requests and caches EVA controllers' data"""
         REDIS_KEY = self.sRedisKeyPrefix + "ls_controller_full_xml"
         sFromRedis = self.oRedisConnection.get(REDIS_KEY)
         if sFromRedis:
@@ -706,7 +706,8 @@ class EVA_ControllerClass(ControllerClass):
             "type":       self.getType,
             "model":      self.getModel,
             "cpu-cores":  self.getCPUCores,
-            "port-count": self.getPortCount}
+            "port-count": self.getPortCount,
+            "ps-amount":  self.getPwrSupplyAmount}
 
     # "port-names": self.getPortNames,
 
@@ -769,6 +770,14 @@ class EVA_ControllerClass(ControllerClass):
             iRet = len(self.oSoup.find_all("hostport"))
         else:
             pass
+        return iRet
+
+    def getPwrSupplyAmount(self):
+        """Returns a number of power supplies for this controller"""
+        oSources = self.oSoup.find('powersources')
+        lPwrSupplies = oSources.find_all('source')
+        iRet = len(lPwrSupplies)
+        oLog.debug("ControllerClass::getPwrSupplyAmount: # of power supplies {:d}".format(iRet))
         return iRet
 
 

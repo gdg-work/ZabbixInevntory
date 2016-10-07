@@ -639,6 +639,7 @@ class XIV_Disk(XIV_Component):
         return
 
     def _iGetSize(self):
+        oLog.debug('Disk ID: {0} size is {1} MB'.format(self.sID, self.iSizeMB))
         if self.bHealthy:
             # oLog.debug('XIV:_iGetSize: Disk size in MB is: {}'.format(self.iSizeMB))
             return int(self.iSizeMB / 1024)
@@ -815,7 +816,7 @@ if __name__ == '__main__':
     # print(oXiv.dQueries["switch-names"]())
     # print(oXiv._ldGetSwitchesAsDicts())
     # print(oXiv.dQueries["ups-names"]())
-    # print(oXiv.oDisksList)
+    print(oXiv.oDisksList)
     print(oXiv._dGetArrayInfoAsDict(oXiv.dQueries))
 #     print("Nodes:", oXiv.dQueries["nodes"]())
     print("Disks:", oXiv.oDisksList)

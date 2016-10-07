@@ -518,6 +518,7 @@ class CtrlsToZabbix(GeneralZabbix):
                             "pci":        self._oPreparePCICards,
                             "ram":        self._oPrepareRAMInfo,
                             "port-count": self._oPrepareHostPortNum,    # alternate name
+                            "ps-amount":  self._oPreparePSAmount,
                             "ports":      self._oPrepareHostPortNum}
         self.__fillApplications__(RE_CONTROLLER)
         return
@@ -547,6 +548,9 @@ class CtrlsToZabbix(GeneralZabbix):
 
     def _oPrepareRAMInfo(self, sAppName, sValue):
         return self._oPrepareZabMetric(sAppName, 'DIMM', sValue)
+
+    def _oPreparePSAmount(self, sAppName, sValue):
+        return self._oPrepareZabMetric(sAppName, 'Power Supplies #', sValue)
 
 
 class ArrayToZabbix(GeneralZabbix):
