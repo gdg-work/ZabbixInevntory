@@ -271,6 +271,27 @@ class WBEM_Info:
             lData.append(dOut)
         return lData
 
+    def _ldGetInfoFromWBEM_2(self, sNS, sClass):
+        """returns WBEM instances as a list of dictionaries with 'None'-valued keys removed"""
+        lData = []
+        try:
+            lInstNames = self.oConn.EnumerateInstanceNames(namespace=sNS, ClassName=sClass)
+        except Exception as e:
+            oLog.error('CIM error in _ldGetInfoFromWBEM: ' + str(e))
+            raise WBEM_Exception('Cannot receive information from WBEM in _ldGetInfoFromWBEM()')
+
+        for oIN in lInstNames:
+            dOut = {}
+            try:
+                oInstance = self.oConn.GetInstance(oIN)
+            except Exception as e:
+                raise WBEM_Exception('GetInstance failed in _ldGetInfoFromWBEM: {}'.format(str(e)))
+            for k, v in oInstance.items():
+                if v is not None:
+                    dOut[k] = v
+            lData.append(dOut)
+        return lData
+
     def _loGetInstanceNames(self, sNS, sClass):
         """wrapper over pywbem.WBEMConnection.EnumerateInstances"""
         return self.oConn.EnumerateInstanceNames(namespace=sNS, ClassName=sClass)
@@ -279,9 +300,13 @@ class WBEM_Info:
         """wrapper over pywbem.WBEMConnection.EnumerateInstances"""
         return self.oConn.EnumerateInstances(namespace=sNS, ClassName=sClass)
 
-    def _logGetClassNames(self, sNS='root/interop', sClassName=None):
+    def _oGetInstance(self, oInstName):
+        """wrapper over pywbem.WBEMConnection.GetInstance"""
+        return self.oConn.GetInstance(oInstName)
+
+    def _loGetClassNames(self, sNS='root/interop', sClassName=None):
         if sClassName:
-            return self.oConn.EnumerateClassNames(sNS, sClassName)
+            return self.oConn.EnumerateClassNames(sNS, ClassName=sClassName)
         else:
             return self.oConn.EnumerateClassNames(sNS)
 
