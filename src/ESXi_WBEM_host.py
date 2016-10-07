@@ -79,6 +79,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
         self.lExps = []
         self.lDisks = []
         self.lPCI_Adapters = []
+        self.loHBA_List = []
         self.dHostInfo = {}
         self.oTriggers = None
         self.oHostWBEM = None
@@ -239,24 +240,49 @@ class ESXi_WBEM_Host(inv.GenericServer):
             self.lPCI_Adapters.append(PCI_Adapter(dAdapter['Name']))
         return
 
+#     def _HBAs_from_WBEM(self):
+#         self.oHBAs = wbem.WBEM_HBAs(
+#             self.sName, self.sUser,
+#             self.sPass, sVCenter=self.sVCenter)
+#         # print(self.oHBAs)
+#         ldHBAs = self.oHBAs._ldReportAdapters()
+#         # print('*DBG* Found {} HBAs'.format(len(ldHBAs)))
+#         # print("\n".join([str(o) for o in ldHBAs]))
+#         for dHBA_Data in ldHBAs:
+#             oHBA = HBA_Class(
+#                 dHBA_Data['id'], sPosition=dHBA_Data['pos'], sVendorID='', sDeviceID='',
+#                 model=dHBA_Data['model'])
+#             oHBA.sPartNum = dHBA_Data.get('pn')
+#             oHBA.sSerNum = dHBA_Data.get('sn')
+#             oHBA.sWWN = dHBA_Data.get('wwn')
+#             # print(oHBA)
+#             self.lPCI_Adapters.append(oHBA)
+#         oLog.info('PCI Adapters list:\n{}'.format(str(self.lPCI_Adapters)))
+#         return
+
     def _HBAs_from_WBEM(self):
         self.oHBAs = wbem.WBEM_HBAs(
-            self.sName, self.sUser,
-            self.sPass, sVCenter=self.sVCenter)
+            self.sName, self.sUser, self.sPass, sVCenter=self.sVCenter)
         # print(self.oHBAs)
         ldHBAs = self.oHBAs._ldReportAdapters()
         # print('*DBG* Found {} HBAs'.format(len(ldHBAs)))
         # print("\n".join([str(o) for o in ldHBAs]))
+        iHbaNum=0
         for dHBA_Data in ldHBAs:
+            iHbaNum += 1
             oHBA = HBA_Class(
-                dHBA_Data['id'], sPosition=dHBA_Data['pos'], sVendorID='', sDeviceID='',
-                model=dHBA_Data['model'])
-            oHBA.sPartNum = dHBA_Data.get('pn')
-            oHBA.sSerNum = dHBA_Data.get('sn')
-            oHBA.sWWN = dHBA_Data.get('wwn')
+                # dHBA_Data['Name'],
+                'HBA {}'.format(iHbaNum),
+                sVendorID=dHBA_Data.get('Manufacturer', ''),
+                sDeviceID=dHBA_Data.get('IdentifyingNumber', ''),
+                sPosition=dHBA_Data.get('Position', ''),
+                model=dHBA_Data['Model'])
+            oHBA.sPartNum = dHBA_Data.get('PartNumber', '')
+            oHBA.sSerNum = dHBA_Data.get('SerialNumber')
+            oHBA.sWWN = dHBA_Data.get('wwn', '')
             # print(oHBA)
-            self.lPCI_Adapters.append(oHBA)
-        oLog.info('PCI Adapters list:\n{}'.format(str(self.lPCI_Adapters)))
+            self.loHBA_List.append(oHBA)
+        oLog.info('HBAs list:\n{}'.format(str(self.loHBA_List)))
         return
 
     def _Connect2Zabbix(self, oAPI, oSender):
@@ -325,7 +351,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
                 self.oTriggers._AddNoDataTrigger(oSN_Item, _('Cannot receive system SN in 2 days'), 'average')
 
             # send components' items to Zabbix
-            lComps = self.lCPUs + self.lDIMMs + self.lDisks + self.lPCI_Adapters
+            lComps = self.lCPUs + self.lDIMMs + self.lDisks + self.lPCI_Adapters + self.loHBA_List
             for o in lComps:
                 o._ConnectTriggerFactory(self.oTriggers)
                 o._MakeAppsItems(self.oZbxHost, self.oZbxSender)
@@ -562,14 +588,15 @@ class PCI_Adapter(inv.ComponentClass):
                 dParams={'key': zi._sMkKey(sAppName, "IDs"), 'value_type': 1,
                          'description': _('PCI vendor:device identifiers')})
             oIDs_item._SendValue(self.sIDs, oZbxSender)
-        oPosItem = oZbxHost._oAddItem(
-            sAppName + ' Position', sAppName=sAppName,
-            dParams={'key': zi._sMkKey(sAppName, 'Pos'), 'value_type': 1,
-                     'description': _('PCI device logical position (bus/slot/function)')})
-        if self.oTriggers:
-            self.oTriggers._AddNoDataTrigger(oPosItem, _('Cannot determine adapter position in 2 days'),
-                                             'average', NODATA_THRESHOLD)
-        oPosItem._SendValue(self.dData['pos'], oZbxSender)
+        if 'pos' in self.dData and self.dData['pos']: 
+            oPosItem = oZbxHost._oAddItem(
+                sAppName + ' Position', sAppName=sAppName,
+                dParams={'key': zi._sMkKey(sAppName, 'Pos'), 'value_type': 1,
+                         'description': _('PCI device logical position (bus/slot/function)')})
+            if self.oTriggers:
+                self.oTriggers._AddNoDataTrigger(oPosItem, _('Cannot determine adapter position in 2 days'),
+                                                 'average', NODATA_THRESHOLD)
+            oPosItem._SendValue(self.dData['pos'], oZbxSender)
         if 'sn' in self.dData:
             oSNItem = oZbxHost._oAddItem(
                 sAppName + ' Serial', sAppName=sAppName,
@@ -616,7 +643,17 @@ class HBA_Class(PCI_Adapter):
         sAppName = "Host Bus Adapter {}".format(self.sName)
         oZbxHost._oAddApp(sAppName)     # HBA vmhba2
         super()._MakeAppsItems(oZbxHost, oZbxSender, sApp=sAppName)
-        if 'wwn' in self.dData:
+
+        if 'PartNumber' in self.dData:
+            oPN_Item = oZbxHost._oAddItem(
+                sAppName + ' P/N', sAppName=sAppName,
+                dParams={'key': zi._sMkKey(sAppName, 'PartNo'), 'value_type': 1,
+                         'description': _('HBA Part Number')})
+            oPN_Item._SendValue(self.dData['PartNumber'], oZbxSender)
+            if self.oTriggers:
+                self.oTriggers._AddChangeTrigger(oPN_Item, _('Host Bus Adapter P/N changed'), 'warning')
+
+        if 'wwn' in self.dData and self.dData['wwn']:
             oWWN_Item = oZbxHost._oAddItem(
                 sAppName + ' WWN', sAppName=sAppName,
                 dParams={'key': zi._sMkKey(sAppName, 'WWN'), 'value_type': 1,
@@ -629,14 +666,15 @@ class HBA_Class(PCI_Adapter):
 
 if __name__ == "__main__":
     # host for testing
-    from access import demohs21_host as tsrv
+    from access import vmexchsrv01 as tsrv
+    from access import zabbixAtProtek as zbx
 
     # Zabbix functionality
     from pyzabbix.api import ZabbixAPI
     from pyzabbix.sender import ZabbixSender
     ZABBIX_IP = "127.0.0.1"
     ZABBIX_PORT = 10051
-    ZABBIX_SERVER = 'http://10.1.96.163/zabbix/'
+    ZABBIX_SERVER = 'http://localhost/zabbix/'
 
     oLog.setLevel(logging.DEBUG)
     oConHdr = logging.StreamHandler()
@@ -646,7 +684,7 @@ if __name__ == "__main__":
     iPort = 5989
 
     oTestHost = ESXi_WBEM_Host(tsrv.sHostLong, tsrv.sUser, tsrv.sPass, tsrv.sVCenter)
-    oZbxAPI = ZabbixAPI(url=ZABBIX_SERVER, user=tsrv.sZbxUser, password=tsrv.sZbxPass)
+    oZbxAPI = ZabbixAPI(url=ZABBIX_SERVER, user=zbx.user, password=zbx.password)
     oZbxSender = ZabbixSender(zabbix_server='127.0.0.1', zabbix_port=ZABBIX_PORT)
     oTestHost._Connect2Zabbix(oZbxAPI, oZbxSender)
     oTestHost._MakeAppsItems()

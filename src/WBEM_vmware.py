@@ -404,7 +404,7 @@ class WBEM_PCI_Adapters(WBEM_Info):
         return dAdaptersBySlot.values()
 
 
-class WBEM_HBAs(WBEM_Info):
+class WBEM_HBAs_Old(WBEM_Info):
     sMyNS = 'root/cimv2'
     sMyClass = 'IODM_FCAdapter'
     dAttrsToRet = {
@@ -441,6 +441,67 @@ class WBEM_HBAs(WBEM_Info):
                 oHBAData.get('PciBus'), oHBAData.get('PciSlot'), oHBAData.get('PciFunction'))
             ldRet.append(dRet)
         return ldRet
+
+
+class WBEM_HBAs(WBEM_Info):
+    sMyNS = 'root/cimv2'
+    sMyClass = 'IODM_FCAdapter'
+    dAttrsToRet = {
+        'SerialNumber': 'sn',
+        'HostNodeName': 'wwn',
+        'ModelDescription': 'type',
+        'Vendor': 'vendor',
+        'DeviceID': 'id',
+        'Model': 'model'}
+
+    def __init__(self, sHost, sUser, sPass, sVCenter='', iPort=5989):
+        try:
+            super().__init__(sHost, sUser, sPass, sVCenter, iPort)
+        except WBEM_Exception as e:
+            oLog.error('Error scanning HBAs: ' + str(e))
+            raise WBEM_HBA_Exception(str(e))
+
+    def __repr__(self):
+        return "VMware HBA info access class: host={}".format(str(self.oConn))
+
+    def _ldReportAdapters(self):
+        QLA_NS = 'qlogic/cimv2'
+        # ldRet = []
+        ldQLA_Data = []
+        try:
+            lsSubClasses1 = self._loGetClassNames(sNS='root/interop', sClassName='CIM_Namespace')
+            # lsSubClasses1 is a list of strings (names)
+            for sCN in lsSubClasses1:
+                if 'HBA' in sCN and 'QLogic' in sCN:            # QLogic-specific
+                    oLog.debug('QLogic HBA namespace found: ' + sCN)
+                    # check if QLogic namespace is present in CIM_Namespace instances
+                    loNSInstanceNames = self._loGetInstanceNames(sNS='root/interop', sClass='CIM_Namespace')
+                    lsInstNames = [ns['Name'] for ns in loNSInstanceNames]
+                    oLog.debug('CIM namespaces: {}'.format(str(lsInstNames)))
+                    # filter QLogic NS
+                    if QLA_NS in lsInstNames:
+                        oLog.debug('QLogic-specific NS {} found!'.format(QLA_NS))
+                        sQLA_ProdClass = self._loGetClassNames(QLA_NS, sClassName='CIM_Product')[0]
+                        oLog.debug('QLA Product subclass name: ' + sQLA_ProdClass)
+                        ldQLA_ProdData = self._ldGetInfoFromWBEM_2(QLA_NS, sQLA_ProdClass)
+                        sQLA_PkgClass = self._loGetClassNames(QLA_NS, sClassName='CIM_PhysicalPackage')[0]
+                        oLog.debug('QLA PhysicalPackage subclass name: ' + sQLA_PkgClass)
+                        ldQLA_PkgData = self._ldGetInfoFromWBEM_2(QLA_NS, sQLA_PkgClass)
+                        # combine dictionaries:
+                        lDcts = zip(ldQLA_ProdData, ldQLA_PkgData)
+                        ldQLA_Data = []
+                        for a, b in lDcts:
+                            ldQLA_Data.append(_dMergeDicts(a, b))
+
+                        oLog.debug('QLA data: ' + str(ldQLA_Data))
+                    else:
+                        raise WBEM_HBA_Exception('Incorrect QLogic adapter namespace: ' +
+                                                      'no "qlogic/cimv2" NS in defined NS')
+
+        except WBEM_Exception as e:
+            raise WBEM_HBA_Exception("Error reporting HBAs:" + str(e))
+        return ldQLA_Data
+
 
 
 class WBEM_System(WBEM_Info):
@@ -643,11 +704,15 @@ if __name__ == "__main__":
 
     # print(oSys._loGetIntegratedDiskControllers())
 
-    oPS = WBEM_PowerSupplySet(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
-    print(oPS._iGetPwrSuppliesAmount())
+    # oPS = WBEM_PowerSupplySet(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
+    # print(oPS._iGetPwrSuppliesAmount())
+ 
+    # oDisksWBEM = WBEM_Disks(tsys.sName, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
+    # ldDisks = oDisksWBEM._ldReportDisks()
+    # print(str(ldDisks))
 
-    oDisksWBEM = WBEM_Disks(tsys.sName, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
-    ldDisks = oDisksWBEM._ldReportDisks()
-    print(str(ldDisks))
+    oHBAs = WBEM_HBAs(tsys.sName, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
+    ldHBAs = oHBAs._ldReportAdapters()
+    print(str(ldHBAs))
 
 # vim: expandtab:tabstop=4:softtabstop=4:shiftwidth=4
