@@ -306,11 +306,6 @@ class XIV_Componens_Collection:
 class IBM_XIV_DisksList(XIV_Componens_Collection):
     sMyListCommand = 'disk_list -t component_id,status,currently_functioning,capacity,size,model,serial'
 
-#     def __init__(self, oParent):
-#         super().__init__(oParent)
-#         oLog.debug('List of failed disks: ' + ",".join(self.lFailedIDs))
-#         return
-
     def _PostProcessOutput(self):
         # oLog.debug('List of disk IDs: ' + ",".join(self.lComponentIDs))
         # oLog.debug('List of failed disks: ' + ",".join(self.lFailedIDs))
@@ -630,6 +625,7 @@ class XIV_Disk(XIV_Component):
         super().__init__(sID, dParams["Serial"], bHealthy)
         self.sID = sID
         self.iSizeMB = int(dParams['Size'])
+        # oLog.debug('XIV_Disk init: size is: {}'.format(dParams.get('Size')))
         self.sSizeH = dParams['Capacity (GB)']
         self.sModel = dParams['Model']
         self.dQueries = {"name":  lambda: self.sID,
@@ -644,7 +640,8 @@ class XIV_Disk(XIV_Component):
 
     def _iGetSize(self):
         if self.bHealthy:
-            return (self.iSizeMB / 1024)
+            # oLog.debug('XIV:_iGetSize: Disk size in MB is: {}'.format(self.iSizeMB))
+            return int(self.iSizeMB / 1024)
         else:
             return 0
 
@@ -821,7 +818,7 @@ if __name__ == '__main__':
     # print(oXiv.oDisksList)
     print(oXiv._dGetArrayInfoAsDict(oXiv.dQueries))
 #     print("Nodes:", oXiv.dQueries["nodes"]())
-#     print("Disks:", oXiv.dQueries["disks"]())
+    print("Disks:", oXiv.oDisksList)
 #     print("FC Ports", oXiv.dQueries["fc-ports"]())
 #     print("Ethernet Ports:", oXiv.dQueries["eth-ports"]())
 #     print("DIMM Names:", oXiv.dQueries["dimm-names"]())
