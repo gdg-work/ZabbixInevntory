@@ -240,25 +240,6 @@ class ESXi_WBEM_Host(inv.GenericServer):
             self.lPCI_Adapters.append(PCI_Adapter(dAdapter['Name']))
         return
 
-#     def _HBAs_from_WBEM(self):
-#         self.oHBAs = wbem.WBEM_HBAs(
-#             self.sName, self.sUser,
-#             self.sPass, sVCenter=self.sVCenter)
-#         # print(self.oHBAs)
-#         ldHBAs = self.oHBAs._ldReportAdapters()
-#         # print('*DBG* Found {} HBAs'.format(len(ldHBAs)))
-#         # print("\n".join([str(o) for o in ldHBAs]))
-#         for dHBA_Data in ldHBAs:
-#             oHBA = HBA_Class(
-#                 dHBA_Data['id'], sPosition=dHBA_Data['pos'], sVendorID='', sDeviceID='',
-#                 model=dHBA_Data['model'])
-#             oHBA.sPartNum = dHBA_Data.get('pn')
-#             oHBA.sSerNum = dHBA_Data.get('sn')
-#             oHBA.sWWN = dHBA_Data.get('wwn')
-#             # print(oHBA)
-#             self.lPCI_Adapters.append(oHBA)
-#         oLog.info('PCI Adapters list:\n{}'.format(str(self.lPCI_Adapters)))
-#         return
 
     def _HBAs_from_WBEM(self):
         self.oHBAs = wbem.WBEM_HBAs(

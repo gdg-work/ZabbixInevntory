@@ -254,24 +254,8 @@ class WBEM_Info:
                 'Cannot connect to WBEM server {} with credentials supplied!'.format(sHost))
         return
 
+
     def _ldGetInfoFromWBEM(self, sNS, sClass):
-        """returns WBEM instances as a list of dictionaries with 'None'-valued keys removed"""
-        lData = []
-        try:
-            lInstances = self.oConn.EnumerateInstances(namespace=sNS, ClassName=sClass)
-        except Exception as e:
-            oLog.error('CIM error in _ldGetInfoFromWBEM: ' + str(e))
-            raise WBEM_Exception('Cannot receive information from WBEM in _ldGetInfoFromWBEM()')
-
-        for oInstance in lInstances:
-            dOut = {}
-            for k, v in oInstance.items():
-                if v is not None:
-                    dOut[k] = v
-            lData.append(dOut)
-        return lData
-
-    def _ldGetInfoFromWBEM_2(self, sNS, sClass):
         """returns WBEM instances as a list of dictionaries with 'None'-valued keys removed"""
         lData = []
         try:
@@ -483,10 +467,10 @@ class WBEM_HBAs(WBEM_Info):
                         oLog.debug('QLogic-specific NS {} found!'.format(QLA_NS))
                         sQLA_ProdClass = self._loGetClassNames(QLA_NS, sClassName='CIM_Product')[0]
                         oLog.debug('QLA Product subclass name: ' + sQLA_ProdClass)
-                        ldQLA_ProdData = self._ldGetInfoFromWBEM_2(QLA_NS, sQLA_ProdClass)
+                        ldQLA_ProdData = self._ldGetInfoFromWBEM(QLA_NS, sQLA_ProdClass)
                         sQLA_PkgClass = self._loGetClassNames(QLA_NS, sClassName='CIM_PhysicalPackage')[0]
                         oLog.debug('QLA PhysicalPackage subclass name: ' + sQLA_PkgClass)
-                        ldQLA_PkgData = self._ldGetInfoFromWBEM_2(QLA_NS, sQLA_PkgClass)
+                        ldQLA_PkgData = self._ldGetInfoFromWBEM(QLA_NS, sQLA_PkgClass)
                         # combine dictionaries:
                         lDcts = zip(ldQLA_ProdData, ldQLA_PkgData)
                         ldQLA_Data = []
@@ -497,6 +481,8 @@ class WBEM_HBAs(WBEM_Info):
                     else:
                         raise WBEM_HBA_Exception('Incorrect QLogic adapter namespace: ' +
                                                       'no "qlogic/cimv2" NS in defined NS')
+                else:
+                    pass   # silently pass all non-QLogic NS
 
         except WBEM_Exception as e:
             raise WBEM_HBA_Exception("Error reporting HBAs:" + str(e))
