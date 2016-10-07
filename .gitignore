@@ -6,3 +6,6 @@ tox.ini
 src/access.py
 info.txt
 tags
+src/messages.mo
+Examples/*
+src/locale/*

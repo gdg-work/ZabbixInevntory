@@ -1,0 +1,2390 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="808.47803mm"
+   height="500.41983mm"
+   viewBox="0 0 2864.6859 1773.1412"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="zabbixInterface-diagram.svg">
+  <defs
+     id="defs4">
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker5311"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path5313"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker5299"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path5301"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker5287"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path5289"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker5277"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path5279"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="EmptyTriangleOutL"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker5271"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path5273"
+         d="m 5.77,0 -8.65,5 0,-10 8.65,5 z"
+         style="fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(0.8,0,0,0.8,-4.8,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="EmptyTriangleOutL"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker5265"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path5267"
+         d="m 5.77,0 -8.65,5 0,-10 8.65,5 z"
+         style="fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(0.8,0,0,0.8,-4.8,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="EmptyTriangleOutL"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker5259"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path5261"
+         d="m 5.77,0 -8.65,5 0,-10 8.65,5 z"
+         style="fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(0.8,0,0,0.8,-4.8,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="EmptyTriangleOutL"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker5253"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path5255"
+         d="m 5.77,0 -8.65,5 0,-10 8.65,5 z"
+         style="fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(0.8,0,0,0.8,-4.8,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="EmptyTriangleOutL"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker5247"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path5249"
+         d="m 5.77,0 -8.65,5 0,-10 8.65,5 z"
+         style="fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(0.8,0,0,0.8,-4.8,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker5241"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="EmptyTriangleOutL">
+      <path
+         transform="matrix(0.8,0,0,0.8,-4.8,0)"
+         style="fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         d="m 5.77,0 -8.65,5 0,-10 8.65,5 z"
+         id="path5243"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="EmptyTriangleOutL"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker5237"
+       style="overflow:visible"
+       inkscape:isstock="true"
+       inkscape:collect="always">
+      <path
+         id="path5239"
+         d="m 5.77,0 -8.65,5 0,-10 8.65,5 z"
+         style="fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(0.8,0,0,0.8,-4.8,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="EmptyTriangleOutL"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker5231"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path5233"
+         d="m 5.77,0 -8.65,5 0,-10 8.65,5 z"
+         style="fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(0.8,0,0,0.8,-4.8,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="EmptyTriangleOutL"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="marker5225"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path5227"
+         d="m 5.77,0 -8.65,5 0,-10 8.65,5 z"
+         style="fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(0.8,0,0,0.8,-4.8,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="EmptyTriangleOutL"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="EmptyTriangleOutL"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path5121"
+         d="m 5.77,0 -8.65,5 0,-10 8.65,5 z"
+         style="fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(0.8,0,0,0.8,-4.8,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow1Lend"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path4964"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1"
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.35"
+     inkscape:cx="1592.1653"
+     inkscape:cy="789.75202"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:snap-bbox="true"
+     inkscape:bbox-paths="true"
+     inkscape:bbox-nodes="true"
+     inkscape:window-width="1916"
+     inkscape:window-height="1041"
+     inkscape:window-x="0"
+     inkscape:window-y="18"
+     inkscape:window-maximized="0"
+     inkscape:snap-bbox-edge-midpoints="true"
+     fit-margin-top="15"
+     fit-margin-left="10"
+     fit-margin-right="10"
+     fit-margin-bottom="10">
+    <inkscape:grid
+       type="xygrid"
+       id="grid4175"
+       originx="-591.06795"
+       originy="-1141.0679" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-591.06797,1861.8466)">
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:center;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="1995.05"
+       y="-1791.6023"
+       id="text4136"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan4138"
+         x="1995.05"
+         y="-1791.6023">Zabbix interface (Python)</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:center;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="76.428574"
+       y="150.93362"
+       id="text4148"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan4150"
+         x="76.428574"
+         y="150.93362" /></text>
+    <g
+       id="g4158"
+       transform="translate(822.53622,-1812.4636)">
+      <rect
+         ry="7.0866098"
+         rx="7.0866094"
+         y="103.79077"
+         x="65"
+         height="79.285713"
+         width="150.71428"
+         id="rect4140"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text4142"
+         y="123.79078"
+         x="140.71429"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:center;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="123.79078"
+           x="140.71429"
+           id="tspan4144"
+           sodipodi:role="line">ZabInterfaceException</tspan></text>
+      <rect
+         ry="7.0866098"
+         rx="7.0866098"
+         y="130.93364"
+         x="63.57143"
+         height="52.14286"
+         width="152.14285"
+         id="rect4146"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49899983;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text4152"
+         y="156.64792"
+         x="136.42857"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:center;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="156.64792"
+           x="136.42857"
+           id="tspan4154"
+           sodipodi:role="line">__init__()</tspan><tspan
+           id="tspan4156"
+           y="172.27292"
+           x="136.42857"
+           sodipodi:role="line">__str__()</tspan></text>
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="310"
+       y="452.36221"
+       id="text4201"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         x="310"
+         y="452.36221"
+         id="tspan4205" /><tspan
+         sodipodi:role="line"
+         x="310"
+         y="467.98721"
+         id="tspan4209" /></text>
+    <g
+       id="g4822"
+       transform="translate(-754.72914,41.749555)">
+      <rect
+         ry="7.0866098"
+         rx="7.0866098"
+         y="-1627.6377"
+         x="1916.7495"
+         height="395.00006"
+         width="448.25049"
+         id="rect4167"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text4169"
+         y="-1605.1738"
+         x="2031.4786"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:20px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:center;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1605.1738"
+           x="2031.4786"
+           id="tspan4171"
+           sodipodi:role="line">GeneralZabbix</tspan></text>
+      <rect
+         ry="4.5703127e-06"
+         rx="4.5703127e-06"
+         y="-1597.3167"
+         x="1916.4786"
+         height="109.67901"
+         width="448.52136"
+         id="rect4173"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text4177"
+         y="-1573.031"
+         x="1930.05"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1573.031"
+           x="1930.05"
+           id="tspan4179"
+           sodipodi:role="line">sZabbixURL</tspan><tspan
+           id="tspan4181"
+           y="-1557.406"
+           x="1930.05"
+           sodipodi:role="line">sZabbixIP</tspan><tspan
+           id="tspan4183"
+           y="-1541.781"
+           x="1930.05"
+           sodipodi:role="line">iZabbixPort</tspan><tspan
+           id="tspan4185"
+           y="-1526.156"
+           x="1930.05"
+           sodipodi:role="line">dApplicationNamesToIDs</tspan><tspan
+           id="tspan4187"
+           y="-1510.531"
+           x="1930.05"
+           sodipodi:role="line">sHostName</tspan><tspan
+           id="tspan4199"
+           y="-1494.906"
+           x="1930.05"
+           sodipodi:role="line" /></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4980"
+         y="-1473.1406"
+         x="1930.1221"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1473.1406"
+           x="1930.1221"
+           id="tspan4982"
+           sodipodi:role="line">__init__(sHostName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4988"
+         y="-1454.4595"
+         x="1930.05"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1454.4595"
+           x="1930.05"
+           id="tspan4990"
+           sodipodi:role="line">__fillApplications__(reFilter)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5316"
+         y="-1434.4595"
+         x="1930.05"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1434.4595"
+           x="1930.05"
+           id="tspan5318"
+           sodipodi:role="line">_oPrepareZabMetric(sAppName, sParameter, iValue) -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5340"
+         y="-1573.031"
+         x="2120.05"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1573.031"
+           x="2120.05"
+           id="tspan5342"
+           sodipodi:role="line">ldApplications</tspan><tspan
+           id="tspan5344"
+           y="-1557.406"
+           x="2120.05"
+           sodipodi:role="line">dItemNames</tspan><tspan
+           id="tspan5346"
+           y="-1541.781"
+           x="2120.05"
+           sodipodi:role="line">dAppIDs</tspan><tspan
+           id="tspan5348"
+           y="-1526.156"
+           x="2120.05"
+           sodipodi:role="line">dApps</tspan><tspan
+           id="tspan5350"
+           y="-1510.531"
+           x="2120.05"
+           sodipodi:role="line">sHostID</tspan><tspan
+           id="tspan5352"
+           y="-1494.906"
+           x="2120.05"
+           sodipodi:role="line">iHostID</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5354"
+         y="-1413.031"
+         x="1930.05"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           id="tspan5358"
+           y="-1413.031"
+           x="1930.05"
+           sodipodi:role="line">_SendMetrics(loMetrics)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5362"
+         y="-1393.031"
+         x="1930.05"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           id="tspan5366"
+           y="-1393.031"
+           x="1930.05"
+           sodipodi:role="line">_iGetHostID() -&gt; host ID (int)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5370"
+         y="-1373.031"
+         x="1930.05"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1373.031"
+           x="1930.05"
+           id="tspan5372"
+           sodipodi:role="line">_sName()  -&gt; hostname</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5374"
+         y="-1353.031"
+         x="1930.05"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1353.031"
+           x="1930.05"
+           id="tspan5376"
+           sodipodi:role="line">_bHasApplication(sAppName)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5378"
+         y="-1333.031"
+         x="1930.05"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           id="tspan5382"
+           y="-1333.031"
+           x="1930.05"
+           sodipodi:role="line">_bHasItem(sItemName)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5386"
+         y="-1313.031"
+         x="1930.05"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1313.031"
+           x="1930.05"
+           id="tspan5388"
+           sodipodi:role="line">_oGetItem(sItemName)  -&gt; item</tspan><tspan
+           id="tspan5390"
+           y="-1297.406"
+           x="1930.05"
+           sodipodi:role="line">_oGetApp(sAppName) -&gt; application</tspan><tspan
+           id="tspan5392"
+           y="-1281.781"
+           x="1930.05"
+           sodipodi:role="line">_oAddApp(sAppName) -&gt; application</tspan><tspan
+           id="tspan5394"
+           y="-1266.156"
+           x="1930.05"
+           sodipodi:role="line" /></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5396"
+         y="-1263.031"
+         x="1930.05"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1263.031"
+           x="1930.05"
+           id="tspan5398"
+           sodipodi:role="line">_oAddItem(sAppName) -&gt; item</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5400"
+         y="-1243.031"
+         x="1930.05"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           id="tspan5404"
+           y="-1243.031"
+           x="1930.05"
+           sodipodi:role="line">_MakeTimeStamp()</tspan></text>
+    </g>
+    <g
+       id="g5695"
+       transform="translate(378.25047,628.25062)">
+      <rect
+         ry="7.0866098"
+         rx="7.0866098"
+         y="-1735.8883"
+         x="261.74954"
+         height="258.25055"
+         width="398.25049"
+         id="rect5453"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <rect
+         ry="0.00015363847"
+         rx="7.0866098"
+         y="-1685.8883"
+         x="261.74954"
+         height="28.250528"
+         width="398.25049"
+         id="rect5455"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text5457"
+         y="-1703.1953"
+         x="340.03207"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:20px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1703.1953"
+           x="340.03207"
+           id="tspan5459"
+           sodipodi:role="line">DisksToZabbix (GeneralZabbix)</tspan></text>
+      <text
+         transform="scale(1.0018,0.99820323)"
+         sodipodi:linespacing="125%"
+         id="text5461"
+         y="-1669.3907"
+         x="290.53448"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.52250004px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1669.3907"
+           x="290.53448"
+           id="tspan5463"
+           sodipodi:role="line">dOperations(name -&gt; method) </tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5465"
+         y="-1610.5858"
+         x="280.1221"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1610.5858"
+           x="280.1221"
+           id="tspan5467"
+           sodipodi:role="line">_oPrepareDiskRPM(sAppName, iValue) -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5469"
+         y="-1590.5858"
+         x="280.1221"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1590.5858"
+           x="280.1221"
+           id="tspan5471"
+           sodipodi:role="line">_oPrepareDiskType(sAppName, sValue) -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5473"
+         y="-1570.5858"
+         x="280.1221"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           id="tspan5477"
+           y="-1570.5858"
+           x="280.1221"
+           sodipodi:role="line">_oPrepareDiskSize(sAppName, iValue) -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5481"
+         y="-1550.5858"
+         x="280.1221"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           id="tspan5485"
+           y="-1550.5858"
+           x="280.1221"
+           sodipodi:role="line">_oPrepareDiskModel(sAppName, sValue) -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5489"
+         y="-1530.5858"
+         x="280.1221"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1530.5858"
+           x="280.1221"
+           id="tspan5491"
+           sodipodi:role="line">_oPrepareDiskSN(sAppName, sValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan5493"
+           y="-1514.9608"
+           x="280.1221"
+           sodipodi:role="line" /></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5495"
+         y="-1510.5858"
+         x="280.1221"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1510.5858"
+           x="280.1221"
+           id="tspan5497"
+           sodipodi:role="line">_oPrepareDiskPosition(sAppName, sValue) -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5499"
+         y="-1490.5858"
+         x="280.1221"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1490.5858"
+           x="280.1221"
+           id="tspan5501"
+           sodipodi:role="line">_SendInfoToZabbix(sArrayName, ldDisksInfo)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5671"
+         y="-1637.6379"
+         x="280"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1637.6379"
+           x="280"
+           id="tspan5673"
+           sodipodi:role="line">(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)</tspan></text>
+    </g>
+    <g
+       id="g6303"
+       transform="translate(283.49896,1311.7497)">
+      <rect
+         ry="7.0866098"
+         rx="7.0866098"
+         y="-1735.8883"
+         x="721.74951"
+         height="258.25055"
+         width="428.25049"
+         id="rect5503"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <rect
+         ry="0.000153638"
+         rx="7.0866098"
+         y="-1680.8883"
+         x="721.74951"
+         height="35.00016"
+         width="430.00012"
+         id="rect5505"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text5533"
+         y="-1702.5923"
+         x="790.0321"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:20px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1702.5923"
+           x="790.0321"
+           id="tspan5535"
+           sodipodi:role="line">EnclosureToZabbix (GeneralZabbix)</tspan></text>
+      <text
+         transform="scale(1.0018,0.99820324)"
+         sodipodi:linespacing="125%"
+         id="text5461-3"
+         y="-1661.4736"
+         x="749.70795"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.52250004px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1661.4736"
+           x="749.70795"
+           id="tspan5463-5"
+           sodipodi:role="line">dOperations(name -&gt; method) </tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5555"
+         y="-1610.5858"
+         x="740.12213"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1610.5858"
+           x="740.12213"
+           id="tspan5557"
+           sodipodi:role="line">_oPrepareEnclSN(sAppName, sValue)  -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5559"
+         y="-1590.5858"
+         x="740.12213"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1590.5858"
+           x="740.12213"
+           id="tspan5561"
+           sodipodi:role="line">_oPrepareEnclType(sAppName, sValue)  -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5563"
+         y="-1570.5858"
+         x="740.12213"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1570.5858"
+           x="740.12213"
+           id="tspan5565"
+           sodipodi:role="line">_oPrepareEnclModel(sAppName, sValue)  -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5567"
+         y="-1550.5858"
+         x="740.12213"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1550.5858"
+           x="740.12213"
+           id="tspan5569"
+           sodipodi:role="line">_oPrepareEnclDisksAmount(sAppName, iValue) -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5571"
+         y="-1530.5858"
+         x="740.12213"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           id="tspan5575"
+           y="-1530.5858"
+           x="740.12213"
+           sodipodi:role="line">_oPrepareEnclSlotsAmount(sAppName, iValue) -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5579"
+         y="-1510.5858"
+         x="740.12213"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1510.5858"
+           x="740.12213"
+           id="tspan5581"
+           sodipodi:role="line">_oPrepareEnclPSAmount(sAppName, iValue) -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5583"
+         y="-1490.5858"
+         x="740.12213"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1490.5858"
+           x="740.12213"
+           id="tspan5585"
+           sodipodi:role="line">_SendInfoToZabbix(sArrayName, ldEnclosuresInfo)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5720"
+         y="-1627.6379"
+         x="740"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1627.6379"
+           x="740"
+           id="tspan5722"
+           sodipodi:role="line">(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)</tspan></text>
+    </g>
+    <g
+       id="g5760"
+       transform="translate(518.25041,408.25062)">
+      <rect
+         ry="7.0866117"
+         rx="7.0866108"
+         y="-1737.6378"
+         x="1250.0001"
+         height="280.00006"
+         width="429.99997"
+         id="rect5503-3-6"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <rect
+         ry="0.00015363803"
+         rx="7.0866108"
+         y="-1687.6378"
+         x="1250.0001"
+         height="30.00004"
+         width="429.99997"
+         id="rect5505-6-2"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text5724"
+         y="-1640.2379"
+         x="1263.9259"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1640.2379"
+           x="1263.9259"
+           id="tspan5726"
+           sodipodi:role="line">(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5728"
+         y="-1704.3419"
+         x="1338.2826"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:20px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1704.3419"
+           x="1338.2826"
+           id="tspan5730"
+           sodipodi:role="line">NodeToZabbix (GeneralZabbix)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5732"
+         y="-1667.6379"
+         x="1280"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1667.6379"
+           x="1280"
+           id="tspan5734"
+           sodipodi:role="line">dOperations(name -&gt; method) </tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5736"
+         y="-1617.6379"
+         x="1270"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.50000095px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1617.6379"
+           x="1270"
+           id="tspan5738"
+           sodipodi:role="line">_oPrepareNodeSN (sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan5740"
+           y="-1602.0129"
+           x="1270"
+           sodipodi:role="line">_oPrepareNodeModel(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan5742"
+           y="-1586.3879"
+           x="1270"
+           sodipodi:role="line">_oPrepareNodeType(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan5744"
+           y="-1570.7629"
+           x="1270"
+           sodipodi:role="line">_oPrepareNodeDisksAmount(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan5746"
+           y="-1555.1379"
+           x="1270"
+           sodipodi:role="line">_oPrepareNodeDiskBays(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan5748"
+           y="-1539.5129"
+           x="1270"
+           sodipodi:role="line">_oPrepareNodePwrSupplies(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan5750"
+           y="-1523.8879"
+           x="1270"
+           sodipodi:role="line">_oPrepareNodeFCPorts(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan5752"
+           y="-1508.2629"
+           x="1270"
+           sodipodi:role="line">_oPrepareNodeEthPorts(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan5754"
+           y="-1492.6379"
+           x="1270"
+           sodipodi:role="line">_oPrepareNodePSAmount(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan5756"
+           y="-1477.0129"
+           x="1270"
+           sodipodi:role="line">_oPrepareNodeRAM_GB(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan5758"
+           y="-1461.3879"
+           x="1270"
+           sodipodi:role="line">_SendInfoToZabbix(sArrayName, ldNodesInfo)</tspan></text>
+    </g>
+    <g
+       id="g5839"
+       transform="translate(-951.74962,908.25063)">
+      <rect
+         ry="7.0866117"
+         rx="7.0866108"
+         y="-1737.6378"
+         x="1730.0001"
+         height="160.00005"
+         width="400"
+         id="rect5503-7-9"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <rect
+         ry="0.00015363803"
+         rx="7.0866108"
+         y="-1687.6378"
+         x="1730.0001"
+         height="30.00004"
+         width="400"
+         id="rect5505-5-1"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text5800"
+         y="-1707.6379"
+         x="1820"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:20px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1707.6379"
+           x="1820"
+           id="tspan5802"
+           sodipodi:role="line">SwitchToZabbix(GeneralZabbix)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5804"
+         y="-1668.1407"
+         x="1769.3104"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1668.1407"
+           x="1769.3104"
+           id="tspan5806"
+           sodipodi:role="line">dOperations(name -&gt; method) </tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5808"
+         y="-1637.6379"
+         x="1750"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1637.6379"
+           x="1750"
+           id="tspan5810"
+           sodipodi:role="line">(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5812"
+         y="-1607.6379"
+         x="1750"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1607.6379"
+           x="1750"
+           id="tspan5814"
+           sodipodi:role="line">_oPrepareSwitchSN(sAppName, sValue)  -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5816"
+         y="-1587.6379"
+         x="1750"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1587.6379"
+           x="1750"
+           id="tspan5818"
+           sodipodi:role="line">_SendInfoToZabbix(sArrayName, ldSwitchesInfo)</tspan></text>
+    </g>
+    <g
+       id="g6139"
+       transform="translate(1674.7515,424.75155)">
+      <rect
+         ry="7.0866137"
+         rx="7.0866117"
+         y="-1435.8883"
+         x="81.749504"
+         height="221.74962"
+         width="421.74948"
+         id="rect5503-7-2-0-0"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <rect
+         ry="0.00015363806"
+         rx="7.0866117"
+         y="-1385.8883"
+         x="81.749504"
+         height="30.000048"
+         width="419.99997"
+         id="rect5505-5-7-9-6"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text5957"
+         y="-1407.6379"
+         x="140"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:20px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1407.6379"
+           x="140"
+           id="tspan5959"
+           sodipodi:role="line">CFtoZabbix(GeneralZabbix)</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.52250004px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="109.11143"
+         y="-1372.7043"
+         id="text5461-2"
+         sodipodi:linespacing="125%"
+         transform="scale(1.0018,0.99820324)"><tspan
+           sodipodi:role="line"
+           id="tspan5463-6"
+           x="109.11143"
+           y="-1372.7043">dOperations(name -&gt; method) </tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5979"
+         y="-1317.6379"
+         x="100"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1317.6379"
+           x="100"
+           id="tspan5981"
+           sodipodi:role="line">_oPrepareSN(sAppName, iValue) -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5983"
+         y="-1337.6379"
+         x="100"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1337.6379"
+           x="100"
+           id="tspan5985"
+           sodipodi:role="line">(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5987"
+         y="-1297.6379"
+         x="100"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1297.6379"
+           x="100"
+           id="tspan5989"
+           sodipodi:role="line">_oPrepareModel(sAppName, iValue) -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5991"
+         y="-1277.6379"
+         x="100"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1277.6379"
+           x="100"
+           id="tspan5993"
+           sodipodi:role="line">_oPrepareSize(sAppName, iValue) -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5995"
+         y="-1257.6379"
+         x="100"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1257.6379"
+           x="100"
+           id="tspan5997"
+           sodipodi:role="line">_oPreparePosition(sAppName, iValue) -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5999"
+         y="-1237.6379"
+         x="100"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1237.6379"
+           x="100"
+           id="tspan6001"
+           sodipodi:role="line">_SendInfoToZabbix(sArrayName, ldInfo)</tspan></text>
+    </g>
+    <g
+       id="g6291"
+       transform="translate(378.25044,716.50101)">
+      <rect
+         ry="7.0866137"
+         rx="7.0866117"
+         y="-1345.8883"
+         x="601.74951"
+         height="158.25058"
+         width="358.25055"
+         id="rect5503-7-2-0-1"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <rect
+         ry="0.00015363806"
+         rx="7.0866117"
+         y="-1295.8883"
+         x="601.74951"
+         height="28.250574"
+         width="358.25055"
+         id="rect5505-5-7-9-8"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text6029"
+         y="-1314.3419"
+         x="628.47906"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:20px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1314.3419"
+           x="628.47906"
+           id="tspan6031"
+           sodipodi:role="line">UPSesToZabbix(GeneralZabbix)</tspan></text>
+      <text
+         transform="scale(1.0018,0.99820324)"
+         sodipodi:linespacing="125%"
+         id="text5461-3-2"
+         y="-1280.4414"
+         x="623.1861"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.52250004px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1280.4414"
+           x="623.1861"
+           id="tspan5463-5-0"
+           sodipodi:role="line">dOperations(name -&gt; method) </tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text6051"
+         y="-1232.6379"
+         x="615"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1232.6379"
+           x="615"
+           id="tspan6053"
+           sodipodi:role="line">_oPrepareSN(sAppName, sValue)  -&gt; zabbixMetric</tspan><tspan
+           id="tspan6055"
+           y="-1217.0129"
+           x="615"
+           sodipodi:role="line">_oPrepareMDate(sAppName, sValue)  -&gt; zabbixMetric</tspan><tspan
+           id="tspan6057"
+           y="-1201.3879"
+           x="615"
+           sodipodi:role="line">_SendInfoToZabbix(sArrayName, ldInfo)</tspan></text>
+    </g>
+    <g
+       id="g6119"
+       transform="translate(389.99999,955.00017)">
+      <rect
+         ry="7.0866137"
+         rx="7.0866117"
+         y="-1340.8883"
+         x="1091.7495"
+         height="260.00012"
+         width="419.99997"
+         id="rect5503-7-2-0-7"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <rect
+         ry="0.00015363806"
+         rx="7.0866117"
+         y="-1290.8883"
+         x="1091.7495"
+         height="30.000048"
+         width="419.99997"
+         id="rect5505-5-7-9-9"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text6059"
+         y="-1307.6379"
+         x="1135"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:20px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1307.6379"
+           x="1135"
+           id="tspan6061"
+           sodipodi:role="line">CtrlsToZabbix(GeneralZabbix)</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="1119.3104"
+         y="-1273.1406"
+         id="text5732-2"
+         sodipodi:linespacing="125%"><tspan
+           sodipodi:role="line"
+           id="tspan5734-3"
+           x="1119.3104"
+           y="-1273.1406">dOperations(name -&gt; method) </tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text6081"
+         y="-1217.6379"
+         x="1110"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1217.6379"
+           x="1110"
+           id="tspan6083"
+           sodipodi:role="line">_oPrepareCtrlSN(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan6085"
+           y="-1202.0129"
+           x="1110"
+           sodipodi:role="line">_oPrepareCtrlType(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan6087"
+           y="-1186.3879"
+           x="1110"
+           sodipodi:role="line">_oPrepareCtrlModel(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan6089"
+           y="-1170.7629"
+           x="1110"
+           sodipodi:role="line">_oPrepareCPUCores(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan6091"
+           y="-1155.1379"
+           x="1110"
+           sodipodi:role="line">_oPreparePortNames(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan6093"
+           y="-1139.5129"
+           x="1110"
+           sodipodi:role="line">_oPrepareHostPortNum(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan6095"
+           y="-1123.8879"
+           x="1110"
+           sodipodi:role="line">_oPreparePCICards(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan6097"
+           y="-1108.2629"
+           x="1110"
+           sodipodi:role="line">_oPrepareRAMInfo(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan6099"
+           y="-1092.6379"
+           x="1110"
+           sodipodi:role="line">_SendInfoToZabbix(sArrayName, ldCtrlInfo)</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="1113.9259"
+         y="-1243.1406"
+         id="text5724-7"
+         sodipodi:linespacing="125%"><tspan
+           sodipodi:role="line"
+           id="tspan5726-5"
+           x="1113.9259"
+           y="-1243.1406">(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)</tspan></text>
+    </g>
+    <g
+       id="g6231"
+       transform="translate(88.250378,588.25056)">
+      <rect
+         ry="7.0866137"
+         rx="7.0866117"
+         y="-1349.3873"
+         x="1561.7496"
+         height="331.74963"
+         width="448.25049"
+         id="rect5503-7-2-0-9"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <rect
+         ry="0.00015363806"
+         rx="7.0866117"
+         y="-1299.3873"
+         x="1561.7496"
+         height="31.749598"
+         width="448.25049"
+         id="rect5505-5-7-9-2"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text6177"
+         y="-1312.6379"
+         x="1625"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:20px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1312.6379"
+           x="1625"
+           id="tspan6179"
+           sodipodi:role="line">ArrayToZabbix(GeneralZabbix)</tspan></text>
+      <text
+         transform="scale(1.0018,0.99820324)"
+         sodipodi:linespacing="125%"
+         id="text5461-3-2-2"
+         y="-1282.5424"
+         x="1586.4523"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.52250004px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1282.5424"
+           x="1586.4523"
+           id="tspan5463-5-0-8"
+           sodipodi:role="line">dOperations(name -&gt; method) </tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text6199"
+         y="-1242.6379"
+         x="1590"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1242.6379"
+           x="1590"
+           id="tspan6201"
+           sodipodi:role="line">(sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text6203"
+         y="-1218.1407"
+         x="1590.1222"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1218.1407"
+           x="1590.1222"
+           id="tspan6205"
+           sodipodi:role="line">_oPrepareArraySN(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan6207"
+           y="-1202.5157"
+           x="1590.1222"
+           sodipodi:role="line">_oPrepareFCPorts(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan6209"
+           y="-1186.8907"
+           x="1590.1222"
+           sodipodi:role="line">_oPrepareNICs(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan6211"
+           y="-1171.2657"
+           x="1590.1222"
+           sodipodi:role="line">_oPrepareArrayType(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan6213"
+           y="-1155.6407"
+           x="1590.1222"
+           sodipodi:role="line">_oPrepareArrayWWN(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan6215"
+           y="-1140.0157"
+           x="1590.1222"
+           sodipodi:role="line">_oPrepareArrayModel(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan6217"
+           y="-1124.3907"
+           x="1590.1222"
+           sodipodi:role="line">_oPrepareArrayDisks(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan6219"
+           y="-1108.7657"
+           x="1590.1222"
+           sodipodi:role="line">_oPrepareArrayShelves(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan6221"
+           y="-1093.1407"
+           x="1590.1222"
+           sodipodi:role="line">_oPreparePwrSuppliesAmount(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan6223"
+           y="-1077.5157"
+           x="1590.1222"
+           sodipodi:role="line">_oPrepareArrayControllers(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan6225"
+           y="-1061.8907"
+           x="1590.1222"
+           sodipodi:role="line">_oPrepareArrayNodes(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan6227"
+           y="-1046.2657"
+           x="1590.1222"
+           sodipodi:role="line">_oPrepareArrayMemory(sAppName, iValue) -&gt; zabbixMetric</tspan><tspan
+           id="tspan6229"
+           y="-1030.6407"
+           x="1590.1222"
+           sodipodi:role="line">_SendInfoToZabbix(sArrayName, dArrInfo)</tspan></text>
+    </g>
+    <g
+       id="g4158-9"
+       transform="translate(822.53622,-1692.4636)">
+      <rect
+         ry="7.0866098"
+         rx="7.0866094"
+         y="103.79077"
+         x="65"
+         height="79.285713"
+         width="150.71428"
+         id="rect4140-7"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text4142-3"
+         y="123.79078"
+         x="140.71429"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:center;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="123.79078"
+           x="140.71429"
+           id="tspan4144-6"
+           sodipodi:role="line">MyZabbixException</tspan></text>
+      <rect
+         ry="7.0866098"
+         rx="7.0866098"
+         y="130.93364"
+         x="63.57143"
+         height="52.14286"
+         width="152.14285"
+         id="rect4146-1"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49899983;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text4152-2"
+         y="156.64792"
+         x="136.42857"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:center;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="156.64792"
+           x="136.42857"
+           id="tspan4154-9"
+           sodipodi:role="line">__init__()</tspan><tspan
+           id="tspan4156-3"
+           y="172.27292"
+           x="136.42857"
+           sodipodi:role="line">__str__()</tspan></text>
+    </g>
+    <g
+       id="g6327"
+       transform="translate(-1521.7497,358.25062)">
+      <rect
+         ry="7.0866117"
+         rx="7.0866108"
+         y="-1737.6378"
+         x="2150.0002"
+         height="210.00006"
+         width="409.99991"
+         id="rect5503-7-2"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <rect
+         ry="0.00015363803"
+         rx="7.0866108"
+         y="-1687.6378"
+         x="2150.0002"
+         height="30.00004"
+         width="409.99991"
+         id="rect5505-5-7"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text5889"
+         y="-1707.6379"
+         x="2210"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:20px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1707.6379"
+           x="2210"
+           id="tspan5891"
+           sodipodi:role="line">DIMMsToZabbix</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5893"
+         y="-1640.2379"
+         x="2158.926"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1640.2379"
+           x="2158.926"
+           id="tspan5895"
+           sodipodi:role="line">(self, sArrayName, sZabbixIP, iZabbixPort, sZabUser, sZabPwd)</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="2179.3105"
+         y="-1668.1407"
+         id="text5732-3"
+         sodipodi:linespacing="125%"><tspan
+           sodipodi:role="line"
+           id="tspan5734-6"
+           x="2179.3105"
+           y="-1668.1407">dOperations(name -&gt; method) </tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5915"
+         y="-1617.6379"
+         x="2160"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1617.6379"
+           x="2160"
+           id="tspan5917"
+           sodipodi:role="line">_oPrepareSN(sAppName, sValue)  -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5919"
+         y="-1597.6379"
+         x="2160"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           id="tspan5923"
+           y="-1597.6379"
+           x="2160"
+           sodipodi:role="line">_oPrepareModel(sAppName, sValue)  -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5927"
+         y="-1577.6379"
+         x="2160"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1577.6379"
+           x="2160"
+           id="tspan5929"
+           sodipodi:role="line">oPrepareSize(sAppName, sValue)  -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5931"
+         y="-1557.6379"
+         x="2160"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1557.6379"
+           x="2160"
+           id="tspan5933"
+           sodipodi:role="line">oPreparePosition(sAppName, sValue)  -&gt; zabbixMetric</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text5935"
+         y="-1537.6379"
+         x="2160"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-1537.6379"
+           x="2160"
+           id="tspan5937"
+           sodipodi:role="line">_SendInfoToZabbix(sArrayName, ldDIMMsInfo)</tspan></text>
+    </g>
+    <g
+       id="g4867"
+       transform="translate(-471.42858,-924.28573)">
+      <rect
+         ry="7.0866127"
+         rx="7.0866113"
+         y="-725.88812"
+         x="2861.7495"
+         height="438.25037"
+         width="428.25049"
+         id="rect5503-7-2-0-19"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <rect
+         ry="0.00015363804"
+         rx="7.0866113"
+         y="-675.88812"
+         x="2861.7495"
+         height="108.25037"
+         width="428.25049"
+         id="rect5505-5-7-9-4"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text6365"
+         y="-687.63776"
+         x="2940"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-687.63776"
+           x="2940"
+           id="tspan6367"
+           sodipodi:role="line">ZabbixHost</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text6369"
+         y="-548.14056"
+         x="2888.9258"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-548.14056"
+           x="2888.9258"
+           id="tspan6371"
+           sodipodi:role="line">(sName, oZabAPI)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text6373"
+         y="-657.63776"
+         x="2880"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-657.63776"
+           x="2880"
+           id="tspan6375"
+           sodipodi:role="line">oAPI: ZabbixAPI</tspan><tspan
+           id="tspan6448"
+           y="-642.01276"
+           x="2880"
+           sodipodi:role="line">sName: str</tspan><tspan
+           id="tspan6450"
+           y="-626.38776"
+           x="2880"
+           sodipodi:role="line">iHostID: int</tspan><tspan
+           id="tspan6452"
+           y="-610.76276"
+           x="2880"
+           sodipodi:role="line">dAppIds: dict (str -&gt; int)</tspan><tspan
+           id="tspan6454"
+           y="-595.13776"
+           x="2880"
+           sodipodi:role="line">dApps: dict (str -&gt; ZabbixApplication)</tspan><tspan
+           id="tspan6446"
+           y="-579.51276"
+           x="2880"
+           sodipodi:role="line">dItemNames: dict (str -&gt; ZabbixItem)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text6456"
+         y="-517.63776"
+         x="2890"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-517.63776"
+           x="2890"
+           id="tspan6458"
+           sodipodi:role="line">__repr__(): str</tspan><tspan
+           id="tspan6460"
+           y="-502.01276"
+           x="2890"
+           sodipodi:role="line">_bHasApplication(sAppName:str): bool</tspan><tspan
+           id="tspan6462"
+           y="-486.38776"
+           x="2890"
+           sodipodi:role="line">_bHasItem(sItemName:str, iAppID:int): bool</tspan><tspan
+           id="tspan6464"
+           y="-470.76276"
+           x="2890"
+           sodipodi:role="line">_oAddApp(sAppName):</tspan><tspan
+           id="tspan6466"
+           y="-455.13776"
+           x="2890"
+           sodipodi:role="line">_oAddItem(sItemName, sAppName='', dParams=None):</tspan><tspan
+           id="tspan6468"
+           y="-439.51276"
+           x="2890"
+           sodipodi:role="line">_iGetHostID() -&gt; int</tspan><tspan
+           id="tspan6470"
+           y="-423.88776"
+           x="2890"
+           sodipodi:role="line">@id = _iGetHostID()</tspan><tspan
+           id="tspan6472"
+           y="-408.26276"
+           x="2890"
+           sodipodi:role="line">_sName() -&gt; str</tspan><tspan
+           id="tspan6474"
+           y="-392.63776"
+           x="2890"
+           sodipodi:role="line">@name = _sName()</tspan><tspan
+           id="tspan6476"
+           y="-377.01276"
+           x="2890"
+           sodipodi:role="line">_sGetItem(sItemName:str) -&gt; ZabbixItem</tspan><tspan
+           id="tspan6478"
+           y="-361.38776"
+           x="2890"
+           sodipodi:role="line">_oGetApp(sAppName:str): ZabbixApplication</tspan><tspan
+           id="tspan6480"
+           y="-345.76276"
+           x="2890"
+           sodipodi:role="line">_MakeTimeStamp(oSender: ZabbixSender)</tspan></text>
+    </g>
+    <g
+       id="g4475"
+       transform="translate(-449.67907,-1041.0352)">
+      <rect
+         ry="7.0866127"
+         rx="7.0866113"
+         y="-607.63763"
+         x="3450"
+         height="225"
+         width="415"
+         id="rect5503-7-2-0-78"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <rect
+         ry="0.00015363804"
+         rx="7.0866113"
+         y="-557.63763"
+         x="3450"
+         height="50.000008"
+         width="415"
+         id="rect5505-5-7-9-45"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text6508"
+         y="-572.63776"
+         x="3480"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:17.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-572.63776"
+           x="3480"
+           id="tspan6510"
+           sodipodi:role="line">ZabbixApplication</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4419"
+         y="-489.28558"
+         x="3458.9258"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-489.28558"
+           x="3458.9258"
+           id="tspan4421"
+           sodipodi:role="line">(sName, oHost, dParams=None)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4423"
+         y="-537.63763"
+         x="3470"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-537.63763"
+           x="3470"
+           id="tspan4425"
+           sodipodi:role="line">oHost</tspan><tspan
+           id="tspan4427"
+           y="-522.01263"
+           x="3470"
+           sodipodi:role="line" /></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4429"
+         y="-517.63763"
+         x="3470"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-517.63763"
+           x="3470"
+           id="tspan4431"
+           sodipodi:role="line">lRelatedItems</tspan><tspan
+           id="tspan4433"
+           y="-502.01263"
+           x="3470"
+           sodipodi:role="line" /></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4435"
+         y="-537.63763"
+         x="3600"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-537.63763"
+           x="3600"
+           id="tspan4437"
+           sodipodi:role="line">iID</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4439"
+         y="-472.63763"
+         x="3460"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-472.63763"
+           x="3460"
+           id="tspan4441"
+           sodipodi:role="line">_NewApp(sAppName: str)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4443"
+         y="-452.63763"
+         x="3460"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-452.63763"
+           x="3460"
+           id="tspan4445"
+           sodipodi:role="line">_AddItem(oItem: zabbixItem)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4447"
+         y="-437.63763"
+         x="3460"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-437.63763"
+           x="3460"
+           id="tspan4449"
+           sodipodi:role="line">_sGetName() -&gt; str</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4451"
+         y="-422.63763"
+         x="3460"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-422.63763"
+           x="3460"
+           id="tspan4453"
+           sodipodi:role="line">_iGetID() -&gt; int</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4455"
+         y="-407.63763"
+         x="3460"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-407.63763"
+           x="3460"
+           id="tspan4457"
+           sodipodi:role="line">__repr__() -&gt; str</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4459"
+         y="-392.63763"
+         x="3460"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-392.63763"
+           x="3460"
+           id="tspan4461"
+           sodipodi:role="line">_loRelatedItems -&gt; [zabbixItem, zabbixItem, ...]</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4463"
+         y="-487.63763"
+         x="3680"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-487.63763"
+           x="3680"
+           id="tspan4465"
+           sodipodi:role="line"># dParams['id'] is used</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4467"
+         y="-472.63763"
+         x="3680"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-472.63763"
+           x="3680"
+           id="tspan4469"
+           sodipodi:role="line"># creates an app in Zabbix</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4471"
+         y="-517.63763"
+         x="3600"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-517.63763"
+           x="3600"
+           id="tspan4473"
+           sodipodi:role="line">sName</tspan></text>
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="3460"
+       y="-697.63763"
+       id="text4527"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan4529"
+         x="3460"
+         y="-697.63763" /></text>
+    <g
+       id="g4895"
+       transform="translate(-431.42858,-941.03522)">
+      <rect
+         ry="7.0866127"
+         rx="7.0866113"
+         y="-325.88815"
+         x="3431.7495"
+         height="393.25052"
+         width="418.25049"
+         id="rect5503-7-2-0-03-3"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <rect
+         ry="0.00015363804"
+         rx="7.0866113"
+         y="-275.88815"
+         x="3431.7495"
+         height="103.25051"
+         width="418.25049"
+         id="rect5505-5-7-9-61-6"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text4531"
+         y="-287.63763"
+         x="3465"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:20px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-287.63763"
+           x="3465"
+           id="tspan4533"
+           sodipodi:role="line">ZabbixItem</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4535"
+         y="-257.63763"
+         x="3450"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-257.63763"
+           x="3450"
+           id="tspan4537"
+           sodipodi:role="line">sName: str</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4539"
+         y="-242.63763"
+         x="3450"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-242.63763"
+           x="3450"
+           id="tspan4541"
+           sodipodi:role="line">oHost: ZabbixHost</tspan><tspan
+           id="tspan4543"
+           y="-227.01263"
+           x="3450"
+           sodipodi:role="line">iHostID: int</tspan><tspan
+           id="tspan4545"
+           y="-211.38763"
+           x="3450"
+           sodipodi:role="line">lRelatedApps: []</tspan><tspan
+           id="tspan4547"
+           y="-195.76263"
+           x="3450"
+           sodipodi:role="line">lTriggers = [ZabbixTrigger, ...]</tspan><tspan
+           id="tspan4549"
+           y="-180.13763"
+           x="3450"
+           sodipodi:role="line">sKey: str</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4551"
+         y="-257.63763"
+         x="3650"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-257.63763"
+           x="3650"
+           id="tspan4553"
+           sodipodi:role="line">iID: int</tspan><tspan
+           id="tspan4555"
+           y="-242.01263"
+           x="3650"
+           sodipodi:role="line">sUnits: str</tspan><tspan
+           id="tspan4557"
+           y="-226.38763"
+           x="3650"
+           sodipodi:role="line">iValType: int (Enum ?)</tspan><tspan
+           id="tspan4559"
+           y="-210.76263"
+           x="3650"
+           sodipodi:role="line">iUpdType: int (Enum) ?</tspan><tspan
+           id="tspan4561"
+           y="-195.13763"
+           x="3650"
+           sodipodi:role="line">iDelay: int</tspan><tspan
+           id="tspan4563"
+           y="-179.51263"
+           x="3650"
+           sodipodi:role="line">sDescription: str</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4565"
+         y="-157.63763"
+         x="3450"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-157.63763"
+           x="3450"
+           id="tspan4567"
+           sodipodi:role="line">(sName, oHost, dDict=None)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4569"
+         y="-142.63763"
+         x="3450"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           id="tspan4573"
+           y="-142.63763"
+           x="3450"
+           sodipodi:role="line">_bExists(oHost) -&gt; bool</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4577"
+         y="-127.63763"
+         x="3450"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-127.63763"
+           x="3450"
+           id="tspan4579"
+           sodipodi:role="line">@name -&gt; str</tspan><tspan
+           id="tspan4581"
+           y="-112.01263"
+           x="3450"
+           sodipodi:role="line">@id -&gt; int</tspan><tspan
+           id="tspan4585"
+           y="-96.387627"
+           x="3450"
+           sodipodi:role="line">@host -&gt; ZabbixHost</tspan><tspan
+           id="tspan4589"
+           y="-80.762627"
+           x="3450"
+           sodipodi:role="line">@key -&gt; str</tspan><tspan
+           id="tspan4591"
+           y="-65.137627"
+           x="3450"
+           sodipodi:role="line">_sGetName() -&gt; str</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4593"
+         y="-47.637634"
+         x="3450"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-47.637634"
+           x="3450"
+           id="tspan4595"
+           sodipodi:role="line">_LinkWithApp(oApp: ZabbixApplication)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4597"
+         y="-27.637636"
+         x="3450"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-27.637636"
+           x="3450"
+           id="tspan4599"
+           sodipodi:role="line">_NewZbxItem()    # creates Zabbix item</tspan><tspan
+           id="tspan4601"
+           y="-12.012636"
+           x="3450"
+           sodipodi:role="line" /></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4603"
+         y="-7.6376352"
+         x="3450"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           id="tspan4607"
+           y="-7.6376352"
+           x="3450"
+           sodipodi:role="line">_SendValue(Value: (str|int), oZabSender: ZabbixSender</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4611"
+         y="12.362365"
+         x="3450"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="12.362365"
+           x="3450"
+           id="tspan4613"
+           sodipodi:role="line">__repr__(): str</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4615"
+         y="32.362366"
+         x="3450"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="32.362366"
+           x="3450"
+           id="tspan4617"
+           sodipodi:role="line">_AddTrigger(sTriggerName: str)</tspan></text>
+    </g>
+    <g
+       id="g4937"
+       transform="translate(-391.42857,-574.28571)">
+      <rect
+         ry="7.0866127"
+         rx="7.0866113"
+         y="-185.88814"
+         x="2841.7495"
+         height="218.2505"
+         width="518.25049"
+         id="rect5503-7-2-0-03"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <rect
+         ry="0.00015363804"
+         rx="7.0866113"
+         y="-135.88815"
+         x="2841.7495"
+         height="28.250513"
+         width="518.25049"
+         id="rect5505-5-7-9-61"
+         style="opacity:0.36300001;fill:#fffefe;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:3.49900007;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text4619"
+         y="-147.63763"
+         x="2890"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:20px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-147.63763"
+           x="2890"
+           id="tspan4621"
+           sodipodi:role="line">TriggerFactory</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4623"
+         y="-117.63763"
+         x="2870"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-117.63763"
+           x="2870"
+           id="tspan4625"
+           sodipodi:role="line">ddTriggersList: dict (str -&gt; dict)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4627"
+         y="-77.637634"
+         x="2860"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-77.637634"
+           x="2860"
+           id="tspan4629"
+           sodipodi:role="line">__init__()</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4631"
+         y="-57.637634"
+         x="2860"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-57.637634"
+           x="2860"
+           id="tspan4633"
+           sodipodi:role="line">_bTriggerExist(oHost: ZabbixHost, oItem: ZabbixItem, sTrigName) -&gt; bool</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4635"
+         y="-37.637634"
+         x="2860"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-37.637634"
+           x="2860"
+           id="tspan4637"
+           sodipodi:role="line">_RegisterTrigger(oHost: ZabbixHost, oItem: ZabbixItem, sTrigName)</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4639"
+         y="-17.637636"
+         x="2860"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-17.637636"
+           x="2860"
+           id="tspan4641"
+           sodipodi:role="line">_AddChangeTrigger(oItem: ZabbixItem, sTriggerName='', sSeverity='warning')</tspan></text>
+      <text
+         sodipodi:linespacing="125%"
+         id="text4643"
+         y="-2.6376355"
+         x="2860"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           y="-2.6376355"
+           x="2860"
+           id="tspan4645"
+           sodipodi:role="line">_AddNoDataTrigger(oItem, sTriggerName, sSeverity='warning', iPeriod=24)</tspan></text>
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="2985"
+       y="-2.6376355"
+       id="text4647"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan4649"
+         x="2985"
+         y="-2.6376355" /></text>
+    <path
+       style="display:inline;fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5237)"
+       d="m 1040,-1287.6376 120,0"
+       id="path5221"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0" />
+    <path
+       style="display:inline;fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5225)"
+       d="m 1040,-987.63764 120,-219.99996"
+       id="path5223"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0" />
+    <path
+       style="display:inline;fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5231)"
+       d="m 1080,-827.6376 160,-360"
+       id="path5229"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5241)"
+       d="m 1200,-627.6376 100,-560"
+       id="path5235"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0" />
+    <path
+       style="display:inline;fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5247)"
+       d="m 1360,-427.6376 0,-760"
+       id="path5245"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0" />
+    <path
+       style="display:inline;fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5253)"
+       d="m 1520,-387.6376 -20,-800"
+       id="path5251"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5259)"
+       d="m 1680,-767.6376 -140,-420"
+       id="path5257"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0" />
+    <path
+       style="display:inline;fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5265)"
+       d="M 1760,-927.63764 1580,-1187.6376"
+       id="path5263"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5271)"
+       d="m 1760,-1207.6376 -150,0"
+       id="path5269"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="display:inline;fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5277)"
+       d="m 2818.5714,-1571.9233 180,0"
+       id="path5275"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="2898.5715"
+       y="-1581.9233"
+       id="text5281"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan5283"
+         x="2898.5715"
+         y="-1581.9233">dApps  *</tspan></text>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5287)"
+       d="m 2818.5714,-1541.9233 295,275"
+       id="path5285"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="3073.5715"
+       y="-1321.9233"
+       id="text5291"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan5293"
+         x="3073.5715"
+         y="-1321.9233">dItemNames</tspan><tspan
+         sodipodi:role="line"
+         x="3073.5715"
+         y="-1306.2983"
+         id="tspan5295">*</tspan></text>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5299)"
+       d="m 3278.5714,-1271.9233 0,-150"
+       id="path5297"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="3298.5715"
+       y="-1401.9233"
+       id="text5303"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan5305"
+         x="3298.5715"
+         y="-1401.9233">lRelatedApps</tspan><tspan
+         sodipodi:role="line"
+         x="3298.5715"
+         y="-1386.2983"
+         id="tspan5307">*</tspan></text>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker5311)"
+       d="m 3128.5714,-1421.9233 54.9298,153.2504"
+       id="path5309"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.5px;line-height:125%;font-family:'DejaVu Sans';-inkscape-font-specification:'DejaVu Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="3180.4709"
+       y="-1306.8629"
+       id="text5315"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan5317"
+         x="3180.4709"
+         y="-1306.8629">loRelatedItems</tspan><tspan
+         sodipodi:role="line"
+         x="3180.4709"
+         y="-1291.2379"
+         id="tspan5319">*</tspan></text>
+  </g>
+</svg>
