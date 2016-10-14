@@ -129,7 +129,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
                 oLog.error("Unhandled exception in __FillData")
                 oLog.error(str(e))
         if len(self.dIPMIaccess) > 0:
-            oLog.warning('IPMI access requested, data is: ' + str(self.dIPMIaccess))
+            # oLog.warning('IPMI access requested, data is: ' + str(self.dIPMIaccess))
             self.__fillFromIPMI(self.dIPMIaccess)
             self._ClarifyMemFromIPMI()
         return
@@ -240,7 +240,6 @@ class ESXi_WBEM_Host(inv.GenericServer):
             self.lPCI_Adapters.append(PCI_Adapter(dAdapter['Name']))
         return
 
-
     def _HBAs_from_WBEM(self):
         self.oHBAs = wbem.WBEM_HBAs(
             self.sName, self.sUser, self.sPass, sVCenter=self.sVCenter)
@@ -248,7 +247,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
         ldHBAs = self.oHBAs._ldReportAdapters()
         # print('*DBG* Found {} HBAs'.format(len(ldHBAs)))
         # print("\n".join([str(o) for o in ldHBAs]))
-        iHbaNum=0
+        iHbaNum = 0
         for dHBA_Data in ldHBAs:
             iHbaNum += 1
             oHBA = HBA_Class(
@@ -463,7 +462,6 @@ class CPU(inv.ComponentClass):
                      'description': _('CPU Clock speed'),
                      'value_type': 1})
 
-        oLog.debug(_('CPU Clock speed'))
         oTypeItem._SendValue(self.dData['family'], oZbxSender)
         oCoresItem._SendValue(self.dData['cores'], oZbxSender)
         oSpeedItem._SendValue(self.dData['speed'], oZbxSender)
@@ -569,7 +567,7 @@ class PCI_Adapter(inv.ComponentClass):
                 dParams={'key': zi._sMkKey(sAppName, "IDs"), 'value_type': 1,
                          'description': _('PCI vendor:device identifiers')})
             oIDs_item._SendValue(self.sIDs, oZbxSender)
-        if 'pos' in self.dData and self.dData['pos']: 
+        if 'pos' in self.dData and self.dData['pos']:
             oPosItem = oZbxHost._oAddItem(
                 sAppName + ' Position', sAppName=sAppName,
                 dParams={'key': zi._sMkKey(sAppName, 'Pos'), 'value_type': 1,

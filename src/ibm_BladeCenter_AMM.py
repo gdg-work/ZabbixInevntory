@@ -346,7 +346,7 @@ class BladeWithAMM(inv.GenericServer):
         lRet = []
         return lRet
 
-    def _FillDisksFromWBEM(self):
+    def _FillDisksFromWBEM2(self):
         ldDicts = []
         try:
             if self.sVCenter:
@@ -376,6 +376,31 @@ class BladeWithAMM(inv.GenericServer):
                 oLog.error('Error accessing disk data: {}'.format(e))
                 raise expWBEM_Error('Error accessing disk data: {}'.format(e))
         oLog.debug("_FillDisksFromWBEM: {} disks found".format(len(self.lDisks)))
+        return
+
+    def _FillDisksFromWBEM(self):
+        try:
+            self.oDisksWBEM = wd.WBEM_Disks(self.sName, self.sUser, self.sPass, sVCenter=self.sVCenter)
+        except wd.WBEM_Disk_Exception as e:
+            oLog.error(
+                'WBEM error when initializing WBEM_Disks interface of server {}, msg: {}'.format(
+                    self.sName, str(e)))
+            raise e
+
+        try:
+            ldDisks = self.oDisksWBEM._ldReportDisks()
+        except wd.WBEM_Disk_Exception as e:
+            oLog.error('WBEM error collecting disks info from: ' + self.sName + 'error: ' + str(e))
+            raise(e)
+
+        for dDisk in ldDisks:
+            # print(str(dDisk))
+            iDiskSize = int(dDisk.get('MaxMediaSize', 0)) // 2**20
+            self.lDisks.append(Blade_Disk(dDisk.get('Name', ''), dDisk.get('Model', ''),
+                                          dDisk.get('PartNumber', ''), dDisk.get('SerialNumber', ''),
+                                          iDiskSize))
+        self.iDisksAmount = len(self.lDisks)
+        oLog.debug("_FillDisksFromWBEM: {} disks found".format(self.iDisksAmount))
         return
 
     def _FillSysFromWBEM(self):
