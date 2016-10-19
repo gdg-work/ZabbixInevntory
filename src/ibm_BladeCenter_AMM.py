@@ -82,7 +82,6 @@ class BladeWithAMM(inv.GenericServer):
         self._FillFromAMM()
         # Disabled due to WBEM debugging
         try:
-            # self.loAvailableNameSpaces = self._loListCIM_Namespaces()
             self._FillDisksFromWBEM()
         except wd.WBEM_Disk_Exception:
             oLog.error('Error getting data from about disk subsystem via WBEM')
@@ -223,7 +222,7 @@ class BladeWithAMM(inv.GenericServer):
         iTotalGB = 0
         for lsCpuDesc in llData:
             sName, sPN, sSN, sType, iSizeGB = ("", "", "", "", 0)
-            oLog.debug('Found DIMMs with size: ' + str(iTotalGB))
+            # oLog.debug('Found DIMMs with size: ' + str(iTotalGB))
             for s in lsCpuDesc:
                 if s[:16] == 'Mach type/model:':
                     sName = s[17:]
@@ -341,43 +340,6 @@ class BladeWithAMM(inv.GenericServer):
             raise expAMM_Error("Zabbix isn't connected yet")
         return
 
-    def _loListCIM_Namespaces(self):
-        """Retrieve list of available namespaces from the server with WBEM"""
-        lRet = []
-        return lRet
-
-    def _FillDisksFromWBEM2(self):
-        ldDicts = []
-        try:
-            if self.sVCenter:
-                self.oWBEM_Disks = wd.WBEM_Disks(self.sName, self.sUser, self.sPass, sVCenter=self.sVCenter)
-            else:
-                self.oWBEM_Disks = wd.WBEM_Disks(self.sName, self.sUser, self.sPass)
-        except wd.WBEM_Disk_Exception as e:
-            oLog.error(
-                'WBEM error when initializing WBEM_Disks interface of server {}, msg: {}'.format(
-                    self.sName, str(e)))
-            ldDicts = []
-            raise(e)
-        try:
-            ldDicts = self.oWBEM_Disks._ldReportDisks()
-        except wd.WBEM_Disk_Exception as e:
-            oLog.error('WBEM error when collecting information: ' + self.sName)
-            raise(e)
-
-        for dDiskData in ldDicts:
-            # if previous try-except clause throws an exception, ldDicts will be empty
-            try:
-                iSizeGB = int(dDiskData['MaxMediaSize']) // 2**20   # WBEM returns size in KB
-                self.lDisks.append(
-                    Blade_Disk(dDiskData['Name'], dDiskData['Model'], dDiskData['PartNumber'],
-                               dDiskData['SerialNumber'], iSizeGB))
-            except KeyError as e:
-                oLog.error('Error accessing disk data: {}'.format(e))
-                raise expWBEM_Error('Error accessing disk data: {}'.format(e))
-        oLog.debug("_FillDisksFromWBEM: {} disks found".format(len(self.lDisks)))
-        return
-
     def _FillDisksFromWBEM(self):
         try:
             self.oDisksWBEM = wd.WBEM_Disks(self.sName, self.sUser, self.sPass, sVCenter=self.sVCenter)
@@ -397,7 +359,8 @@ class BladeWithAMM(inv.GenericServer):
             # print(str(dDisk))
             iDiskSize = int(dDisk.get('MaxMediaSize', 0)) // 2**20
             self.lDisks.append(Blade_Disk(dDisk.get('Name', ''), dDisk.get('Model', ''),
-                                          dDisk.get('PartNumber', ''), dDisk.get('SerialNumber', ''),
+                                          dDisk.get('PartNumber', ''), 
+                                          dDisk.get('SerialNumber', dDisk.get('IdentifyingNumber', '')),
                                           iDiskSize))
         self.iDisksAmount = len(self.lDisks)
         oLog.debug("_FillDisksFromWBEM: {} disks found".format(self.iDisksAmount))
@@ -548,8 +511,9 @@ class Blade_Disk(inv.ComponentClass):
 
     def __repr__(self):
         sFmt = "HDD {0}: model {1}, p/n {2}, s/n {3}, size {4} GiB"
-        return sFmt.format(self.sName, self.dDiskData['Model'], self.dDiskData['PN'],
-                           self.dDiskData['SN'], self.dDiskData['Size'])
+        return sFmt.format(self.sName, self.dDiskData['model'],
+                           self.dDiskData.get('pn',''),
+                           self.dDiskData.get('sn',''), self.dDiskData.get('size',''))
 
     def _MakeAppsItems(self, oZbxHost, oZbxSender):
         oZbxHost._oAddApp(self.sName)     # Disk Drive_65535_0
@@ -594,5 +558,6 @@ if __name__ == '__main__':
     oAmm._FillData()
     # lOut = oAmm._lsFromAMM([])
     # print("\n".join(lOut))
+    print(oAmm.lDisks)
 
 # vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4 : autoindent

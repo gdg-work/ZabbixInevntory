@@ -17,8 +17,7 @@ oLog = logging.getLogger(__name__)
 SSL_PROTO = ssl.PROTOCOL_SSLv23
 SSL_VERIFY_MODE = ssl.CERT_NONE    # <--- XXX don't verify anything!
 RE_DISK = re.compile(r'Disk Drive')
-RE_DISK_DRIVE_CLASS = re.compile(r'DiskDrive$')
-RE_PHYS_DISK_CLASS = re.compile(r'PhysicalDrive$')
+# RE_DISK_DRIVE_CLASS = 
 
 
 # Helper function
@@ -29,7 +28,8 @@ def _dMergeDicts(*dict_args):
     '''
     dRes = {}
     for d in dict_args:
-        dRes.update(d)
+        if d is not None:
+            dRes.update(dict(d))
     return dRes
 
 
@@ -175,68 +175,88 @@ def _sFindDisksNameSpace(oWBEM_Conn):
     return sDiskNS
 
 
+def _sGetDiskProductClass(oConnection, sNS):
+    PRODCLASS = 'CIM_Product'
+    reDiskProduct = re.compile('Disk|Drive')
+    sProdClass = ''
+    lsSubClasses = [str(a) for a in oConnection.EnumerateClassNames(namespace=sNS, ClassName=PRODCLASS)]
+    for sCN in lsSubClasses:
+        if reDiskProduct.search(sCN):
+            oLog.debug('Disk product class found' + sCN)
+            sProdClass = sCN
+            break
+    return sProdClass
+
+
+def _sGetDiskDriveClass(oConnection, sNS):
+    RE_DISK_DRIVE_CLASS = re.compile(r'DiskDrive$')
+    loMEs = oConnection.EnumerateInstanceNames(namespace=sNS, ClassName='CIM_ManagedElement')
+    sDiskClass = ''
+    for oCIM_Class in loMEs:
+        sClassName = oCIM_Class.classname
+        if RE_DISK_DRIVE_CLASS.search(sClassName):    # XXX may be it is LSI-Specific
+            sDiskClass = sClassName
+            oLog.debug('Disk drive class found: ' + sClassName)
+            break
+    return sDiskClass
+
+def _sGetPhysDiskClass(oConnection, sNS):
+    RE_PHYS_DISK_CLASS = re.compile(r'PhysicalDrive$')
+    loMEs = oConnection.EnumerateInstanceNames(namespace=sNS, ClassName='CIM_ManagedElement')
+    sDiskClass = ''
+    for oCIM_Class in loMEs:
+        sClassName = oCIM_Class.classname
+        if RE_PHYS_DISK_CLASS.search(sClassName):    # XXX may be it is LSI-Specific
+            sDiskClass = sClassName
+            oLog.debug('Physical Disk class found: ' + sClassName)
+            break
+    return sDiskClass
+
+
 def _ldGetDiskParametersFromWBEM(oConnection, sNS):
     lsClasses = oConnection.EnumerateClassNames(namespace=sNS)
     if ('CIM_ManagedElement' not in lsClasses) or ('CIM_Component' not in lsClasses):
         raise WBEM_Exception('No ManagedElement in class list, wrong server?')
     # check if we have some HDDs. A disk drive is an instance of class CIM_ManagedElement
-    sDiskClass = ''
-    sPhysDiskClass = ''
-    lOtherClasses = []
-    loMEs = oConnection.EnumerateInstanceNames(namespace=sNS, ClassName='CIM_ManagedElement')
-    for oCIM_Class in loMEs:
-        sClassName = oCIM_Class.classname
-        if RE_DISK_DRIVE_CLASS.search(sClassName):    # XXX may be it is LSI-Specific
-            sDiskClass = sClassName
-            oLog.debug('Disk class found: ' + sClassName)
-        elif RE_PHYS_DISK_CLASS.search(sClassName):   # XXX LSI-Specific ?
-            sPhysDiskClass = sClassName
-            oLog.debug('Phys class found: ' + sClassName)
-        else:
-            # debug
-            lOtherClasses.append(sClassName)
-            continue
+    sDiskClass = _sGetDiskDriveClass(oConnection, sNS)
+    sPhysDiskClass = _sGetPhysDiskClass(oConnection, sNS)
+    sDiskProdClass = _sGetDiskProductClass(oConnection, sNS)
+    loDDriveNames, loPDiskNames, loDProdNames = ([], [], [])   # 3 empty lists 
+    if sDiskClass:
+        loDDriveNames = oConnection.EnumerateInstanceNames(namespace=sNS, ClassName=sDiskClass)
+    if sPhysDiskClass:
+        loPDiskNames = oConnection.EnumerateInstanceNames(namespace=sNS, ClassName=sPhysDiskClass)
+    if sDiskProdClass:
+        loDProdNames = oConnection.EnumerateInstanceNames(namespace=sNS, ClassName=sDiskProdClass)
+
     ldDiskData = []
     # debug
-    if sDiskClass == '' or sPhysDiskClass == '':
-        oLog.info("== No disk classes found, but I found some other: ==\n{}".format(
-            "\n".join(lOtherClasses)))
+    if len(loDDriveNames) + len(loPDiskNames) + len(loDProdNames) == 0:
+        oLog.error("== No disk classes found")
+        raise WBEM_Disk_Exception
     else:
-        try:
-            lDDriveNames = oConnection.EnumerateInstanceNames(namespace=sNS, ClassName=sDiskClass)
-            # oLog.debug('lDDriveNames: ' + str(lDDriveNames))
-            lPDiskNames = oConnection.EnumerateInstanceNames(namespace=sNS, ClassName=sPhysDiskClass)
-            # oLog.debug('lPDiskNames: ' + str(lPDiskNames))
-        except pywbem.cim_operations.CIMError as e:
-            raise WBEM_Exception(e)
-        assert (len(lDDriveNames) == len(lPDiskNames))
-        for oDskName, oPhyName in zip(lDDriveNames, lPDiskNames):
+        for oDskName, oPhyName, oProdName in zip(loDDriveNames, loPDiskNames, loDProdNames):
+            oDsk, oPhy, oProd = (None, None, None)
+            sErrMsg = '_ldGetDiskParametersFromWBEM: CIM error getting {0} instance: {1}'
             try:
                 oDsk = oConnection.GetInstance(oDskName)
                 # oLog.debug('oDsk object: ' + str(oDsk))
             except pywbem.cim_operations.CIMError as e:
-                sErrMsg = '_ldGetDiskParametersFromWBEM: CIM error getting Drive instance: {}'
-                oLog.error(sErrMsg.format(oPhyName.get('Tag')))
-                oDsk = None
+                oLog.error(sErrMsg.format(sDiskClass, oDskName.get('Tag')))
 
             try:
                 oPhy = oConnection.GetInstance(oPhyName)
                 oLog.debug('oPhy object: ' + str(oPhy))
             except pywbem.cim_operations.CIMError as e:
-                sErrMsg = '_ldGetDiskParametersFromWBEM: CIM error getting PhysDisk instance: {}'
-                oLog.error(sErrMsg.format(oPhyName.get('Tag')))
-                oPhy = None
-                # raise(WBEM_Exception(e))
+                oLog.error(sErrMsg.format(sPhysDiskClass, oPhyName.get('Tag')))
 
-            if oDsk and oPhy:
-                assert oDsk['Tag'] == oPhy['Tag']
-                dData = _dMergeDicts(_dFilterNone(dict(oDsk)), _dFilterNone(dict(oPhy)))
-            elif oDsk is None and oPhy is None:
-                dData = {}
-            elif oPhy is None:
-                dData = _dFilterNone(dict(oDsk))
-            else:   # oDsk is None and oPhy has data
-                dData = _dFilterNone(dict(oPhy))
+            try:
+                oProd = oConnection.GetInstance(oProdName)
+                oLog.debug("oProd object: " + str(oProd))
+            except pywbem.cim_operations.CIMError as e:
+                oLog.error(sErrMsg.format(sDiskProdClass, oPhyName.get('Tag')))
+
+            dData = _dFilterNone(_dMergeDicts(oDsk, oPhy, oProd))
 
             ldDiskData.append(dData)
     return ldDiskData
@@ -727,7 +747,8 @@ class WBEM_PowerSupplySet(WBEM_Info):
 
 if __name__ == "__main__":
     # access for a test system
-    from access import vmexchsrv01 as tsys
+    # from access import vmexchsrv01 as tsys
+    from access import vmsrv06 as tsys
     # from access import demobl460_host as tsys
 
     # logging setup
@@ -760,12 +781,12 @@ if __name__ == "__main__":
     # oPS = WBEM_PowerSupplySet(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
     # print(oPS._iGetPwrSuppliesAmount())
 
-    # oDisksWBEM = WBEM_Disks(tsys.sName, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
-    # ldDisks = oDisksWBEM._ldReportDisks()
-    # print(str(ldDisks))
+    oDisksWBEM = WBEM_Disks(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
+    ldDisks = oDisksWBEM._ldReportDisks()
+    print(str(ldDisks))
 
-    oHBAs = WBEM_HBAs(tsys.sName, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
-    ldHBAs = oHBAs._ldReportAdapters()
-    print(str(ldHBAs))
+    # oHBAs = WBEM_HBAs(tsys.sHostLong, tsys.sUser, tsys.sPass, sVCenter=tsys.sVCenter)
+    # ldHBAs = oHBAs._ldReportAdapters()
+    # print(str(ldHBAs))
 
 # vim: expandtab:tabstop=4:softtabstop=4:shiftwidth=4
