@@ -262,60 +262,6 @@ def _ldGetDiskParametersFromWBEM(oConnection, sNS):
     return ldDiskData
 
 
-def _ldGetDiskParametersFromWBEM2(oConnection, sNS):
-    lsClasses = oConnection.EnumerateClassNames(namespace=sNS)
-    if ('CIM_ManagedElement' not in lsClasses) or ('CIM_Component' not in lsClasses):
-        raise WBEM_Exception('No ManagedElement in class list, wrong server?')
-    # check if we have some HDDs. A disk drive is an instance of class CIM_ManagedElement
-    sDiskClass = ''
-    sPhysDiskClass = ''
-    lOtherClasses = []
-    loMEs = oConnection.EnumerateInstanceNames(namespace=sNS, ClassName='CIM_ManagedElement')
-    for oCIM_Class in loMEs:
-        sClassName = oCIM_Class.classname
-        if RE_DISK_DRIVE_CLASS.search(sClassName):    # XXX may be it is LSI-Specific
-            sDiskClass = sClassName
-            oLog.debug('Disk class found: ' + sClassName)
-        elif RE_PHYS_DISK_CLASS.search(sClassName):   # XXX LSI-Specific ?
-            sPhysDiskClass = sClassName
-            oLog.debug('Phys class found: ' + sClassName)
-        else:
-            # debug
-            lOtherClasses.append(sClassName)
-            continue
-    ldDiskData = []
-    # debug
-    if sDiskClass == '' and sPhysDiskClass == '':
-        oLog.info("== No disk classes found, but I found some other: ==\n{}".format(
-            "\n".join(lOtherClasses)))
-    else:
-        try:
-            lDDriveNames = oConnection.EnumerateInstanceNames(namespace=sNS, ClassName=sDiskClass)
-            # oLog.debug('lDDriveNames: ' + str(lDDriveNames))
-            lPDiskNames = oConnection.EnumerateInstanceNames(namespace=sNS, ClassName=sPhysDiskClass)
-            # oLog.debug('lPDiskNames: ' + str(lPDiskNames))
-        except pywbem.cim_operations.CIMError as e:
-            raise WBEM_Exception(e)
-        assert (len(lDDriveNames) == len(lPDiskNames))
-        for oDskName, oPhyName in zip(lDDriveNames, lPDiskNames):
-            try:
-                oDsk = oConnection.GetInstance(oDskName)
-                oLog.debug('oDsk object: ' + str(oDsk))
-                oLog.debug('Getting PhysDisk based on oPhyName: ' + str(oPhyName))
-                oPhy = oConnection.GetInstance(oPhyName)
-                oLog.debug('oPhy object: ' + str(oPhy))
-                assert oDsk['Tag'] == oPhy['Tag']
-                dData = _dMergeDicts(_dFilterNone(dict(oDsk)), _dFilterNone(dict(oPhy)))
-                ldDiskData.append(dData)
-            except pywbem.cim_operations.CIMError as e:
-                oLog.error(
-                    "_ldGetDiskParametersFromWBEM: CIM error getting Drive/PhysDisk instances: {}".format(
-                        oPhyName.get('Tag')))
-                # raise(WBEM_Exception(e))
-            # check if Tags of both objects are the same
-    return ldDiskData
-
-
 class WBEM_Info:
     """super-class for WBEM connections and information collection"""
     def __init__(self, sHost, sUser, sPass, sVCenter='', iPort=5989):
@@ -399,8 +345,8 @@ class WBEM_Disks(WBEM_Info):
                     oLog.debug('LSI controller found')
                     ldParameters = _ldGetDiskParametersFromWBEM(self.oConn, self.sDiskNS)
                 else:
-                    ldParameters = []
-                    raise WBEM_Disk_Exception('Unknown disk controller')
+                    ldParameters = _ldGetDiskParametersFromWBEM(self.oConn, self.sDiskNS)
+                    oLog.error('Unknown disk controller')
             except WBEM_Exception as e:
                 raise WBEM_Disk_Exception(e)
         else:

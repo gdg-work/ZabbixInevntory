@@ -358,10 +358,12 @@ class BladeWithAMM(inv.GenericServer):
         for dDisk in ldDisks:
             # print(str(dDisk))
             iDiskSize = int(dDisk.get('MaxMediaSize', 0)) // 2**20
-            self.lDisks.append(Blade_Disk(dDisk.get('Name', ''), dDisk.get('Model', ''),
+            oDisk = Blade_Disk(dDisk.get('Name', ''), dDisk.get('Model', ''),
                                           dDisk.get('PartNumber', ''), 
                                           dDisk.get('SerialNumber', dDisk.get('IdentifyingNumber', '')),
-                                          iDiskSize))
+                                          iDiskSize)
+            oLog.debug('_FillDisksFromWBEM: Serial # of Disk: ' + oDisk.sn)
+            self.lDisks.append(oDisk)
         self.iDisksAmount = len(self.lDisks)
         oLog.debug("_FillDisksFromWBEM: {} disks found".format(self.iDisksAmount))
         return
@@ -509,13 +511,22 @@ class Blade_Disk(inv.ComponentClass):
             "size": iSizeGB}
         return
 
+    @property
+    def sn(self): 
+        return self.dDiskData['sn']
+
+    @sn.setter
+    def sn(self, sData):
+        self.dDiskData['sn'] = sData
+
     def __repr__(self):
         sFmt = "HDD {0}: model {1}, p/n {2}, s/n {3}, size {4} GiB"
         return sFmt.format(self.sName, self.dDiskData['model'],
-                           self.dDiskData.get('pn',''),
-                           self.dDiskData.get('sn',''), self.dDiskData.get('size',''))
+                           self.dDiskData['pn'], self.dDiskData['sn'],
+                           self.dDiskData['size'])
 
     def _MakeAppsItems(self, oZbxHost, oZbxSender):
+        oLog.debug("Blade_Disk._MakeAppsItems: " + str(self))
         oZbxHost._oAddApp(self.sName)     # Disk Drive_65535_0
         oModelItem = oZbxHost._oAddItem(
             self.sName + " Model", sAppName=self.sName,
