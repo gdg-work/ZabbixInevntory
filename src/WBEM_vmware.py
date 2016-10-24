@@ -17,7 +17,6 @@ oLog = logging.getLogger(__name__)
 SSL_PROTO = ssl.PROTOCOL_SSLv23
 SSL_VERIFY_MODE = ssl.CERT_NONE    # <--- XXX don't verify anything!
 RE_DISK = re.compile(r'Disk Drive')
-# RE_DISK_DRIVE_CLASS = 
 
 
 # Helper function
@@ -175,6 +174,47 @@ def _sFindDisksNameSpace(oWBEM_Conn):
     return sDiskNS
 
 
+def _sFindDisksNameSpace2(oWBEM_Conn):
+    """ I saw a problem on IBM blades when I cannot find disk namespace with
+    CIM_RegisteredProfile classs (timeout error).  So this is an alternate
+    version of Find_Disk_Name_Space that doesn't use this classname, but uses
+    CIM_Product class in all the found namespaces """
+    reRAID_Product = re.compile(r'(?i)raid')
+    sDiskNS = ''
+    try:
+        lNSs = [a['Name'] for a in oWBEM_Conn.EnumerateInstanceNames(
+            namespace='root/interop', ClassName='CIM_Namespace')]
+        lProds = []
+        oLog.debug('Available namespaces: ' + str(lNSs))
+        for sNS in lNSs:
+            try:
+                lProds.extend(oWBEM_Conn.EnumerateInstanceNames(namespace=sNS, ClassName='CIM_Product'))
+            except pywbem.cim_operations.CIMError:
+                pass    # skip NS's without CIM_Product class
+        # now we have all the 'products' in a list lProds
+        oLog.debug('Products found: ' + str(lProds))
+        lDiskNSs = []
+        for oInst in lProds:
+            oLog.debug('Trying classname: ' + oInst.classname)
+            if reRAID_Product.search(oInst.classname):
+                oLog.debug('Matching classname: ' + oInst.classname)
+                lDiskNSs.append(oInst.namespace)
+        if len(lDiskNSs) == 1:
+            sDiskNS = lDiskNSs[0]
+            oLog.debug('Disks namespace found: ' +  sDiskNS)
+        elif len(lDiskNSs) > 1:
+            sDiskNS = lDiskNSs[0]
+            oLog.info('More than one RAID product NS found, using the first: ' +  sDiskNS)
+        else:  # no disk NS found
+            sDiskNS = None
+    except pywbem.cim_operations.CIMError as e:
+        # cannot enumerate registered profiles, something is really wrong
+        sDiskNS = ''
+        oLog.error('CIM error trying to find disk namespace: ' + str(e))
+        raise WBEM_Disk_Exception(e)
+    return sDiskNS
+
+
 def _sGetDiskProductClass(oConnection, sNS):
     PRODCLASS = 'CIM_Product'
     reDiskProduct = re.compile('Disk|Drive')
@@ -182,7 +222,7 @@ def _sGetDiskProductClass(oConnection, sNS):
     lsSubClasses = [str(a) for a in oConnection.EnumerateClassNames(namespace=sNS, ClassName=PRODCLASS)]
     for sCN in lsSubClasses:
         if reDiskProduct.search(sCN):
-            oLog.debug('Disk product class found' + sCN)
+            oLog.debug('Disk product class found: ' + sCN)
             sProdClass = sCN
             break
     return sProdClass
@@ -199,6 +239,7 @@ def _sGetDiskDriveClass(oConnection, sNS):
             oLog.debug('Disk drive class found: ' + sClassName)
             break
     return sDiskClass
+
 
 def _sGetPhysDiskClass(oConnection, sNS):
     RE_PHYS_DISK_CLASS = re.compile(r'PhysicalDrive$')
@@ -247,7 +288,7 @@ def _ldGetDiskParametersFromWBEM(oConnection, sNS):
     sDiskClass = _sGetDiskDriveClass(oConnection, sNS)
     sPhysDiskClass = _sGetPhysDiskClass(oConnection, sNS)
     sDiskProdClass = _sGetDiskProductClass(oConnection, sNS)
-    loDDriveNames, loPDiskNames, loDProdNames = ([], [], [])   # 3 empty lists 
+    loDDriveNames, loPDiskNames, loDProdNames = ([], [], [])   # 3 empty lists
     if sDiskClass:
         loDDriveNames = oConnection.EnumerateInstanceNames(namespace=sNS, ClassName=sDiskClass)
     if sPhysDiskClass:
@@ -256,10 +297,9 @@ def _ldGetDiskParametersFromWBEM(oConnection, sNS):
         loDProdNames = oConnection.EnumerateInstanceNames(namespace=sNS, ClassName=sDiskProdClass)
 
     ldDiskData = []
-    # debug
     if len(loDDriveNames) + len(loPDiskNames) + len(loDProdNames) == 0:
         oLog.error("== No disk classes found")
-        raise WBEM_Disk_Exception
+        ldDiskData = []
     else:
         for oDskName, oPhyName, oProdName in zip(loDDriveNames, loPDiskNames, loDProdNames):
             oDsk, oPhy, oProd = (None, None, None)
@@ -361,7 +401,7 @@ class WBEM_Disks(WBEM_Info):
     def __init__(self, sHost, sUser, sPass, sVCenter='', iPort=5989):
         try:
             super().__init__(sHost, sUser, sPass, sVCenter, iPort)
-            self.sDiskNS = _sFindDisksNameSpace(self.oConn)
+            self.sDiskNS = _sFindDisksNameSpace2(self.oConn)
         except WBEM_Exception as e:
             raise WBEM_Disk_Exception(e)
         return
@@ -724,6 +764,7 @@ if __name__ == "__main__":
     # from access import vmexchsrv01 as tsys
     from access import tst_vmsrv01 as tsys
     # from access import demobl460_host as tsys
+    from access import demohs21_host as tsys
 
     # logging setup
     oLog.setLevel(logging.DEBUG)
