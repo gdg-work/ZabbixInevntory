@@ -77,6 +77,9 @@ dLoggingConfig = yaml.load("""
         ESXi_WBEM_host:
             level: DEBUG
             hadnlers: [console, logfile ]
+        serversDisk:
+            level: DEBUG
+            handlers: [console, logfile]
     """)
 
 

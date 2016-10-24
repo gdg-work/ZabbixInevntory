@@ -170,7 +170,7 @@ def _sFindDisksNameSpace(oWBEM_Conn):
         oLog.debug('Final namespace name: ' + sDiskNS)
     else:
         # unknown controller
-        oLog.info("*ERR* Unknown disk controller")
+        oLog.info("*ERR* Unknown disk controller {} on connection {}".format(sKeyString, str(oWBEM_Conn)))
         sDiskNS = None
     return sDiskNS
 
@@ -211,6 +211,32 @@ def _sGetPhysDiskClass(oConnection, sNS):
             oLog.debug('Physical Disk class found: ' + sClassName)
             break
     return sDiskClass
+
+
+def _sFixDiskName(dData):
+    """Tidy a disk name returned from WBEM operations, using Disk ID or Tag or DeviceID or ..."""
+    sRet = ''
+    sID = ''
+    if 'DeviceID' in dData:
+        # 'DeviceID': 22_43
+        sID = dData['DeviceID']
+    elif 'DiskDrive_DeviceID' in dData:
+        # DiskDrive_DeviceID': '22_43'
+        sID = dData['DiskDrive_DeviceID']
+    elif 'Slot_No' in dData:
+        # 'Slot_No': '500605B002427230_22_14'
+        sID = dData['Slot_No'].split('_',1)[1]
+    elif 'Tag' in dData:
+        # 'Tag': '500605B002427230_22_42'
+        sID = dData['Tag'].split('_',1)[1]
+    elif 'ElementName' in dData:
+        # 'ElementName': 'LSIESG DiskDriveProduct_500605B002427230_22_42'
+        sID = "_".join(dData['ElementName'].split('_')[-2:])
+    else:
+        sID = "_".join(dData.get('Name').split('_')[-2:])
+    # aa_bb -> 'Drive AA-BB'
+    sRet = 'Drive' + ' ' + sID.replace('_', '-', 1)
+    return sRet
 
 
 def _ldGetDiskParametersFromWBEM(oConnection, sNS):
@@ -258,6 +284,8 @@ def _ldGetDiskParametersFromWBEM(oConnection, sNS):
 
             dData = _dFilterNone(_dMergeDicts(oDsk, oPhy, oProd))
 
+            # fix the disk name (from 'Disk Drive 02_03' or 'LSIESG DiskDriveProduct_500605B002427230_22_43' to 'Drive 22-43'
+            dData['Name'] = _sFixDiskName(dData)
             ldDiskData.append(dData)
     return ldDiskData
 
@@ -346,7 +374,7 @@ class WBEM_Disks(WBEM_Info):
                     ldParameters = _ldGetDiskParametersFromWBEM(self.oConn, self.sDiskNS)
                 else:
                     ldParameters = _ldGetDiskParametersFromWBEM(self.oConn, self.sDiskNS)
-                    oLog.error('Unknown disk controller')
+                    oLog.error('Unknown disk controller on host {}'.format(str(self.oConn)))
             except WBEM_Exception as e:
                 raise WBEM_Disk_Exception(e)
         else:
@@ -694,7 +722,7 @@ class WBEM_PowerSupplySet(WBEM_Info):
 if __name__ == "__main__":
     # access for a test system
     # from access import vmexchsrv01 as tsys
-    from access import vmsrv06 as tsys
+    from access import tst_vmsrv01 as tsys
     # from access import demobl460_host as tsys
 
     # logging setup

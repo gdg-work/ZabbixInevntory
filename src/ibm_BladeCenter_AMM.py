@@ -10,6 +10,7 @@ import WBEM_vmware as wd
 from i18n import _
 from local import NODATA_THRESHOLD
 from ESXi_WBEM_host import _sNormDimmName
+from serversDisk import Disk_Drive as Blade_Disk
 import re
 
 # Constants
@@ -362,7 +363,7 @@ class BladeWithAMM(inv.GenericServer):
                                           dDisk.get('PartNumber', ''), 
                                           dDisk.get('SerialNumber', dDisk.get('IdentifyingNumber', '')),
                                           iDiskSize)
-            oLog.debug('_FillDisksFromWBEM: Serial # of Disk: ' + oDisk.sn)
+            oLog.debug('_FillDisksFromWBEM: Serial # of Disk {0} is:{1}'.format(oDisk.name, oDisk.sn))
             self.lDisks.append(oDisk)
         self.iDisksAmount = len(self.lDisks)
         oLog.debug("_FillDisksFromWBEM: {} disks found".format(self.iDisksAmount))
@@ -500,75 +501,95 @@ class Blade_EXP(inv.ComponentClass):
         return
 
 
-class Blade_Disk(inv.ComponentClass):
-    def __init__(self, sName, sModel, sPN, sSN, iSizeGB):
-        super().__init__(sName, sSN)
-        self.sName = sName
-        self.dDiskData = {
-            "model": sModel,
-            "pn": sPN,
-            "sn": sSN,
-            "size": iSizeGB}
-        return
-
-    @property
-    def sn(self): 
-        return self.dDiskData['sn']
-
-    @sn.setter
-    def sn(self, sData):
-        self.dDiskData['sn'] = sData
-
-    def __repr__(self):
-        sFmt = "HDD {0}: model {1}, p/n {2}, s/n {3}, size {4} GiB"
-        return sFmt.format(self.sName, self.dDiskData['model'],
-                           self.dDiskData['pn'], self.dDiskData['sn'],
-                           self.dDiskData['size'])
-
-    def _MakeAppsItems(self, oZbxHost, oZbxSender):
-        oLog.debug("Blade_Disk._MakeAppsItems: " + str(self))
-        oZbxHost._oAddApp(self.sName)     # Disk Drive_65535_0
-        oModelItem = oZbxHost._oAddItem(
-            self.sName + " Model", sAppName=self.sName,
-            dParams={'key': "{}_{}_Model".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 1, 'description': _('Disk model')})
-        oPN_Item = oZbxHost._oAddItem(
-            self.sName + " Part Number", sAppName=self.sName,
-            dParams={'key': "{}_{}_PN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 1, 'description': _('Disk part number')})
-        oSN_Item = oZbxHost._oAddItem(
-            self.sName + " Serial Number", sAppName=self.sName,
-            dParams={'key': "{}_{}_SN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 1, 'description': _('Disk serial number')})
-        oSize_Item = oZbxHost._oAddItem(
-            self.sName + " Size", sAppName=self.sName,
-            dParams={'key': "{}_{}_Size".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
-                     'value_type': 3, 'units': 'GB', 'description': _('Disk capacity in GB')})
-        if self.oTriggers:
-            self.oTriggers._AddChangeTrigger(oSN_Item, _('Disk serial number is changed'), 'warning')
-            self.oTriggers._AddNoDataTrigger(oSN_Item, _('Cannot receive disk serial number in two days'),
-                                             'average', NODATA_THRESHOLD)
-        oModelItem._SendValue(self.dDiskData['model'], oZbxSender)
-        oPN_Item._SendValue(self.dDiskData['pn'], oZbxSender)
-        oSN_Item._SendValue(self.dDiskData['sn'], oZbxSender)
-        oSize_Item._SendValue(self.dDiskData['size'], oZbxSender)
-        return
+#class Blade_Disk(inv.ComponentClass):
+#    def __init__(self, sName, sModel, sPN, sSN, iSizeGB):
+#        super().__init__(sName, sSN)
+#        self.sName = sName
+#        self.dDiskData = {
+#            "model": sModel,
+#            "pn": sPN,
+#            "sn": sSN,
+#            "size": iSizeGB}
+#        return
+#
+#    @property
+#    def sn(self): 
+#        return self.dDiskData['sn']
+#
+#    @sn.setter
+#    def sn(self, sData):
+#        self.dDiskData['sn'] = sData
+#
+#    @property
+#    def name(self):
+#        return self.sName
+#
+#    def __repr__(self):
+#        sFmt = "HDD {0}: model {1}, p/n {2}, s/n {3}, size {4} GiB"
+#        return sFmt.format(self.sName, self.dDiskData['model'],
+#                           self.dDiskData['pn'], self.dDiskData['sn'],
+#                           self.dDiskData['size'])
+#
+#    def _MakeAppsItems(self, oZbxHost, oZbxSender):
+#        oLog.debug("Blade_Disk._MakeAppsItems: " + str(self))
+#        oZbxHost._oAddApp(self.sName)     # Disk Drive_65535_0
+#        oModelItem = oZbxHost._oAddItem(
+#            self.sName + " Model", sAppName=self.sName,
+#            dParams={'key': "{}_{}_Model".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+#                     'value_type': 1, 'description': _('Disk model')})
+#        oPN_Item = oZbxHost._oAddItem(
+#            self.sName + " Part Number", sAppName=self.sName,
+#            dParams={'key': "{}_{}_PN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+#                     'value_type': 1, 'description': _('Disk part number')})
+#        oSN_Item = oZbxHost._oAddItem(
+#            self.sName + " Serial Number", sAppName=self.sName,
+#            dParams={'key': "{}_{}_SN".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+#                     'value_type': 1, 'description': _('Disk serial number')})
+#        oSize_Item = oZbxHost._oAddItem(
+#            self.sName + " Size", sAppName=self.sName,
+#            dParams={'key': "{}_{}_Size".format(oZbxHost._sName(), self.sName).replace(' ', '_'),
+#                     'value_type': 3, 'units': 'GB', 'description': _('Disk capacity in GB')})
+#        if self.oTriggers:
+#            self.oTriggers._AddChangeTrigger(oSN_Item, _('Disk serial number is changed'), 'warning')
+#            self.oTriggers._AddNoDataTrigger(oSN_Item, _('Cannot receive disk serial number in two days'),
+#                                             'average', NODATA_THRESHOLD)
+#        oModelItem._SendValue(self.dDiskData['model'], oZbxSender)
+#        oPN_Item._SendValue(self.dDiskData['pn'], oZbxSender)
+#        oSN_Item._SendValue(self.dDiskData['sn'], oZbxSender)
+#        oSize_Item._SendValue(self.dDiskData['size'], oZbxSender)
+#        return
 
 
 if __name__ == '__main__':
     """testing section"""
     from access import vmsrv06 as srv
+    from access import zabbixAtProtek as zbx
 
     oLog.setLevel(logging.DEBUG)
     oConHdr = logging.StreamHandler()
     oConHdr.setLevel(logging.DEBUG)
     oLog.addHandler(oConHdr)
+
+
+
+    # Zabbix functionality
+    from pyzabbix.api import ZabbixAPI
+    from pyzabbix.sender import ZabbixSender
+    ZABBIX_IP = "127.0.0.1"
+    ZABBIX_PORT = 10051
+    ZABBIX_SERVER = 'http://localhost/zabbix/'
+
+    oZbxAPI = ZabbixAPI(url=ZABBIX_SERVER, user=zbx.user, password=zbx.password)
+    oZbxSender = ZabbixSender(zabbix_server='127.0.0.1', zabbix_port=ZABBIX_PORT)
+
     oAmm = BladeWithAMM(srv.sHostLong, srv.sHostShort, IP=srv.sHostLong, User=srv.sUser,
                         Pass=srv.sPass, vCenter=srv.sVCenter, SP_User=srv.sSPUser,
                         SP_Pass=srv.sSPPass, AMM_IP=srv.sSPIP)
     oAmm._FillData()
+    oAmm._Connect2Zabbix(oZbxAPI, oZbxSender)
     # lOut = oAmm._lsFromAMM([])
     # print("\n".join(lOut))
     print(oAmm.lDisks)
+    oAmm._MakeAppsItems()
 
 # vim: expandtab : softtabstop=4 : tabstop=4 : shiftwidth=4 : autoindent
