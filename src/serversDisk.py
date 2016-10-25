@@ -40,8 +40,8 @@ class Disk_Drive(inv.ComponentClass):
                            self.dDiskData['size'])
 
     def _MakeAppsItems(self, oZbxHost, oZbxSender):
-        oLog.debug("Blade_Disk._MakeAppsItems: " + str(self))
-        oZbxHost._oAddApp(self.sName)     # Disk Drive_65535_0
+        oLog.debug("Disk_Drive._MakeAppsItems: " + str(self))
+        oZbxHost._oAddApp(self.sName)     # Drive 65535-0
         oModelItem = oZbxHost._oAddItem(
             self.sName + " Model", sAppName=self.sName,
             dParams={'key': "{}_{}_Model".format(oZbxHost._sName(), self.sName).replace(' ', '_'),

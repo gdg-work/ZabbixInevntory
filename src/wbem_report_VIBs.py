@@ -4,6 +4,7 @@ import pywbem
 import logging
 import atexit
 import ssl
+import argparse as ap
 from pyVim import connect
 from pyVmomi import vmodl
 
@@ -105,39 +106,31 @@ def oMakeConnection(sHost, sUser, sPass, sVCenter, iPort=5989):
     return oConn
 
 
-def lsGetSoftwareIdentityList(oConn):
+def _dGetSoftwareIdentityList(oConn):
     """"
     Parameters: 1 -- connection
     returns: list of version strings for installed software identities.
     """
-    lInstalledSW = []
+    dInstalledSW = {}  # {name:(description, version), ...}
     # sGenericSWClass = 'CIM_SoftwareIdentity'
     sVendorSWClass = 'VMware_ElementSoftwareIdentity'
     NAMESPACE = 'root/cimv2'
     INSTALLED = 6
     loVendorSWNames = oConn.EnumerateInstanceNames(namespace=NAMESPACE, ClassName=sVendorSWClass)
-    sFormat = "{0:<20}, {1:<30}, {2:<30}"
-    print(sFormat.format("Name", "Description", "Version"))
-    print(sFormat.format("-" * 20, "-" * 30, "-" * 30))
-    for oEl in loVendorSWNames[0:8]:    # XXX for debugging, not so much data
-        # print(str(oEl))
+    for oEl in loVendorSWNames:
         oInst = oConn.GetInstance(oEl)
         # oSIName = oConn.References(oInst, ResultClass='VMware_ElementSoftwareIdentity')
         # print(str(oSIName))
         oStatus = oInst.properties['ElementSoftwareStatus']
         if oStatus.value[0] == INSTALLED:
-            # print("Value: <{}>".format(oStatus.value[0]))
             oAntecedentName = oInst.properties['Antecedent'].value
-            # print(str(oAntecedentName['InstanceID']))
             oAntecendent = oConn.GetInstance(oAntecedentName)
             sID = oAntecendent['InstanceID']
             sDescr = oAntecendent['Description']
             sVer = oAntecendent['VersionString']
             sCap = oAntecendent['Caption']
-            print(sFormat.format(sCap, sDescr, sVer))
-
-        # sSW_ID = oEl.get('InstanceID', '')
-    return lInstalledSW
+            dInstalledSW[sCap] = (sDescr, sVer)
+    return dInstalledSW
 
 
 def _sGetClassName(oConnection):
@@ -147,21 +140,61 @@ def _sGetClassName(oConnection):
     print(lsClasses)
     return
 
+def _PrintSoftwareList(dSW, oConf):
+    # print a list of software in alphabetical order with an optional header
+    sFormat = "{0:<20} {1:<40} {2:<1}"
+    if oConf.header:
+        print(sFormat.format("Name,", "Description,", "Version,"))
+        print(sFormat.format(('#' + "-" * 19), "-" * 40, "-" * 30))
+    # get list of keys and sort these keys
+    lKeys = list(dSW.keys())
+    lKeys.sort()
+    for sKey in lKeys:
+        sDescr, sVer = dSW[sKey]
+        print(sFormat.format(sKey + ',', sDescr + ',', sVer))
+    return
 
-def _MainFunction(oAccess):
+
+def _dListSWOnServer(sHostLong, sUser, sPass, sVCenter=''):
     """oAccess is an instance of server class from 'access.py' module"""
-    # from access import demobl460_host as tsys
+    try:
+        if sVCenter:
+            oConn = oMakeConnection(sHostLong, sUser, sPass, sVCenter=sVCenter)
+        else:
+            oConn = oMakeConnection(sHostLong, sUser, sPass)
+    except pyVmomi.exVCenterError as e:
+        oLog.error('Cannot connect to server with a given credentials')
+        oLog.error('Message: ' + str(e))
+        raise e
+    return _dGetSoftwareIdentityList(oConn)
 
+
+def _oGetCLIParser():
+    oParser = ap.ArgumentParser(description="This program lists installed VIBs on VMware server")
+    oParser.add_argument('-u', '--user', help="User name to access vCenter for a ticket",
+                         type=str, required=True)
+    oParser.add_argument('-p', '--password', help="Password to access vCenter for a ticket",
+                         type=str, required=True)
+    oParser.add_argument('-v', '--vcenter', help="vCenter server to get ticket from",
+                         type=str, required=False, default='')
+    oParser.add_argument('-H', '--header', help="DO NOT print a 2-line header in output",
+                         action='store_false', required=False)
+    oParser.add_argument('servers', help="TTL of Redis-cached data", type=str, nargs=ap.REMAINDER)
+    return (oParser.parse_args())
+
+def _MainFunction():
+    oConf = _oGetCLIParser()
+    for sHost in oConf.servers:
+        print("Trying to connect to server {}".format(sHost))
+        dSoft = _dListSWOnServer(sHost, oConf.user, oConf.password, oConf.vcenter)
+        _PrintSoftwareList(dSoft, oConf)
+    return
+
+
+if __name__ == '__main__':
     # logging setup
     oLog.setLevel(logging.DEBUG)
     oConHdr = logging.StreamHandler()
     # oConHdr.setLevel(logging.DEBUG)
     oLog.addHandler(oConHdr)
-
-    oConn = oMakeConnection(oAccess.sHostLong, oAccess.sUser, oAccess.sPass, sVCenter=oAccess.sVCenter)
-    lsGetSoftwareIdentityList(oConn)
-    return
-
-if __name__ == '__main__':
-    from access import demohs21_host as sys1
-    _MainFunction(sys1)
+    _MainFunction()

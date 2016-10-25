@@ -226,8 +226,8 @@ class ESXi_WBEM_Host(inv.GenericServer):
         for dDisk in ldDisks:
             # print(str(dDisk))
             iDiskSize = int(dDisk.get('MaxMediaSize', 0)) // 2**20
-            self.lDisks.append(DASD(dDisk['Name'], dDisk['Model'], dDisk['PartNumber'],
-                                    dDisk.get('SerialNumber'), iDiskSize))
+            self.lDisks.append(DASD(dDisk.get('Name',''), dDisk.get('Model',''), dDisk.get('PartNumber',''),
+                                    dDisk.get('SerialNumber',''), iDiskSize))
         self.iDisksAmount = len(self.lDisks)
         # oLog.debug(str(self.lDisks))
         return
