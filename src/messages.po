@@ -427,6 +427,10 @@ msgstr "Физическое размещение"
 msgid "Configuration report URL"
 msgstr "Адрес (URL) отчёта о конфигурации"
 
+#: CreateReportsScreen.py:170
+msgid "Differential report URL"
+msgstr "Адрес (URL) разностного отчёта"
+
 #: ESXi_WBEM_host.py:585
 msgid "HBA Part Number"
 msgstr "P/N адаптера Fibre Channel (HBA)"
