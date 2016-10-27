@@ -1,4 +1,5 @@
 # A module with local constants
+# -*- coding: utf-8 -*-
 SSSU_PATH = "/opt/HPEVA_SSSU/sssu"
 CACHE_TIME = 3600
 REDIS_ENCODING = 'utf-8'

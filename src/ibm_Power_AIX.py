@@ -580,7 +580,9 @@ class IBM_DIMM_Module(inv.ComponentClass):
         sItemKey = '{}_of_{}_{}'.format(
             sAppName, oZbxHost._sName(), 'Size').replace(' ', '_')
         oItem = oZbxHost._oAddItem(sItemName, sAppName,
-                                   dParams={'key': sItemKey, 'value_type': 3, 'units': 'GB'})
+                                   dParams={'key': sItemKey,
+                                            'description': _('Size of memory unit in GiB'),
+                                            'value_type': 3, 'units': 'GB'})
         # oLog.debug('IBM_DIMM_Module._MakeAppsItems: created item is ' + str(oItem))
         oItem._SendValue(self.iSize, oZbxSender)
 

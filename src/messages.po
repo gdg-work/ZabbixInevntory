@@ -1,21 +1,22 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the inventory-Zabbix package.
+# This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: inventory-Zabbix\n"
+"Project-Id-Version: Zabbix-Inventory\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-07-20 20:36+0500\n"
-"PO-Revision-Date: 2016-07-20 20:37+0500\n"
-"Language: ru\n"
+"POT-Creation-Date: 2016-10-27 16:30+0500\n"
+"PO-Revision-Date: 2016-10-27 16:33+0500\n"
+"Language: ru_RU\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "Last-Translator: \n"
-"Language-Team: \n"
-"X-Generator: Poedit 1.8.8\n"
+"Language-Team: Host <service@hostco.ru>\n"
+"X-Generator: Poedit 1.8.9\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 
 #: ,test-gettext.py:6 ,test-gettext.py:12
@@ -24,13 +25,14 @@ msgstr "Это сообщение будет переведено (надеюс�
 
 #: ESXi_WBEMM_host.py:151 ESXi_WBEMM_host.py:157 ESXi_WBEMM_host.py:175
 #: ESXi_WBEM_host.py:199 ESXi_WBEM_host.py:198 ESXi_WBEM_host.py:233
-#: ESXi_WBEM_host.py:323 ESXi_WBEM_host.py:338
+#: ESXi_WBEM_host.py:323 ESXi_WBEM_host.py:338 ESXi_WBEM_host.py:400
 msgid "Position in the host"
 msgstr "Положение в машине"
 
 #: ESXi_WBEMM_host.py:156 ESXi_WBEMM_host.py:162 ESXi_WBEMM_host.py:180
 #: ESXi_WBEM_host.py:204 ESXi_WBEM_host.py:203 ESXi_WBEM_host.py:238
-#: ESXi_WBEM_host.py:328 ESXi_WBEM_host.py:343
+#: ESXi_WBEM_host.py:328 ESXi_WBEM_host.py:343 ESXi_WBEM_host.py:405
+#: ibm_Power_AIX.py:584
 msgid "Size of memory unit in GiB"
 msgstr "Объём модуля памяти в ГиБ"
 
@@ -39,7 +41,8 @@ msgstr "Объём модуля памяти в ГиБ"
 #: ibm_BladeCenter_AMM.py:322 ibm_Power_AIX.py:297 ESXi_WBEM_host.py:166
 #: ESXi_WBEM_host.py:224 ibm_BladeCenter_AMM.py:273 ibm_Power_AIX.py:308
 #: ibm_Power_AIX.py:310 ESXi_WBEM_host.py:227 ibm_BladeCenter_AMM.py:281
-#: ibm_BladeCenter_AMM.py:282
+#: ibm_BladeCenter_AMM.py:282 ESXi_WBEM_host.py:287 ibm_BladeCenter_AMM.py:288
+#: ibm_Power_AIX.py:353
 msgid "Total memory size in GB"
 msgstr "Общий объём памяти в ГиБ"
 
@@ -47,19 +50,21 @@ msgstr "Общий объём памяти в ГиБ"
 #: ibm_BladeCenter_AMM.py:339 ESXi_WBEM_host.py:138 ibm_BladeCenter_AMM.py:340
 #: ESXi_WBEM_host.py:171 ESXi_WBEM_host.py:229 ibm_BladeCenter_AMM.py:291
 #: ESXi_WBEM_host.py:232 ibm_BladeCenter_AMM.py:299 ibm_BladeCenter_AMM.py:300
+#: ESXi_WBEM_host.py:292 ibm_BladeCenter_AMM.py:306
 msgid "Manufacturer of the system"
 msgstr "Изготовитель системы"
 
 #: ESXi_WBEMM_host.py:102 ESXi_WBEMM_host.py:120 ESXi_WBEM_host.py:144
 #: ESXi_WBEM_host.py:142 ESXi_WBEM_host.py:175 ESXi_WBEM_host.py:233
-#: ESXi_WBEM_host.py:236
+#: ESXi_WBEM_host.py:236 ESXi_WBEM_host.py:296
 msgid "Number of processors in the system"
 msgstr "Количество процессоров в системе"
 
 #: ESXi_WBEMM_host.py:114 ESXi_WBEMM_host.py:132 ESXi_WBEM_host.py:156
 #: ibm_Power_AIX.py:311 ESXi_WBEM_host.py:154 ibm_Power_AIX.py:313
 #: ESXi_WBEM_host.py:189 ESXi_WBEM_host.py:247 ibm_Power_AIX.py:325
-#: ibm_Power_AIX.py:327 ESXi_WBEM_host.py:250
+#: ibm_Power_AIX.py:327 ESXi_WBEM_host.py:250 ESXi_WBEM_host.py:310
+#: ibm_Power_AIX.py:375
 msgid "Model of the system"
 msgstr "Модель системы"
 
@@ -68,19 +73,22 @@ msgstr "Модель системы"
 #: ibm_BladeCenter_AMM.py:352 ibm_Power_AIX.py:318 ESXi_WBEM_host.py:197
 #: ESXi_WBEM_host.py:255 ibm_BladeCenter_AMM.py:303 ibm_Power_AIX.py:330
 #: ibm_Power_AIX.py:332 ESXi_WBEM_host.py:258 ibm_BladeCenter_AMM.py:311
-#: ibm_BladeCenter_AMM.py:312
+#: ibm_BladeCenter_AMM.py:312 ESXi_WBEM_host.py:318 ibm_BladeCenter_AMM.py:318
+#: ibm_Power_AIX.py:380
 msgid "Serial number of system"
 msgstr "Серийный номер системы"
 
 #: ESXi_WBEMM_host.py:202 ESXi_WBEM_host.py:226 ESXi_WBEM_host.py:225
 #: ESXi_WBEM_host.py:260 ESXi_WBEM_host.py:364 ESXi_WBEM_host.py:390
+#: ESXi_WBEM_host.py:452 ibm_Power_AIX.py:359
 msgid "Processor type"
 msgstr "Тип процессора"
 
 #: ESXi_WBEMM_host.py:207 ESXi_WBEM_host.py:231 ibm_BladeCenter_AMM.py:418
 #: ESXi_WBEM_host.py:230 ibm_BladeCenter_AMM.py:419 ESXi_WBEM_host.py:265
 #: ESXi_WBEM_host.py:369 ibm_BladeCenter_AMM.py:375 ESXi_WBEM_host.py:398
-#: ibm_BladeCenter_AMM.py:390 ibm_BladeCenter_AMM.py:397
+#: ibm_BladeCenter_AMM.py:390 ibm_BladeCenter_AMM.py:397 ESXi_WBEM_host.py:460
+#: ibm_BladeCenter_AMM.py:409
 msgid "Number of cores"
 msgstr "Число ядер процессора"
 
@@ -89,63 +97,68 @@ msgstr "Число ядер процессора"
 #: ESXi_WBEM_host.py:238 ibm_BladeCenter_AMM.py:423 ESXi_WBEM_host.py:270
 #: ESXi_WBEM_host.py:273 ESXi_WBEM_host.py:374 ESXi_WBEM_host.py:377
 #: ibm_BladeCenter_AMM.py:379 ESXi_WBEM_host.py:403 ESXi_WBEM_host.py:406
-#: ibm_BladeCenter_AMM.py:394 ibm_BladeCenter_AMM.py:401
+#: ibm_BladeCenter_AMM.py:394 ibm_BladeCenter_AMM.py:401 ESXi_WBEM_host.py:465
+#: ibm_BladeCenter_AMM.py:413
 msgid "CPU Clock speed"
 msgstr "Тактовая частота процессора"
 
 #: ibm_BladeCenter_AMM.py:326 ibm_BladeCenter_AMM.py:327
 #: ibm_BladeCenter_AMM.py:278 ibm_BladeCenter_AMM.py:286
-#: ibm_BladeCenter_AMM.py:287
+#: ibm_BladeCenter_AMM.py:287 ibm_BladeCenter_AMM.py:293
 msgid "Host CPU count"
 msgstr "Кол-во процессоров в машине"
 
 #: ibm_BladeCenter_AMM.py:331 ibm_BladeCenter_AMM.py:332 ESXi_WBEM_host.py:181
 #: ESXi_WBEM_host.py:239 ibm_BladeCenter_AMM.py:283 ESXi_WBEM_host.py:242
-#: ibm_BladeCenter_AMM.py:291 ibm_BladeCenter_AMM.py:292
+#: ibm_BladeCenter_AMM.py:291 ibm_BladeCenter_AMM.py:292 ESXi_WBEM_host.py:302
+#: ibm_BladeCenter_AMM.py:298
 msgid "Total number of cores in the system"
 msgstr "Общее кол-во ядер в машине"
 
 #: ibm_BladeCenter_AMM.py:343 ibm_BladeCenter_AMM.py:344
 #: ibm_BladeCenter_AMM.py:295 ibm_BladeCenter_AMM.py:303
-#: ibm_BladeCenter_AMM.py:304
+#: ibm_BladeCenter_AMM.py:304 ibm_BladeCenter_AMM.py:310
 msgid "Machine type and model as TYPE-MDL"
 msgstr "Тип и модель машины как TYPE-MOD"
 
 #: ibm_BladeCenter_AMM.py:347 ESXi_WBEM_host.py:158 ibm_BladeCenter_AMM.py:348
 #: ESXi_WBEM_host.py:193 ESXi_WBEM_host.py:251 ibm_BladeCenter_AMM.py:299
 #: ESXi_WBEM_host.py:254 ibm_BladeCenter_AMM.py:307 ibm_BladeCenter_AMM.py:308
+#: ESXi_WBEM_host.py:314 ibm_BladeCenter_AMM.py:314
 msgid "Part Number of the system"
 msgstr "Продуктовый номер машины"
 
 #: ibm_BladeCenter_AMM.py:414 ibm_BladeCenter_AMM.py:415
 #: ibm_BladeCenter_AMM.py:371 ibm_BladeCenter_AMM.py:386
-#: ibm_BladeCenter_AMM.py:393
+#: ibm_BladeCenter_AMM.py:393 ibm_BladeCenter_AMM.py:405
 msgid "Type of the processor"
 msgstr "Тип процессора"
 
 #: ibm_BladeCenter_AMM.py:446 ibm_BladeCenter_AMM.py:447
 #: ibm_BladeCenter_AMM.py:403 ibm_BladeCenter_AMM.py:418
-#: ibm_BladeCenter_AMM.py:428
+#: ibm_BladeCenter_AMM.py:428 ibm_BladeCenter_AMM.py:441
 msgid "Memory module type"
 msgstr "Тип модуля памяти"
 
 #: ibm_BladeCenter_AMM.py:450 ibm_Power_AIX.py:428 ibm_BladeCenter_AMM.py:451
 #: ibm_Power_AIX.py:438 ESXi_WBEM_host.py:336 ibm_BladeCenter_AMM.py:407
 #: ibm_Power_AIX.py:479 ibm_Power_AIX.py:486 ESXi_WBEM_host.py:356
-#: ibm_BladeCenter_AMM.py:422 ibm_BladeCenter_AMM.py:432
+#: ibm_BladeCenter_AMM.py:422 ibm_BladeCenter_AMM.py:432 ESXi_WBEM_host.py:418
+#: ibm_BladeCenter_AMM.py:445 ibm_Power_AIX.py:539
 msgid "DIMM part number"
 msgstr "P/N модуля памяти"
 
 #: ibm_BladeCenter_AMM.py:454 ibm_Power_AIX.py:429 ibm_BladeCenter_AMM.py:455
 #: ibm_Power_AIX.py:439 ESXi_WBEM_host.py:343 ibm_BladeCenter_AMM.py:411
 #: ibm_Power_AIX.py:480 ibm_Power_AIX.py:487 ESXi_WBEM_host.py:363
-#: ibm_BladeCenter_AMM.py:426 ibm_BladeCenter_AMM.py:436
+#: ibm_BladeCenter_AMM.py:426 ibm_BladeCenter_AMM.py:436 ESXi_WBEM_host.py:425
+#: ibm_BladeCenter_AMM.py:449 ibm_Power_AIX.py:540
 msgid "DIMM serial number"
 msgstr "Серийный номер DIMM"
 
 #: ibm_BladeCenter_AMM.py:458 ibm_BladeCenter_AMM.py:459
 #: ibm_BladeCenter_AMM.py:415 ibm_BladeCenter_AMM.py:430
-#: ibm_BladeCenter_AMM.py:440
+#: ibm_BladeCenter_AMM.py:440 ibm_BladeCenter_AMM.py:453
 msgid "DIMM size in GB"
 msgstr "Объём DIMM в GB"
 
@@ -171,6 +184,7 @@ msgstr "Серийный номер адаптера"
 #: ibm_Power_AIX.py:378 ESXi_WBEM_host.py:300 ESXi_WBEM_host.py:404
 #: ibm_BladeCenter_AMM.py:474 ibm_Power_AIX.py:401 ibm_Power_AIX.py:405
 #: ESXi_WBEM_host.py:437 ibm_BladeCenter_AMM.py:489 ibm_BladeCenter_AMM.py:508
+#: ibm_Power_AIX.py:457 serversDisk.py:50
 msgid "Disk model"
 msgstr "Модель диска"
 
@@ -178,6 +192,7 @@ msgstr "Модель диска"
 #: ibm_Power_AIX.py:379 ESXi_WBEM_host.py:304 ESXi_WBEM_host.py:408
 #: ibm_BladeCenter_AMM.py:478 ibm_Power_AIX.py:402 ibm_Power_AIX.py:406
 #: ESXi_WBEM_host.py:441 ibm_BladeCenter_AMM.py:493 ibm_BladeCenter_AMM.py:512
+#: ibm_Power_AIX.py:458 serversDisk.py:54
 msgid "Disk part number"
 msgstr "P/N диска"
 
@@ -185,42 +200,45 @@ msgstr "P/N диска"
 #: ibm_Power_AIX.py:380 ESXi_WBEM_host.py:308 ESXi_WBEM_host.py:412
 #: ibm_BladeCenter_AMM.py:482 ibm_Power_AIX.py:403 ibm_Power_AIX.py:407
 #: ESXi_WBEM_host.py:445 ibm_BladeCenter_AMM.py:497 ibm_BladeCenter_AMM.py:516
+#: ibm_Power_AIX.py:459 serversDisk.py:58
 msgid "Disk serial number"
 msgstr "Серийный номер диска"
 
 #: ibm_BladeCenter_AMM.py:529 ESXi_WBEM_host.py:277 ibm_BladeCenter_AMM.py:530
 #: ESXi_WBEM_host.py:312 ESXi_WBEM_host.py:416 ibm_BladeCenter_AMM.py:486
 #: ESXi_WBEM_host.py:453 ibm_BladeCenter_AMM.py:501 ibm_BladeCenter_AMM.py:520
+#: serversDisk.py:62
 msgid "Disk capacity in GB"
 msgstr "Размер диска в гигабайтах"
 
 #: ibm_Power_AIX.py:300 ibm_Power_AIX.py:302 ibm_Power_AIX.py:314
-#: ibm_Power_AIX.py:316
+#: ibm_Power_AIX.py:316 ibm_Power_AIX.py:364
 msgid "Total amount of cores in all CPUs"
 msgstr "Общее количество ядер во всех CPU"
 
 #: ibm_Power_AIX.py:306 ibm_Power_AIX.py:308 ibm_Power_AIX.py:320
-#: ibm_Power_AIX.py:322
+#: ibm_Power_AIX.py:322 ibm_Power_AIX.py:370
 msgid "Type of system (4-symbol code)"
 msgstr "Тип системы (4-символьный код)"
 
 #: ibm_Power_AIX.py:321 ibm_Power_AIX.py:323 ESXi_WBEM_host.py:259
 #: ibm_Power_AIX.py:337 ibm_Power_AIX.py:339 ESXi_WBEM_host.py:262
+#: ESXi_WBEM_host.py:322 ibm_Power_AIX.py:388
 msgid "Number of power supplies"
 msgstr "Число блоков питания"
 
 #: ibm_Power_AIX.py:326 ibm_Power_AIX.py:328 ibm_Power_AIX.py:343
-#: ibm_Power_AIX.py:345
+#: ibm_Power_AIX.py:345 ibm_Power_AIX.py:394
 msgid "Number of memory modules"
 msgstr "Число модулей памяти"
 
 #: ibm_Power_AIX.py:363 ibm_Power_AIX.py:365 ibm_Power_AIX.py:386
-#: ibm_Power_AIX.py:389
+#: ibm_Power_AIX.py:389 ibm_Power_AIX.py:441
 msgid "Type of adapter"
 msgstr "Тип адаптера"
 
 #: ibm_Power_AIX.py:368 ibm_Power_AIX.py:370 ibm_Power_AIX.py:391
-#: ibm_Power_AIX.py:394
+#: ibm_Power_AIX.py:394 ibm_Power_AIX.py:446
 msgid "Position of adapter in the machine"
 msgstr "Положение адаптера в машине"
 
@@ -229,143 +247,190 @@ msgid "Disk {}"
 msgstr "Диск {}"
 
 #: ibm_Power_AIX.py:399 ibm_Power_AIX.py:409 ibm_Power_AIX.py:442
-#: ibm_Power_AIX.py:448
+#: ibm_Power_AIX.py:448 ibm_Power_AIX.py:500
 msgid "Power supply part number"
 msgstr "P/N блока питания"
 
 #: ibm_Power_AIX.py:400 ibm_Power_AIX.py:410 ibm_Power_AIX.py:443
-#: ibm_Power_AIX.py:449
+#: ibm_Power_AIX.py:449 ibm_Power_AIX.py:501
 msgid "Power supply serial number"
 msgstr "Серийный номер блока питания"
 
 #: ibm_Power_AIX.py:401 ibm_Power_AIX.py:411 ibm_Power_AIX.py:444
-#: ibm_Power_AIX.py:450
+#: ibm_Power_AIX.py:450 ibm_Power_AIX.py:502
 msgid "Power supply location"
 msgstr "Местоположение блока питания"
 
 #: ibm_Power_AIX.py:430 ibm_Power_AIX.py:440 ibm_Power_AIX.py:481
-#: ibm_Power_AIX.py:488
+#: ibm_Power_AIX.py:488 ibm_Power_AIX.py:541
 msgid "DIMM location"
 msgstr "Местоположение модуля памяти"
 
 #: ibm_Power_AIX.py:377 ibm_Power_AIX.py:400 ibm_Power_AIX.py:404
+#: ibm_Power_AIX.py:456
 msgid "Disk type"
 msgstr "Тип жёсткого диска"
 
 #: ibm_Power_AIX.py:381 ibm_Power_AIX.py:404 ibm_Power_AIX.py:408
+#: ibm_Power_AIX.py:460
 msgid "Disk location"
 msgstr "Положение диска в системе"
 
 #: ESXi_WBEM_host.py:362 ESXi_WBEM_host.py:469 ESXi_WBEM_host.py:510
+#: ESXi_WBEM_host.py:523
 msgid "PCI vendor:device identifiers"
 msgstr "Идентификаторы изготовителя и устройства"
 
 #: ESXi_WBEM_host.py:367 ESXi_WBEM_host.py:474 ESXi_WBEM_host.py:515
+#: ESXi_WBEM_host.py:529
 msgid "PCI device logical position (bus/slot/function)"
 msgstr "Логический адрес PCI устройства"
 
 #: ESXi_WBEM_host.py:373 ESXi_WBEM_host.py:480 ESXi_WBEM_host.py:524
+#: ESXi_WBEM_host.py:538
 msgid "Device serial number"
 msgstr "Серийный номер PCI устройства"
 
 #: ESXi_WBEM_host.py:379 ESXi_WBEM_host.py:486 ESXi_WBEM_host.py:532
+#: ESXi_WBEM_host.py:546
 msgid "Device part number"
 msgstr "P/N устройства"
 
 #: ESXi_WBEM_host.py:385 ESXi_WBEM_host.py:492 ESXi_WBEM_host.py:538
+#: ESXi_WBEM_host.py:552
 msgid "Device model"
 msgstr "Модель устройства"
 
 #: ESXi_WBEM_host.py:413 ESXi_WBEM_host.py:520 ESXi_WBEM_host.py:570
+#: ESXi_WBEM_host.py:594
 msgid "HBA World-Wide-Name (WWN)"
 msgstr "Уникальный адрес HBA"
 
 #: ibm_Power_AIX.py:310 ibm_Power_AIX.py:312 ESXi_WBEM_host.py:271
-#: ibm_BladeCenter_AMM.py:320 ibm_BladeCenter_AMM.py:321
+#: ibm_BladeCenter_AMM.py:320 ibm_BladeCenter_AMM.py:321 ESXi_WBEM_host.py:331
+#: ibm_BladeCenter_AMM.py:327 ibm_Power_AIX.py:355
 msgid "Memory size changed"
 msgstr "Изменился объём оперативной памяти"
 
 #: ibm_Power_AIX.py:332 ibm_Power_AIX.py:334 ESXi_WBEM_host.py:273
-#: ibm_BladeCenter_AMM.py:322 ibm_BladeCenter_AMM.py:323
+#: ibm_BladeCenter_AMM.py:322 ibm_BladeCenter_AMM.py:323 ESXi_WBEM_host.py:333
+#: ibm_BladeCenter_AMM.py:329 ibm_Power_AIX.py:382
 msgid "System SN changed"
 msgstr "Изменился серийный номер системы"
 
 #: ibm_Power_AIX.py:333 ibm_Power_AIX.py:335 ESXi_WBEM_host.py:274
-#: ibm_BladeCenter_AMM.py:323 ibm_BladeCenter_AMM.py:324
+#: ibm_BladeCenter_AMM.py:323 ibm_BladeCenter_AMM.py:324 ESXi_WBEM_host.py:334
+#: ibm_BladeCenter_AMM.py:330 ibm_Power_AIX.py:383
 msgid "Cannot receive system SN in 2 days"
 msgstr "Нет сведений о серийном номере системы в течение 2 дней"
 
-#: ibm_Power_AIX.py:339 ibm_Power_AIX.py:341
+#: ibm_Power_AIX.py:339 ibm_Power_AIX.py:341 ibm_Power_AIX.py:390
 msgid "Number of Power Supplies changed"
 msgstr "Изменилось количество блоков питания"
 
-#: ibm_Power_AIX.py:345 ibm_Power_AIX.py:347
+#: ibm_Power_AIX.py:345 ibm_Power_AIX.py:347 ibm_Power_AIX.py:396
 msgid "Number of Memory DIMMs changed"
 msgstr "Изменилось количество модулей памяти (DIMM)"
 
-#: ibm_Power_AIX.py:394 ibm_Power_AIX.py:398
+#: ibm_Power_AIX.py:394 ibm_Power_AIX.py:398 ibm_Power_AIX.py:450
 msgid "Adapter type changed"
 msgstr "Изменился тип адаптера"
 
 #: ibm_Power_AIX.py:433 ibm_Power_AIX.py:439 ESXi_WBEM_host.py:447
-#: ibm_BladeCenter_AMM.py:522
+#: ibm_BladeCenter_AMM.py:522 ibm_Power_AIX.py:491 serversDisk.py:64
 msgid "Disk serial number is changed"
 msgstr "Изменился серийный номер диска"
 
 #: ibm_Power_AIX.py:435 ibm_Power_AIX.py:441 ESXi_WBEM_host.py:448
-#: ibm_BladeCenter_AMM.py:523
+#: ibm_BladeCenter_AMM.py:523 ibm_Power_AIX.py:493 serversDisk.py:65
 msgid "Cannot receive disk serial number in two days"
 msgstr "Невозможно получить серийный номер диска уже два дня"
 
-#: ibm_Power_AIX.py:471 ibm_Power_AIX.py:478
+#: ibm_Power_AIX.py:471 ibm_Power_AIX.py:478 ibm_Power_AIX.py:530
 msgid "Power supply serial number is changed"
 msgstr "Изменился серийный номер блока питания"
 
-#: ibm_Power_AIX.py:473 ibm_Power_AIX.py:480
+#: ibm_Power_AIX.py:473 ibm_Power_AIX.py:480 ibm_Power_AIX.py:532
 msgid "Cannot receive power supply serial number in two days"
 msgstr "Невозможно получить S/N блока питания в течение двух дней"
 
 #: ibm_Power_AIX.py:514 ibm_Power_AIX.py:522 ESXi_WBEM_host.py:366
-#: ibm_BladeCenter_AMM.py:442
+#: ibm_BladeCenter_AMM.py:442 ESXi_WBEM_host.py:428 ibm_BladeCenter_AMM.py:455
+#: ibm_Power_AIX.py:575
 msgid "DIMM serial number is changed"
 msgstr "Изменился серийный номер модуля памяти (DIMM)"
 
 #: ibm_Power_AIX.py:515 ibm_Power_AIX.py:524 ibm_BladeCenter_AMM.py:443
+#: ibm_BladeCenter_AMM.py:456 ibm_Power_AIX.py:576
 msgid "Can't receive DIMM S/N for two days"
 msgstr "Невозможно получить S/N модуля памяти в течение 2 дней"
 
 #: ESXi_WBEM_host.py:272 ibm_BladeCenter_AMM.py:321 ibm_BladeCenter_AMM.py:322
+#: ESXi_WBEM_host.py:332 ibm_BladeCenter_AMM.py:328
 msgid "Number of CPUs changed"
 msgstr "Изменилось количество процессоров"
 
-#: ESXi_WBEM_host.py:347
+#: ESXi_WBEM_host.py:347 ESXi_WBEM_host.py:409
 msgid "Cannot determine DIMM position in 48h"
 msgstr "Не могу определить положение DIMM в машине уже два дня"
 
-#: ESXi_WBEM_host.py:349
+#: ESXi_WBEM_host.py:349 ESXi_WBEM_host.py:411
 msgid "DIMM size changed"
 msgstr "Изменился размер DIMM"
 
-#: ESXi_WBEM_host.py:393 ibm_BladeCenter_AMM.py:404
+#: ESXi_WBEM_host.py:393 ibm_BladeCenter_AMM.py:404 ESXi_WBEM_host.py:455
+#: ibm_BladeCenter_AMM.py:416
 msgid "Cannot determine processor type"
 msgstr "Не могу определить тип процессора"
 
-#: ESXi_WBEM_host.py:517
+#: ESXi_WBEM_host.py:517 ESXi_WBEM_host.py:531
 msgid "Cannot determine adapter position in 2 days"
 msgstr "Не могу определить положение адаптера в системе в течение 2 дней"
 
-#: ESXi_WBEM_host.py:526
+#: ESXi_WBEM_host.py:526 ESXi_WBEM_host.py:540
 msgid "Adapter S/N changed"
 msgstr "Изменился S/N адаптера"
 
-#: ESXi_WBEM_host.py:573
+#: ESXi_WBEM_host.py:573 ESXi_WBEM_host.py:597
 msgid "Host Bus Adapter WWN changed"
 msgstr "Изменился WWN адаптера Fibre Channel"
 
-#: ibm_BladeCenter_AMM.py:478
+#: ibm_BladeCenter_AMM.py:478 ibm_BladeCenter_AMM.py:492
 msgid "Serial # of expansion card changed"
 msgstr "Изменился серийный номер платы расширения"
 
-#: ibm_BladeCenter_AMM.py:479
+#: ibm_BladeCenter_AMM.py:479 ibm_BladeCenter_AMM.py:493
 msgid "Can't determine S/N of expansion card"
 msgstr "Невозможно получить серийный номер платы расширения"
+
+#: CreateReportsScreen.py:142
+msgid "Short description"
+msgstr "Краткое описание"
+
+#: CreateReportsScreen.py:148
+msgid "Internet Protocol address"
+msgstr "IP адрес"
+
+#: CreateReportsScreen.py:154
+msgid "Asset tag"
+msgstr "Инвентарный номер"
+
+#: CreateReportsScreen.py:159
+msgid "System Serial Number"
+msgstr "Серийный номер системы"
+
+#: CreateReportsScreen.py:165
+msgid "Physical placement"
+msgstr "Физическое размещение"
+
+#: CreateReportsScreen.py:170
+msgid "Configuration report URL"
+msgstr "Адрес (URL) отчёта о конфигурации"
+
+#: ESXi_WBEM_host.py:585
+msgid "HBA Part Number"
+msgstr "P/N адаптера Fibre Channel (HBA)"
+
+#: ESXi_WBEM_host.py:588
+msgid "Host Bus Adapter P/N changed"
+msgstr "Изменился P/N адаптера Fibre Channel"

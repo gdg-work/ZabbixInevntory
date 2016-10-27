@@ -140,6 +140,7 @@ def _sGetClassName(oConnection):
     print(lsClasses)
     return
 
+
 def _PrintSoftwareList(dSW, oConf):
     # print a list of software in alphabetical order with an optional header
     sFormat = "{0:<20} {1:<40} {2:<1}"
@@ -162,7 +163,7 @@ def _dListSWOnServer(sHostLong, sUser, sPass, sVCenter=''):
             oConn = oMakeConnection(sHostLong, sUser, sPass, sVCenter=sVCenter)
         else:
             oConn = oMakeConnection(sHostLong, sUser, sPass)
-    except pyVmomi.exVCenterError as e:
+    except exVCenterError as e:
         oLog.error('Cannot connect to server with a given credentials')
         oLog.error('Message: ' + str(e))
         raise e
@@ -182,10 +183,11 @@ def _oGetCLIParser():
     oParser.add_argument('servers', help="TTL of Redis-cached data", type=str, nargs=ap.REMAINDER)
     return (oParser.parse_args())
 
+
 def _MainFunction():
     oConf = _oGetCLIParser()
     for sHost in oConf.servers:
-        print("Trying to connect to server {}".format(sHost))
+        oLog.debug("Trying to connect to server {}".format(sHost))
         dSoft = _dListSWOnServer(sHost, oConf.user, oConf.password, oConf.vcenter)
         _PrintSoftwareList(dSoft, oConf)
     return

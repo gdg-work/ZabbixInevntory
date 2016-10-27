@@ -360,10 +360,11 @@ class BladeWithAMM(inv.GenericServer):
             # print(str(dDisk))
             iDiskSize = int(dDisk.get('MaxMediaSize', 0)) // 2**20
             oDisk = Blade_Disk(dDisk.get('Name', ''), dDisk.get('Model', ''),
-                                          dDisk.get('PartNumber', ''), 
-                                          dDisk.get('SerialNumber', dDisk.get('IdentifyingNumber', '')),
-                                          iDiskSize)
+                               dDisk.get('PartNumber', ''),
+                               dDisk.get('SerialNumber', dDisk.get('IdentifyingNumber', '')),
+                               iDiskSize)
             oLog.debug('_FillDisksFromWBEM: Serial # of Disk {0} is:{1}'.format(oDisk.name, oDisk.sn))
+            oDisk._ConnectTriggerFactory(self.oTriggers)
             self.lDisks.append(oDisk)
         self.iDisksAmount = len(self.lDisks)
         oLog.debug("_FillDisksFromWBEM: {} disks found".format(self.iDisksAmount))
@@ -389,10 +390,6 @@ class Blade_CPU(inv.ComponentClass):
         super().__init__(sName)
         # self.oTriggers = None
         self.dData = {'speed': sSpeed, 'family': sFamily, 'cores': iCores}
-        return
-
-    def _ConnectTriggerFactory(self, oTriggersFactory):
-        self.oTriggers = oTriggersFactory
         return
 
     def __repr__(self):

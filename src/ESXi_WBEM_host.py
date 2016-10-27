@@ -226,8 +226,10 @@ class ESXi_WBEM_Host(inv.GenericServer):
         for dDisk in ldDisks:
             # print(str(dDisk))
             iDiskSize = int(dDisk.get('MaxMediaSize', 0)) // 2**20
-            self.lDisks.append(DASD(dDisk.get('Name',''), dDisk.get('Model',''), dDisk.get('PartNumber',''),
-                                    dDisk.get('SerialNumber',''), iDiskSize))
+            oDisk = DASD(dDisk.get('Name', ''), dDisk.get('Model', ''), dDisk.get('PartNumber', ''),
+                         dDisk.get('SerialNumber', ''), iDiskSize)
+            oDisk._ConnectTriggersFactory(self.oTriggers)
+            self.lDisks.append(oDisk)
         self.iDisksAmount = len(self.lDisks)
         # oLog.debug(str(self.lDisks))
         return
@@ -467,54 +469,6 @@ class CPU(inv.ComponentClass):
         oCoresItem._SendValue(self.dData['cores'], oZbxSender)
         oSpeedItem._SendValue(self.dData['speed'], oZbxSender)
         return
-
-
-#class DASD(inv.ComponentClass):
-#    def __init__(self, sName, sModel, sPN, sSN, iSizeGB):
-#        self.sName = sName
-#        self.dDiskData = {
-#            "model": sModel,
-#            "pn": sPN,
-#            "sn": sSN,
-#            "size": iSizeGB}
-#        return
-#
-#    def __repr__(self):
-#        sFmt = "HDD {0}: model {1}, p/n {2}, s/n {3}, size {4} GiB"
-#        return sFmt.format(self.sName, self.dDiskData['model'], self.dDiskData['pn'],
-#                           self.dDiskData['sn'], self.dDiskData['size'])
-#
-#    def _ConnectTriggerFactory(self, oTriggersFactory):
-#        self.oTriggers = oTriggersFactory
-#        return
-#
-#    def _MakeAppsItems(self, oZbxHost, oZbxSender):
-#        oZbxHost._oAddApp(self.sName)     # Disk Drive_65535_0
-#        oModelItem = oZbxHost._oAddItem(
-#            self.sName + " Model", sAppName=self.sName,
-#            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "Model"),
-#                     'value_type': 1, 'description': _('Disk model')})
-#        oPN_Item = oZbxHost._oAddItem(
-#            self.sName + " Part Number", sAppName=self.sName,
-#            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "PN"),
-#                     'value_type': 1, 'description': _('Disk part number')})
-#        oSN_Item = oZbxHost._oAddItem(
-#            self.sName + " Serial Number", sAppName=self.sName,
-#            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "SN"),
-#                     'value_type': 1, 'description': _('Disk serial number')})
-#        if self.oTriggers:
-#            self.oTriggers._AddChangeTrigger(oSN_Item, _('Disk serial number is changed'), 'warning')
-#            self.oTriggers._AddNoDataTrigger(oSN_Item, _('Cannot receive disk serial number in two days'),
-#                                             'average')
-#        oSize_Item = oZbxHost._oAddItem(
-#            self.sName + " Size", sAppName=self.sName,
-#            dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "Size"),
-#                     'value_type': 3, 'units': 'GB', 'description': _('Disk capacity in GB')})
-#        oModelItem._SendValue(self.dDiskData['model'], oZbxSender)
-#        oPN_Item._SendValue(self.dDiskData['pn'], oZbxSender)
-#        oSN_Item._SendValue(self.dDiskData['sn'], oZbxSender)
-#        oSize_Item._SendValue(self.dDiskData['size'], oZbxSender)
-#        return
 
 
 class PCI_Adapter(inv.ComponentClass):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 """
 A small program for creating an application in the host with 4 items:
     - host name
@@ -19,6 +19,7 @@ import logging
 import logging.config
 import locale
 import yaml
+from i18n import _
 
 #
 # Make you configuration here, but don't forget to backup the file first
@@ -138,25 +139,36 @@ class InventoryHost:
             # o_sender.add_item_value(oNameItem, self.s_name)
             oDescItem = o_zbx_host._oAddItem(
                 'Description', APP_NAME, dParams={'key': zi._sMkKey(APP_NAME, 'Description'),
+                                                  'description': _('Short description'),
                                                   'value_type': 1})
             o_sender.add_item_value(oDescItem, self.s_desc)
             oIP_Item = o_zbx_host._oAddItem(
-                'Controlling IP', APP_NAME, dParams={'key': zi._sMkKey(APP_NAME, 'IP'),
-                                                  'value_type': 1})
+                'Controlling IP', APP_NAME,
+                dParams={'key': zi._sMkKey(APP_NAME, 'IP'),
+                         'description': _('Internet Protocol address'),
+                         'value_type': 1})
             o_sender.add_item_value(oIP_Item, self.s_netaccess)
             oInvItem = o_zbx_host._oAddItem(
-                'Inventory #', APP_NAME, dParams={'key': zi._sMkKey(APP_NAME, 'Inventory Number'),
-                                                  'value_type': 1})
+                'Inventory #', APP_NAME,
+                dParams={'key': zi._sMkKey(APP_NAME, 'Inventory Number'),
+                         'description': _('Asset tag'),
+                         'value_type': 1})
             o_sender.add_item_value(oInvItem, self.s_inv)
-            oSN_Item = o_zbx_host._oAddItem('Serial Number', APP_NAME, dParams={'value_type': 1,
-                    'key': zi._sMkKey(APP_NAME, 'Serial Num')})
+            oSN_Item = o_zbx_host._oAddItem('Serial Number', APP_NAME,
+                dParams={'value_type': 1,
+                         'description': _('System Serial Number'),
+                         'key': zi._sMkKey(APP_NAME, 'Serial Num')})
             if oSN_Item:
                 o_sender.add_item_value(oSN_Item, self.s_sn)
-            oSiteItem = o_zbx_host._oAddItem('Site address', APP_NAME, dParams={'value_type': 1,
-                    'key': zi._sMkKey(APP_NAME, 'Site')})
+            oSiteItem = o_zbx_host._oAddItem('Site address', APP_NAME,
+                dParams={'value_type': 1,
+                         'description': _('Physical placement'),
+                         'key': zi._sMkKey(APP_NAME, 'Site')})
             o_sender.add_item_value(oSiteItem, self.s_site)
-            oRepItem = o_zbx_host._oAddItem('Report URL', APP_NAME, dParams={'value_type': 1,
-                    'key': zi._sMkKey(APP_NAME, 'URL')})
+            oRepItem = o_zbx_host._oAddItem('Report URL', APP_NAME,
+                dParams={'value_type': 1,
+                         'description': _('Configuration report URL'),
+                         'key': zi._sMkKey(APP_NAME, 'URL')})
             o_sender.add_item_value(oRepItem, self.s_url)
         except zi.MyZabbixException as e:
             oLog.error('Error communicating with Zabbix, host is ' + self.s_name)
@@ -199,7 +211,7 @@ class BufferedSender:
         oLog.debug('*DBG* Data to send:')
         oLog.debug('*CONT*' + s_data)
         try:
-            locale.setlocale(LC_ALL, 'ru_RU.UTF-8')
+            locale.setlocale('LC_ALL', 'ru_RU.UTF-8')
             (s_stdout, s_stderr) = o_proc.communicate(s_data, timeout=ZBX_SENDER_TIMEOUT)
         except sp.TimeoutExpired as e:
             o_proc.kill()

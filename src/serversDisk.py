@@ -2,9 +2,11 @@
 
 import inventoryObjects as inv
 from local import NODATA_THRESHOLD
+from i18n import _
 import logging
 
 oLog = logging.getLogger(__name__)
+
 
 class Disk_Drive(inv.ComponentClass):
     """
@@ -22,7 +24,7 @@ class Disk_Drive(inv.ComponentClass):
         return
 
     @property
-    def sn(self): 
+    def sn(self):
         return self.dDiskData['sn']
 
     @sn.setter
