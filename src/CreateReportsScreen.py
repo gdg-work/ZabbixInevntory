@@ -199,8 +199,9 @@ class BufferedSender:
                 s_value = s_value.replace('\\', r'\\')
             if ('"' in s_value):
                 s_value = s_value.replace('"', r'\"')
-            s_ln = s_tmpl.format(o_item.host.name, o_item.key, str(s_value))
-            self.ls_sendlist.append(s_ln)
+            if o_item:
+                s_ln = s_tmpl.format(o_item.host.name, o_item.key, str(s_value))
+                self.ls_sendlist.append(s_ln)
             # oLog.debug('*DBG* Stored line: {}'.format(s_ln))
         return
 
@@ -211,7 +212,7 @@ class BufferedSender:
         oLog.debug('*DBG* Data to send:')
         oLog.debug('*CONT*' + s_data)
         try:
-            locale.setlocale('LC_ALL', 'ru_RU.UTF-8')
+            locale.setlocale(locale.LC_ALL, 'ru_RU.UTF-8')
             (s_stdout, s_stderr) = o_proc.communicate(s_data, timeout=ZBX_SENDER_TIMEOUT)
         except sp.TimeoutExpired as e:
             o_proc.kill()
