@@ -63,7 +63,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
         # IPMI information from dParams dictionary
         self.dIPMIaccess = {}
         if dParams.get('sMgtIP', None) is not None:
-            oLog.warning('Server {}, requested IPMI via {}'.format(self.sName, dParams.get('sMgtIP', '')))
+            oLog.debug('Server {}, requested IPMI via {}'.format(self.sName, dParams.get('sMgtIP', '')))
             self.dIPMIaccess = {'ip':   dParams.get('sMgtIP', None),
                                 'user': dParams.get('sMgtUser', None),
                                 'pass': dParams.get('sMgtPass', None)}
@@ -146,7 +146,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
 
     def __fillFromIPMI(self, dIPMIaccess):
         """ create IPMI object in this host, fill in data for that object"""
-        oLog.warning('IPMI access called for server {}, BMC IP: {}'.format(self.sName, dIPMIaccess['ip']))
+        oLog.debug('IPMI access called for server {}, BMC IP: {}'.format(self.sName, dIPMIaccess['ip']))
         self.oIPMI_Interface = ipmi.IPMIhost(dIPMIaccess['ip'], dIPMIaccess['user'], dIPMIaccess['pass'])
         self.lFruList = self.oIPMI_Interface._loFruList()
         return
