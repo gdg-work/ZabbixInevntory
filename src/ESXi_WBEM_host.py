@@ -228,7 +228,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
             iDiskSize = int(dDisk.get('MaxMediaSize', 0)) // 2**20
             oDisk = DASD(dDisk.get('Name', ''), dDisk.get('Model', ''), dDisk.get('PartNumber', ''),
                          dDisk.get('SerialNumber', ''), iDiskSize)
-            oDisk._ConnectTriggersFactory(self.oTriggers)
+            oDisk._ConnectTriggerFactory(self.oTriggers)
             self.lDisks.append(oDisk)
         self.iDisksAmount = len(self.lDisks)
         # oLog.debug(str(self.lDisks))
