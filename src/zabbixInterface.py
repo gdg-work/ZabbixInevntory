@@ -932,7 +932,7 @@ class ZabbixItem:
         elif self.iValType == 3:      # unsigned int
             oValue = int(oValue)
         oData2Send = ZabbixMetric(host=self.oHost._sName(), key=self.sKey, value=oValue)
-        print('*DBG* to send: host is {}, key is {}, value is {}'.format(self.oHost._sName(), self.sKey, oValue))
+        # print('*DBG* to send: host is {}, key is {}, value is {}'.format(self.oHost._sName(), self.sKey, oValue))
         try:
             if not oZabSender.send([oData2Send]):
                 # unsuccessful data sending
@@ -985,7 +985,7 @@ class TriggerFactory:
         # oLog.debug("ddTriggersList is {}".format(str(self.ddTriggersList)))
         if sTrigName in self.ddTriggersList.get(oHost.id, {}).get(oItem.id, []):
             # oLog.debug("*DBG* Trigger named {1} exist on host {0}".format(oHost.name, sTrigName))
-            oLog.debug('*DBG* trigger exists -- from cache')
+            oLog.debug('trigger exists -- from cache')
             bResult = True
         else:
             dParams = {'hostid': oHost.id, 'itemids': [oItem.id]}

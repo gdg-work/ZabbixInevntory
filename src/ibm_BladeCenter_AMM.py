@@ -88,7 +88,7 @@ class BladeWithAMM(inv.GenericServer):
             oLog.error('Error getting data from about disk subsystem via WBEM')
         except wd.WBEM_Exception:
             oLog.error('CIM error trying to collect information from server ' + self.sAmmName)
-        except e:
+        except Exception as e:
             # catch-all exception
             oLog.error('Unknown error when trying to receive data with WBEM')
             oLog.error('Error message: ' + str(e))
@@ -502,10 +502,6 @@ class Blade_EXP(inv.ComponentClass):
         return
 
 
-#class Blade_Disk(inv.ComponentClass):
-#    This class is moved to a separate file
-
-
 if __name__ == '__main__':
     """testing section"""
     from access import vmsrv06 as srv
@@ -515,8 +511,6 @@ if __name__ == '__main__':
     oConHdr = logging.StreamHandler()
     oConHdr.setLevel(logging.DEBUG)
     oLog.addHandler(oConHdr)
-
-
 
     # Zabbix functionality
     from pyzabbix.api import ZabbixAPI

@@ -625,7 +625,6 @@ class XIV_Disk(XIV_Component):
         super().__init__(sID, dParams["Serial"], bHealthy)
         self.sID = sID
         self.iSizeMB = int(dParams['Size'])
-        # oLog.debug('XIV_Disk init: size is: {}'.format(dParams.get('Size')))
         self.sSizeH = dParams['Capacity (GB)']
         self.sModel = dParams['Model']
         self.dQueries = {"name":  lambda: self.sID,
@@ -641,7 +640,6 @@ class XIV_Disk(XIV_Component):
     def _iGetSize(self):
         oLog.debug('Disk ID: {0} size is {1} MB'.format(self.sID, self.iSizeMB))
         if self.bHealthy:
-            # oLog.debug('XIV:_iGetSize: Disk size in MB is: {}'.format(self.iSizeMB))
             return int(self.iSizeMB / 1024)
         else:
             return 0
@@ -819,7 +817,7 @@ if __name__ == '__main__':
     print(oXiv.oDisksList)
     print(oXiv._dGetArrayInfoAsDict(oXiv.dQueries))
 #     print("Nodes:", oXiv.dQueries["nodes"]())
-    print("Disks:", oXiv.oDisksList)
+#     print("Disks:", oXiv.dQueries["disks"]())
 #     print("FC Ports", oXiv.dQueries["fc-ports"]())
 #     print("Ethernet Ports:", oXiv.dQueries["eth-ports"]())
 #     print("DIMM Names:", oXiv.dQueries["dimm-names"]())

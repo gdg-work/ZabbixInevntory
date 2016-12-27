@@ -17,6 +17,7 @@ from urllib.parse import quote
 import subprocess as sp
 import logging
 import logging.config
+import traceback
 import yaml
 from i18n import _
 import locale
@@ -27,7 +28,7 @@ import locale
 dConfig = yaml.load("""
     version: 1
     ZabbixAPI:
-        ip: zabbix.protek.ru
+        ip: 127.0.0.1
         user: zabbix
         password: A3hHr88man01
     ZabbixSender:
@@ -192,6 +193,10 @@ class InventoryHost:
             o_sender.add_item_value(oDiffRepItem, s_diff_url)
         except zi.MyZabbixException as e:
             oLog.error('Error communicating with Zabbix, host is ' + self.s_name)
+        except Exception as e:
+            oLog.error('Unhandled exception in make_app_items: ' + str(e))
+            traceback.print_exc()
+            raise(e)
         return
 
 
