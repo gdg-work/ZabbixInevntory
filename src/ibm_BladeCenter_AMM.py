@@ -84,13 +84,15 @@ class BladeWithAMM(inv.GenericServer):
         try:
             # only disks information from WBEM
             self._FillDisksFromWBEM()
-        except wd.WBEM_Disk_Exception:
-            oLog.error('Error getting data from about disk subsystem via WBEM')
-        except wd.WBEM_Exception:
-            oLog.error('CIM error trying to collect information from server ' + self.sAmmName)
+        except wd.WBEM_Disk_Exception as e:
+            oLog.error('Error getting data about disk subsystem via WBEM, server ' + self.sName)
+            oLog.error('Error message: ' + str(e))
+        except wd.WBEM_Exception as e:
+            oLog.error('CIM error trying to collect information from server ' + self.sName)
+            oLog.error('Error message: ' + str(e))
         except Exception as e:
             # catch-all exception
-            oLog.error('Unknown error when trying to receive data with WBEM')
+            oLog.error('Unknown error when trying to receive data with WBEM from server ' + self.sName)
             oLog.error('Error message: ' + str(e))
         return
 

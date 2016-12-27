@@ -108,26 +108,26 @@ class ESXi_WBEM_Host(inv.GenericServer):
             try:
                 fun()
             except pywbem.cim_http.AuthError as e:
-                oLog.error('Authentication error trying to access WBEM')
+                oLog.error('Authentication error trying to access WBEM on ' + self.sName)
                 oLog.error(str(e))
                 raise e
             except wbem.WBEM_Disk_Exception as e:
-                oLog.error("WBEM disk interface exception in {}".format(str(fun)))
+                oLog.error("WBEM disk interface exception in {0} on server {1}".format(str(fun), self.sName))
                 continue
             except wbem.WBEM_HBA_Exception as e:
-                oLog.error('WBEM HBA information access exception in __FillData' + str(e))
+                oLog.error('WBEM HBA information access exception in __FillData on server ' + self.sName + '(' + str(e) + ')')
                 continue
             except wbem.WBEM_PowerSupply_Exception as e:
-                oLog.error('WBEM power supply access exception in __FillData' + str(e))
+                oLog.error('WBEM power supply access exception in __FillData on server ' + self.sName + '(' + str(e) + ')')
                 continue
             except pywbem.cim_operations.CIMError as e:
-                oLog.error("CIM error in function " + str(fun.__name__))
+                oLog.error("CIM error in function " + str(fun.__name__) + " on server " + self.sName)
                 continue
             except wbem.WBEM_Exception as e:
-                oLog.error('Unknown WBEM exception in __FillData: ' + str(e))
+                oLog.error('Unknown WBEM exception in __FillData on host ' + self.sName + "(" + str(e) + ")")
                 continue
             except Exception as e:
-                oLog.error("Unhandled exception in __FillData")
+                oLog.error("Unhandled exception in __FillData on server " + self.sName)
                 oLog.error(str(e))
         if len(self.dIPMIaccess) > 0:
             # oLog.warning('IPMI access requested, data is: ' + str(self.dIPMIaccess))
