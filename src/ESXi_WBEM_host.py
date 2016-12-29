@@ -600,7 +600,7 @@ class HBA_Class(PCI_Adapter):
 
 if __name__ == "__main__":
     # host for testing
-    from access import vmexchsrv01 as tsrv
+    from access import vmexchsrv02 as tsrv
     from access import zabbixAtProtek as zbx
 
     # Zabbix functionality
