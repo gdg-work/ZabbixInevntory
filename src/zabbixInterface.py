@@ -238,7 +238,7 @@ class GeneralZabbix:
         if self._bHasItem(sItemName):
             # already have that item
             oItem = self._oGetItem(sItemName)
-            # oLog.debug('Already have that item, returned {}'.format(str(oItem)))
+            oLog.debug('Already have that item, returned {}'.format(str(oItem)))
         else:
             # need to create item
             oItem = ZabbixItem(sItemName, self, dParams)
@@ -247,7 +247,7 @@ class GeneralZabbix:
                 oApp = self._oGetApp(sAppName)
                 oItem._LinkWithApp(oApp)
             oItem._NewZbxItem()
-            # oLog.debug('Created a new item, returned {}'.format(str(oItem)))
+            oLog.debug('Created a new item, returned {}'.format(str(oItem)))
         return oItem
 
     def _MakeTimeStamp(self):

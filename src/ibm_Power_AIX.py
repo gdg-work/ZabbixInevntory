@@ -9,6 +9,8 @@ import csv    # because commands output use quoted fields
 import zabbixInterface as zi
 import itertools as it
 from i18n import _
+from serversDisk import Disk_Drive
+
 from local import NODATA_THRESHOLD
 import re
 
@@ -413,10 +415,10 @@ class IBM_Power_Adapter(inv.ComponentClass):
         self.oTriggers = None
         return
 
-    def _ConnectTriggerFactory(self, oTriggersFactory):
-        # oLog.debug('Connecting triggers factory to Adapter {}'.format(self.sName))
-        self.oTriggers = oTriggersFactory
-        return
+#     def _ConnectTriggerFactory(self, oTriggersFactory):
+#         # oLog.debug('Connecting triggers factory to Adapter {}'.format(self.sName))
+#         self.oTriggers = oTriggersFactory
+#         return
 
     def __repr__(self):
         return str('Adapter: type:{0}, Bus ID:{1}, location:{2}'.format(
@@ -451,47 +453,29 @@ class IBM_Power_Adapter(inv.ComponentClass):
         return
 
 
-class IBM_Power_Disk(inv.ComponentClass):
-    dDescriptions = {
-        'Type':           _('Disk type'),
-        'Model':          _('Disk model'),
-        'Part Number':    _('Disk part number'),
-        'Serial Number':  _('Disk serial number'),
-        'Location':       _('Disk location')}
-
+class IBM_Power_Disk(Disk_Drive):
+    """A disk drive of Power server, inherited from Server_Disk and modified"""
     def __init__(self, sName, sType, sModel, sPN, sSN, sLoc):
-        self.sName = sName
-        self.oTriggers = None
-        self.dData = {'Type':           sType,      # keys must contain only valid chars for Zabbix key
-                      'Model':          sModel,     # + spaces
-                      'Part Number':    sPN,
-                      'Serial Number':  sSN,
-                      'Location':       sLoc}
-        return
-
-    def _ConnectTriggerFactory(self, oTriggersFactory):
-        # oLog.debug('Connecting triggers factory to Disk {}'.format(self.sName))
-        self.oTriggers = oTriggersFactory
+        sName = "Disk " + sName
+        super().__init__(sName, sModel, sPN, sSN, iSizeGB=0)
+        self.dDiskData['type'] = sType
+        self.dDiskData['location'] = sLoc
+        oLog.warning("IBM_Power_Disk.init: self.dDiskData=" + str(self.dDiskData))
         return
 
     def _MakeAppsItems(self, oZbxHost, oZbxSender):
-        sAppName = 'Disk ' + self.sName
-        oZbxHost._oAddApp(sAppName)
-        # all parameters are strings, so we can use loop
-        for sN, sV in self.dData.items():
-            # oLog.debug('Parameter name:{}, value:{}'.format(sN, sV))
-            sItemName = sAppName + ' ' + sN
-            sItemKey = zi._sMkKey('Disk', self.sName, oZbxHost._sName(), sN)
-            oItem = oZbxHost._oAddItem(
-                sItemName, sAppName,
-                dParams={'key': sItemKey, 'description': self.dDescriptions[sN]})
-            if sN == 'Serial Number' and self.oTriggers is not None:
-                oLog.debug('Adding change/existance triggers to disk: ' + self.sName)
-                # add trigger for changed SN and for no data
-                self.oTriggers._AddChangeTrigger(oItem, _('Disk serial number is changed'), 'warning')
-                self.oTriggers._AddNoDataTrigger(
-                    oItem, _('Cannot receive disk serial number in two days'), 'warning', NODATA_THRESHOLD)
-            oItem._SendValue(sV, oZbxSender)
+        oLog.debug('IBM_Pwr_Dsk._MkAppsItems, self = ' + str(self))
+        sAppName = self.sName
+        super()._MakeAppsItems(oZbxHost, oZbxSender)
+
+        oTypeItem = oZbxHost._oAddItem(self.sName + " Type", sAppName=sAppName,
+                dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "Type"),
+                         'value_type': 1, 'description': _('Disk type')})
+        oLocationItem = oZbxHost._oAddItem(self.sName + " Location", sAppName=sAppName,
+                dParams={'key': zi._sMkKey(oZbxHost._sName(), self.sName, "Location"),
+                         'value_type': 1, 'description': _('Disk location')})
+        oTypeItem._SendValue(self.dDiskData['type'], oZbxSender)
+        oLocationItem._SendValue(self.dDiskData['location'], oZbxSender)
         return
 
 
@@ -548,10 +532,10 @@ class IBM_DIMM_Module(inv.ComponentClass):
         self.iSize = iSize
         return
 
-    def _ConnectTriggerFactory(self, oTriggersFactory):
-        # oLog.debug('Connecting triggers factory to DIMM {}'.format(self.sName))
-        self.oTriggers = oTriggersFactory
-        return
+#     def _ConnectTriggerFactory(self, oTriggersFactory):
+#         # oLog.debug('Connecting triggers factory to DIMM {}'.format(self.sName))
+#         self.oTriggers = oTriggersFactory
+#         return
 
     def __repr__(self):
         return str('DIMM module: name:{0}, Serial:{1} at HW Loc:{2}'.format(
@@ -585,21 +569,24 @@ class IBM_DIMM_Module(inv.ComponentClass):
                                             'value_type': 3, 'units': 'GB'})
         # oLog.debug('IBM_DIMM_Module._MakeAppsItems: created item is ' + str(oItem))
         oItem._SendValue(self.iSize, oZbxSender)
-
         return
+
 
 if __name__ == '__main__':
     # access for a test system
-    from access import utgard as tsys
+    from access import midgard as tsys
     from access import zabbixAtProtek as zbx
     import pyzabbix.api
     import pyzabbix.sender
+    from serversDisk import oLog as srvLog
 
     # logging setup
     oLog.setLevel(logging.DEBUG)
+    srvLog.setLevel(logging.DEBUG)
     oConHdr = logging.StreamHandler()
     oConHdr.setLevel(logging.DEBUG)
     oLog.addHandler(oConHdr)
+    srvLog.addHandler(oConHdr)
 
     # connect to test server
     oTestHost = PowerHostClass(tsys.name, User=tsys.user, Pass=tsys.passwd, SP_User=tsys.sp_user,
