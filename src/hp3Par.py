@@ -204,11 +204,11 @@ class HP3Par(ClassicArrayClass):
         lCageNames = list(dCages.keys())
         sCmdFmt = 'showcage -i -svc {}'
         lsCmds = [sCmdFmt.format(c) for c in lCageNames]    # a command for each cage
-        # oLog.debug('List of commands: {}'.format(', '.join([str(l)  for l in lsCmds])))
+        oLog.debug('List of commands: {}'.format(', '.join([str(l)  for l in lsCmds])))
         dsCageInv = self.__dsFromArray__(lsCmds)
         for sName, sDrives in dCages.items():
             lInvOut = [l for l in dsCageInv[sCmdFmt.format(sName)].split('\n')]
-            # oLog.debug("__FillDiskEnclosures__: ouput of 'showcage' is :\n" + "\n".join(lInvOut))
+            oLog.debug("__FillDiskEnclosures__: ouput of 'showcage' is :\n" + "\n".join(lInvOut))
             iterCageMP = itertools.dropwhile(lambda x: not(self.reDE_Midplane_Begin.match(x)), lInvOut)
             l = next(iterCageMP)  # skip header line '--- Midplane ---'
             sHdr = next(iterCageMP)  # l = midplane header
@@ -216,7 +216,8 @@ class HP3Par(ClassicArrayClass):
             dFields = _dDataByFormatString(sHdr, sFields)
             sPN = dFields.get('Saleable_PN', '')
             sType = dFields.get('Type', '')
-            sSN = dFields.get('Saleable_SN', '')
+            # sSN = dFields.get('Saleable_SN', '')
+            sSN = dFields.get('Assem_Serial', '')
             sModel = dFields.get('Model_Name', '')
 
             # Power supplies
