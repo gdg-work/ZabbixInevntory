@@ -24,6 +24,7 @@ RE_DOTS = re.compile(r'\.\.+')
 RE_RAM_MODULE = re.compile(r'\s*Memory DIMM:$')
 RE_CPU_TYPE = re.compile(r'^Processor Type:\s(.*)$')
 RE_CPU_FREQ = re.compile(r'^Processor Clock Speed:\s(.*)$')
+RE_DISK_SIZE = re.compile(r'\((\d+) (\w+)\)') # digits and units in ()
 
 
 class expHMC_Error(Exception):
@@ -193,50 +194,119 @@ class PowerHostClass(inv.GenericServer):
             oElem._ConnectTriggerFactory(self.oTriggers)
         return
 
+#    def _FillDisks(self, lsCfgData):
+#        """extract disks information from a list of strings and fills in diskList object"""
+#        iterDiskData = it.dropwhile(lambda x: not RE_HDISK.match(x), lsCfgData)
+#        try:
+#            while True:
+#                sPN = ''                # no P/N on non-local drives
+#                bIsLocal = False        # reset variable
+#                iterDiskData = it.dropwhile(lambda x: not RE_HDISK.match(x), iterDiskData)
+#                # we are at first line of disk's description. Let's parse it.
+#                sL1 = next(iterDiskData).strip()
+#                oLog.debug('_FillDisks: 1st line is {}'.format(sL1))
+#                sDskName, sHWLoc, sDesc = RE_WS.split(sL1, maxsplit=2)
+#                sL = '--------'   # initialize loop variable
+#                bInDiskDescription = False
+#                while not(bInDiskDescription and sL == ''):
+#                    if sL[:13] == 'Serial Number':
+#                        # 'Serial Number...............6XN42PQM':
+#                        sSN = RE_DOTS.split(sL)[1]
+#                        # oLog.debug('Disk {} S/N is {}'.format(sDskName, sSN))
+#                    if sL == '':    # first empty string
+#                        bInDiskDescription = True
+#                    elif sL[:11] == 'Part Number':
+#                        # Part Number.................74Y6486
+#                        sPN = RE_DOTS.split(sL)[1]
+#                        # oLog.debug('Disk {} P/N is {}'.format(sDskName, sPN))
+#                    elif sL[:22] == 'Machine Type and Model':
+#                        # Machine Type and Model......ST9300653SS
+#                        sModel = RE_DOTS.split(sL)[1]
+#                        # oLog.debug('Disk {} MTM is {}'.format(sDskName, sModel))
+#                    elif sL[:22] == 'Hardware Location Code':  # this line finishes the disk description
+#                        bIsLocal = True
+#                        oLog.debug("HW LC line found, end of disk data")
+#                    else:
+#                        # non-interesting line
+#                        pass
+#                    sL = next(iterDiskData).strip()
+#                    # end while not...
+#                # oLog.debug('Disk found: {} at {}, pn {}, sn {}, model {}'.format(
+#                #     sDskName, sHWLoc, sPN, sSN, sModel))
+#
+#                # create Disk object
+#                if bIsLocal:
+#                    self.lDisks.append(IBM_Power_Disk(sDskName, sDesc, sModel, sPN, sSN, sHWLoc))
+#                continue   # out of never-ending While cycle
+#        except StopIteration:
+#            # end of list, no more disks
+#            pass
+#        return
+
     def _FillDisks(self, lsCfgData):
         """extract disks information from a list of strings and fills in diskList object"""
-        iterDiskData = it.dropwhile(lambda x: not RE_HDISK.match(x), lsCfgData)
-        try:
-            while True:
-                sPN = ''                # no P/N on non-local drives
-                bIsLocal = False        # reset variable
-                iterDiskData = it.dropwhile(lambda x: not RE_HDISK.match(x), iterDiskData)
-                # we are at first line of disk's description. Let's parse it.
-                sL1 = next(iterDiskData).strip()
-                oLog.debug('_FillDisks: 1st line is {}'.format(sL1))
-                sDskName, sHWLoc, sDesc = RE_WS.split(sL1, maxsplit=2)
-                sL = '--------'   # initialize loop variable
-                bInDiskDescription = False
-                while not(bInDiskDescription and sL == ''):
+
+        def _oProcessDiskData(sFirstLine,iterData):
+            """Process a single disk description, returns a IBM_Power_Disk object"""
+            dMultipliers = {'MB': 1.0/1024, 'GB': 1, 'TB': 1024}
+            sSN, sPN, sModel = ('', '', '')
+            iSize = 0               # it's not guaranteed this var will be defined
+            sDskName, sHWLoc, sDesc = RE_WS.split(sFirstLine, maxsplit=2)
+            iHwLocLen = len(sHWLoc)
+            # bDiskFinished = False
+            try:
+                while True:
+                    sL = next(iterData).strip()
+                    # oLog.debug(sL)
                     if sL[:13] == 'Serial Number':
                         # 'Serial Number...............6XN42PQM':
                         sSN = RE_DOTS.split(sL)[1]
-                        # oLog.debug('Disk {} S/N is {}'.format(sDskName, sSN))
-                    if sL == '':    # first empty string
-                        bInDiskDescription = True
                     elif sL[:11] == 'Part Number':
                         # Part Number.................74Y6486
                         sPN = RE_DOTS.split(sL)[1]
-                        # oLog.debug('Disk {} P/N is {}'.format(sDskName, sPN))
                     elif sL[:22] == 'Machine Type and Model':
                         # Machine Type and Model......ST9300653SS
                         sModel = RE_DOTS.split(sL)[1]
-                        # oLog.debug('Disk {} MTM is {}'.format(sDskName, sModel))
-                    elif sL[:22] == 'Hardware Location Code':  # this line finishes the disk description
-                        bIsLocal = True
-                        oLog.debug("HW LC line found, end of disk data")
+                    elif sL[:22] == 'Hardware Location Code' and sL[-iHwLocLen:] == sHWLoc:
+                        # Line beginning with HLC and ending with code from header
+                        # oLog.debug("HW LC line found, end of disk data")
+                        break
+                    elif sL == '':    # skip empty strings
+                        pass
                     else:
                         # non-interesting line
                         pass
-                    sL = next(iterDiskData).strip()
                     # end while not...
-                # oLog.debug('Disk found: {} at {}, pn {}, sn {}, model {}'.format(
-                #     sDskName, sHWLoc, sPN, sSN, sModel))
+            except StopIteration:
+                # we're out of the cycle already
+                pass
 
-                # create Disk object
-                if bIsLocal:
-                    self.lDisks.append(IBM_Power_Disk(sDskName, sDesc, sModel, sPN, sSN, sHWLoc))
-                continue   # out of never-ending While cycle
+            # extract size from description string (in parentnesis) and convert it to GBs
+            oSizeMatch = RE_DISK_SIZE.search(sDesc)
+            if oSizeMatch:
+                sSizeUnits = oSizeMatch.group(2).upper()
+                iSize = int(float(oSizeMatch.group(1)) * dMultipliers.get(sSizeUnits,0))
+
+            oLog.debug('Disk found: {} at {}, pn {}, sn {}, size {}, model {}'.format(
+                 sDskName, sHWLoc, sPN, sSN, iSize, sModel))
+
+            # create Disk object
+            return(IBM_Power_Disk(sDskName, sDesc, sModel, sPN, sSN, iSize, sHWLoc))
+
+
+        # body of main function
+        iterDiskData = it.dropwhile(lambda x: not RE_HDISK.match(x), lsCfgData)
+        try:
+            while True:
+                iterDiskData = it.dropwhile(lambda x: not RE_HDISK.match(x), iterDiskData)
+                # we are at first line of disk's description. Let's parse it.
+                sL1 = next(iterDiskData).strip()
+                # oLog.debug('_FillDisks: 1st line is {}'.format(sL1))
+                # process disk description and move pointer of iterator
+                oDisk = _oProcessDiskData(sL1, iterDiskData)
+                if oDisk:
+                    self.lDisks.append(oDisk)
+
         except StopIteration:
             # end of list, no more disks
             pass
@@ -416,11 +486,6 @@ class IBM_Power_Adapter(inv.ComponentClass):
         self.oTriggers = None
         return
 
-#     def _ConnectTriggerFactory(self, oTriggersFactory):
-#         # oLog.debug('Connecting triggers factory to Adapter {}'.format(self.sName))
-#         self.oTriggers = oTriggersFactory
-#         return
-
     def __repr__(self):
         return str('Adapter: type:{0}, Bus ID:{1}, location:{2}'.format(
             self.sName, self.sBusID, self.sLocation))
@@ -464,6 +529,12 @@ class IBM_Power_Disk(Disk_Drive):
         oLog.warning("IBM_Power_Disk.init: self.dDiskData=" + str(self.dDiskData))
         return
 
+    def __repr__(self):
+        sOut = super().__repr__()
+        sOut += " Type: {}, HW location: {}".format(
+                self.dDiskData['type'], self.dDiskData['location'])
+        return sOut
+
     def _MakeAppsItems(self, oZbxHost, oZbxSender):
         oLog.debug('IBM_Pwr_Dsk._MkAppsItems, self = ' + str(self))
         sAppName = self.sName
@@ -491,11 +562,6 @@ class IBM_Power_Supply(inv.ComponentClass):
         self.dData = {'Part Number': sPN,
                       'Serial Number': sSN,
                       'HW Location': sHWLoc}
-        return
-
-    def _ConnectTriggerFactory(self, oTriggersFactory):
-        # oLog.debug('Connecting triggers factory to Power Supply {}'.format(self.sName))
-        self.oTriggers = oTriggersFactory
         return
 
     def _MakeAppsItems(self, oZbxHost, oZbxSender):
@@ -532,11 +598,6 @@ class IBM_DIMM_Module(inv.ComponentClass):
                          'HW Location': sHWLoc}
         self.iSize = iSize
         return
-
-#     def _ConnectTriggerFactory(self, oTriggersFactory):
-#         # oLog.debug('Connecting triggers factory to DIMM {}'.format(self.sName))
-#         self.oTriggers = oTriggersFactory
-#         return
 
     def __repr__(self):
         return str('DIMM module: name:{0}, Serial:{1} at HW Loc:{2}'.format(
