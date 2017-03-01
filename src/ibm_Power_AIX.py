@@ -17,7 +17,7 @@ import re
 oLog = logging.getLogger(__name__)
 
 DEFAULT_SSH_PORT = 22
-RE_HDISK = re.compile(r'^\s*hdisk\d+\s')
+RE_HDISK = re.compile(r'^\s*[hp]disk\d+\s.*Drive')
 RE_PWRSUPPLY = re.compile(r'^\s*A IBM AC PS\s*:$')
 RE_WS = re.compile(r'\s+')
 RE_DOTS = re.compile(r'\.\.+')
