@@ -203,7 +203,7 @@ class PowerHostClass(inv.GenericServer):
                 iterDiskData = it.dropwhile(lambda x: not RE_HDISK.match(x), iterDiskData)
                 # we are at first line of disk's description. Let's parse it.
                 sL1 = next(iterDiskData).strip()
-                # oLog.debug('_FillDisks: 1st line is {}'.format(sL1))
+                oLog.debug('_FillDisks: 1st line is {}'.format(sL1))
                 sDskName, sHWLoc, sDesc = RE_WS.split(sL1, maxsplit=2)
                 sL = '--------'   # initialize loop variable
                 bInDiskDescription = False
@@ -224,6 +224,7 @@ class PowerHostClass(inv.GenericServer):
                         # oLog.debug('Disk {} MTM is {}'.format(sDskName, sModel))
                     elif sL[:22] == 'Hardware Location Code':  # this line finishes the disk description
                         bIsLocal = True
+                        oLog.debug("HW LC line found, end of disk data")
                     else:
                         # non-interesting line
                         pass
