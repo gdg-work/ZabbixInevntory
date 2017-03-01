@@ -64,7 +64,7 @@ class Disk_Drive(inv.ComponentClass):
         oLog.debug('SN item: ' + str(oSN_Item))
         oLog.debug('Serial number item: ' + oSN_Item.name + " host: " + oSN_Item.host.name)
         if self.dDiskData.get('size', 0) != 0:
-            oSize_Item = oZbxHost._oAddItem(self.sName + "Size", sAppName=self.sName,
+            oSize_Item = oZbxHost._oAddItem(self.sName + " Size", sAppName=self.sName,
                 dParams={'key': _sKey("Size"), 'value_type': 3, 'units': 'GB',
                          'description': _('Disk capacity in GB')})
             oSize_Item._SendValue(self.dDiskData['size'], oZbxSender)
