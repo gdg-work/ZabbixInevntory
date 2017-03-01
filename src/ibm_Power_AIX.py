@@ -521,12 +521,12 @@ class IBM_Power_Adapter(inv.ComponentClass):
 
 class IBM_Power_Disk(Disk_Drive):
     """A disk drive of Power server, inherited from Server_Disk and modified"""
-    def __init__(self, sName, sType, sModel, sPN, sSN, sLoc):
+    def __init__(self, sName, sType, sModel, sPN, sSN, iSize, sLoc):
         sName = "Disk " + sName
-        super().__init__(sName, sModel, sPN, sSN, iSizeGB=0)
+        super().__init__(sName, sModel, sPN, sSN, iSizeGB=iSize)
         self.dDiskData['type'] = sType
         self.dDiskData['location'] = sLoc
-        oLog.warning("IBM_Power_Disk.init: self.dDiskData=" + str(self.dDiskData))
+        # oLog.warning("IBM_Power_Disk.init: self.dDiskData=" + str(self.dDiskData))
         return
 
     def __repr__(self):
