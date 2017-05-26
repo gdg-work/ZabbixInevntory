@@ -11,7 +11,7 @@ place given for this component in the system.  For example: "1:Disk:2:10".
 """
 
 import inventoryObjects as inv
-from local import XCLI_PATH, REDIS_ENCODING
+from local import XCLI_PATH, REDIS_ENCODING, CACHE_TIME 
 from subprocess import check_output, CalledProcessError, STDOUT
 # from redis import StrictRedis
 import csv
@@ -141,7 +141,7 @@ class IBM_XIV_Storage(inv.ScaleOutStorageClass):
                 # oLog.debug('Will run: {}'.format('_'.join(lCommand)))
                 sLine = check_output(lCommand, stderr=STDOUT, universal_newlines=True, shell=False)
                 # DBG
-                self.oRedisDB.set(sRedisKey, sLine.encode(REDIS_ENCODING))
+                self.oRedisDB.set(sRedisKey, sLine.encode(REDIS_ENCODING), CACHE_TIME)
             except CalledProcessError as e:
                 sLine = e.output
                 oLog.error('Non-zero return code from XCli!')

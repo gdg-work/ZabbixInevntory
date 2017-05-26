@@ -243,7 +243,7 @@ class HP_EVA_Class(ClassicArrayClass):
         oSoup = bs4.BeautifulSoup(self.oRedisConnection.get(REDIS_KEY), 'xml')
         if not oSoup:
             sResult = self.oEvaConnection._sRunCommand("ls controller full xml", "\n")
-            self.oRedisConnection.set(REDIS_KEY, sResult)
+            self.oRedisConnection.set(REDIS_KEY, sResult, CACHE_TIME)
             iFirstTagPos = sResult.find('<')
             sResult = sResult[iFirstTagPos - 1:]
             oSoup = bs4.BeautifulSoup(sResult, 'xml')
@@ -540,6 +540,7 @@ class HP_EVA_Class(ClassicArrayClass):
             for sID, oSoup in self.dDiskByID.items():
                 # store disk soups in a hash structure in Redis to avoid recursion depth problems
                 self.oRedisConnection.hset(sKey, sID, oSoup.encode(REDIS_ENCODING))
+            self.oRedisConnection.expire(sKey, CACHE_TIME)
             self.oRedisConnection.set(
                 REDIS_KEY_FORMAT.format("dDiskID_ByName"),
                 pickle.dumps(self.dDiskByName), CACHE_TIME)
@@ -559,7 +560,7 @@ class HP_EVA_Class(ClassicArrayClass):
             sXMLOut = self.oEvaConnection._sRunCommand('ls diskshelf full xml')
             sXMLOut = '<diskShelves> ' + sXMLOut + ' </diskShelves>'
             oSoup = bs4.BeautifulSoup(sXMLOut, "xml")
-            self.oRedisConnection.set(REDIS_KEY, oSoup.encode(REDIS_ENCODING))
+            self.oRedisConnection.set(REDIS_KEY, oSoup.encode(REDIS_ENCODING), CACHE_TIME)
         for oShelf in oSoup.find_all(name='object'):
             sShelfName = oShelf.find('diskshelfname').string
             self.dDiskShelves[sShelfName] = EVA_DiskShelfClass(sShelfName, oShelf, self)
@@ -577,7 +578,7 @@ class HP_EVA_Class(ClassicArrayClass):
             sXMLOut = self.oEvaConnection._sRunCommand('ls controller full xml')
             sXMLOut = '<EVAControllers> ' + sXMLOut + ' </EVAControllers>'
             oSoup = bs4.BeautifulSoup(sXMLOut, "xml")
-            self.oRedisConnection.set(REDIS_KEY, oSoup.encode(REDIS_ENCODING))
+            self.oRedisConnection.set(REDIS_KEY, oSoup.encode(REDIS_ENCODING), CACHE_TIME)
         for oCtrl in oSoup.find_all(name='object'):
             sCtrlName = oCtrl.find('controllername').string
             self.dControllers[sCtrlName] = EVA_ControllerClass(sCtrlName, oCtrl, self)
