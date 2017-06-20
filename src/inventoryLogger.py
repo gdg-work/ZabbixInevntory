@@ -30,53 +30,56 @@ dLoggingConfig = yaml.load("""
         backupCount: 12 
     root:
         level: INFO
-        handlers: [ console, logfile ]
+        handlers: [console, logfile ]
     loggers:
         __main__:
             level: INFO
-            handlers: [ console, logfile ]
+            handlers: [console, logfile]
         hp3Par:
             level: INFO
-            handlers: [ console, logfile ]
+            handlers: [console, logfile]
         hpeva_sssu:
             level: INFO
-            handlers: [ console, logfile ]
+            handlers: [console, logfile]
         ibm_FlashSystem_SW:
             level: INFO
-            handlers: [ console, logfile ]
+            handlers: [console, logfile]
         ibm_FAStT:
             level: INFO
-            handlers: [ console, logfile ]
+            handlers: [console, logfile]
         zabbixInterface:
             level: INFO
-            handlers: [ console, logfile ]
+            handlers: [console, logfile]
         Discovery:
             level: INFO
-            handlers: [ console, logfile ]
+            handlers: [console, logfile]
         Srv.Discovery:
             level: DEBUG
-            handlers: [ console, logfile ]
+            handlers: [console, logfile]
         Servers_Feed_Data:
             level: DEBUG
-            handlers: [ console, logfile ]
+            handlers: [console, logfile]
         ibm_Power_AIX:
             level: INFO
-            handlers: [ console, logfile ]
+            handlers: [console, logfile]
         ibm_BladeCenter_AMM:
             level: INFO
-            handlers: [ console, logfile ]
+            handlers: [console, logfile]
         FeedData:
             level: INFO
-            handlers: [ console, logfile ]
+            handlers: [console, logfile]
         MySSH:
             level: INFO
-            handlers: [ console, logfile ]
+            handlers: [console, logfile]
         WBEM_vmware:
             level: INFO
-            hadnlers: [console, logfile ]
+            hadnlers: [console, logfile]
+        IPMIhost:
+            level: DEBUG
+            handlers: [console, logfile]
         ESXi_WBEM_host:
             level: DEBUG
-            hadnlers: [console, logfile ]
+            hadnlers: [console, logfile]
         serversDisk:
             level: DEBUG
             handlers: [console, logfile]

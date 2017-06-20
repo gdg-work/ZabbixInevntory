@@ -43,6 +43,7 @@ class IPMIhost:
         self.sCmdTemplate = "{0} -H {1} -U {2} -P {3} -L USER ".format(IPMI_TOOL, sBmcHost, sUser, sPass)
         self.sCmdTemplate += "{}"
         lFruCmd = self.sCmdTemplate.format("fru").split(' ')
+        self.bDataReceived = False
         # print(lFruCmd)
 
         try:
@@ -51,34 +52,43 @@ class IPMIhost:
         except CalledProcessError as e:
             if sData:
                 oLog.debug("Standart output: " + sData)
+                self.bDataReceived = True
             else:
                 # oLog.error("Command output: " + e.output)
                 sOut = e.output
                 if "Address lookup for" in sOut and "failed" in sOut:
                     oLog.error("Error calling IPMIutil ({})".format(str(e)))
                     oLog.error("Command output: " + e.output)
-                    raise e
+                    self.bDataReceived = False
+                elif "Invalid user name" in sOut and "Error:" in sOut:
+                    oLog.error('Access to IPMI of hostname "{0}" is not authorized'.format(sBmcHost))
+                    oLog.error("Command output: " + e.output)
+                    self.bDataReceived = False
                 elif "FRU" in sOut:
                     oLog.info("Non-zero return status from IPMItool")
                     sData = e.output
+                    self.bDataReceived = True
                 else:
                     oLog.error("Error calling IPMIutil ({})".format(str(e)))
                     oLog.error("Command output: " + e.output)
-                    raise e
+                    self.bDataReceived = False
 
         # ========== debug
         # with open('/tmp/fru.out', 'r') as fIn:
         #     sData = fIn.read()
         # ---------- end debug
 
-        lDeviceDescriptions = sData.split("\n\n")
-        for sDesc in lDeviceDescriptions:
-            if self.__bHasData(sDesc):
-                if self.__enClassifyFRU(sDesc) is FruTypeEnum.MEMORY:
-                    self.lFruList.append(IpmiMemoryFRU(sDesc))
-                else:
-                    # no other devices yet
-                    pass
+        if self.bDataReceived:
+            lDeviceDescriptions = sData.split("\n\n")
+            for sDesc in lDeviceDescriptions:
+                if self.__bHasData(sDesc):
+                    if self.__enClassifyFRU(sDesc) is FruTypeEnum.MEMORY:
+                        self.lFruList.append(IpmiMemoryFRU(sDesc))
+                    else:
+                        # no other devices yet
+                        pass
+        else:
+            oLog.info('No data received from ipmitool on host "{}"'.format(sBmcHost))
         return
 
     def __bHasData(self, sDesc):
@@ -113,8 +123,11 @@ class IpmiFRU:
         lDescLines = sDesc.split("\n")
         self.sDevName = lDescLines[0].split(':')[1].strip()
         for sLine in lDescLines[1:]:
-            sName, sValue = [StripWSNulls(a) for a in sLine.split(':')]
-            self.dData[sName] = sValue
+            if ':' in sLine:
+                sName, sValue = [StripWSNulls(a) for a in sLine.split(':')]
+                self.dData[sName] = sValue
+            else:
+                pass     # skip lines not containing ':' (error messages etc)
         # now select interesting fields from dData and store these fields in the object
         self.dAttrs = {}
         self.dAttrs['pn'] = self.dData.get('Part Number')
@@ -171,7 +184,7 @@ if __name__ == '__main__':
     oConHdr.setLevel(logging.DEBUG)
     oLog.addHandler(oConHdr)
 
-    from access import vmexch02mgt as tsrv
+    from access import vmsrv013mgt as tsrv
     oTest = IPMIhost(tsrv.ip, tsrv.user, tsrv.pwd)
     for sAttr in ['pn', 'sn', 'type', 'capacity']:
         print([a.dAttrs[sAttr] for a in oTest._loFruList()])

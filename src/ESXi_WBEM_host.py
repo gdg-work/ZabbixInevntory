@@ -265,7 +265,7 @@ class ESXi_WBEM_Host(inv.GenericServer):
             oHBA.sWWN = dHBA_Data.get('wwn', '')
             # print(oHBA)
             self.loHBA_List.append(oHBA)
-        oLog.info('HBAs list:\n{}'.format(str(self.loHBA_List)))
+        oLog.debug('HBAs list:\n{}'.format(str(self.loHBA_List)))
         return
 
     def _Connect2Zabbix(self, oAPI, oSender):
